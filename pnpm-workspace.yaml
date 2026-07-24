@@ -1,0 +1,9 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+  - "tests"
+
+# Native postinstall scripts allowed to run (pnpm blocks these by default).
+# esbuild ships a platform binary needed by Vitest and tsx.
+allowBuilds:
+  esbuild: true

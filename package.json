@@ -1,0 +1,42 @@
+{
+  "name": "al-riwayah",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AL RIWAYAH (الرواية) — local multiplayer party game + marketing site",
+  "packageManager": "pnpm@11.17.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "pnpm -r --filter=./packages/* build && pnpm --filter @al-riwayah/server build && pnpm --filter @al-riwayah/web build",
+    "build:packages": "pnpm -r --filter=./packages/* build",
+    "dev": "pnpm --parallel --filter @al-riwayah/web --filter @al-riwayah/server dev",
+    "dev:web": "pnpm --filter @al-riwayah/web dev",
+    "dev:server": "pnpm --filter @al-riwayah/server dev",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "pnpm -r typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:integration": "vitest run --project integration",
+    "test:security": "vitest run --project security",
+    "test:e2e": "playwright test",
+    "test:visual": "playwright test --project=visual",
+    "clean": "pnpm -r exec rimraf dist .next .turbo *.tsbuildinfo"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "@types/node": "^22.10.0",
+    "@vitest/coverage-v8": "^4.1.10",
+    "eslint": "^9.39.0",
+    "eslint-config-prettier": "^10.0.0",
+    "prettier": "^3.9.0",
+    "rimraf": "^6.0.1",
+    "tsx": "^4.23.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.65.0",
+    "vitest": "^4.1.10"
+  }
+}

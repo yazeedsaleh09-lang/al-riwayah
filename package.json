@@ -27,6 +27,7 @@
     "clean": "pnpm -r exec rimraf dist .next .turbo *.tsbuildinfo"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.10.0",
     "@eslint/js": "^9.39.0",
     "@playwright/test": "^1.61.0",
     "@types/node": "^22.10.0",

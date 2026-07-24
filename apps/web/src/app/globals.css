@@ -20,7 +20,8 @@
 
   --bg: var(--paper-50);
   --fg: var(--ink-950);
-  --muted: var(--metal-500);
+  /* Darker than metal-500 so secondary text clears WCAG AA (4.5:1) on paper. */
+  --muted: #5c5a53;
   --line: rgba(11, 11, 10, 0.14);
   --card: #fbf9f3;
 

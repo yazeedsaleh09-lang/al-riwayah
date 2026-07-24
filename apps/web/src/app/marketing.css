@@ -137,7 +137,8 @@
   opacity: 0.85;
 }
 .ticker__item .ts {
-  color: var(--evidence-600);
+  /* Lighter red for AA contrast on the ink-950 ticker background. */
+  color: #f0727a;
 }
 @keyframes ticker {
   from {

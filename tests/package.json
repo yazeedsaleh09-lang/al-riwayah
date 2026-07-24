@@ -1,0 +1,19 @@
+{
+  "name": "@al-riwayah/tests",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@al-riwayah/content": "workspace:*",
+    "@al-riwayah/game-engine": "workspace:*",
+    "@al-riwayah/protocol": "workspace:*",
+    "@al-riwayah/server": "workspace:*"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.0",
+    "typescript": "~5.9.3"
+  }
+}

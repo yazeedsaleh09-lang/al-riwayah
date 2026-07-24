@@ -1,0 +1,28 @@
+{
+  "players": [
+    {
+      "id": "player_a",
+      "displayName": "لاعب أ"
+    },
+    {
+      "id": "player_b",
+      "displayName": "لاعب ب"
+    },
+    {
+      "id": "player_c",
+      "displayName": "لاعب ج"
+    },
+    {
+      "id": "player_d",
+      "displayName": "لاعب د"
+    },
+    {
+      "id": "player_e",
+      "displayName": "لاعب هـ"
+    },
+    {
+      "id": "player_f",
+      "displayName": "لاعب و"
+    }
+  ]
+}

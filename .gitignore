@@ -1,0 +1,81 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.p12
+*.crt
+secrets/
+private/
+
+# Dependencies/build
+node_modules/
+.pnpm-store/
+.next/
+out/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# Logs/crashes
+*.log
+logs/
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.pid
+*.pid.lock
+crash-dumps/
+
+# Room/session/private playtest data
+room-dumps/
+session-dumps/
+telemetry/raw/
+playtests/private/
+playtests/recordings/
+playtests/real-participants/
+screenshots/private/
+
+# Databases/caches
+*.sqlite
+*.sqlite3
+*.db
+.redis/
+.cache/
+.turbo/
+.eslintcache
+
+# Browser/QA artifacts
+playwright-report/
+test-results/
+blob-report/
+traces/
+videos/
+screenshots/tmp/
+artifacts/
+.lighthouseci/
+
+# IDE/OS
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.example.json
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local deployment
+.vercel/
+.netlify/
+.render/
+docker-compose.override.yml
+
+# Temporary
+tmp/
+temp/
+*.tmp
+*.swp

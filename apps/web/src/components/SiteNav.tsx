@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Wordmark } from "./Wordmark";
+import { PreferenceControls } from "./PreferenceControls";
 import { NAV_LINKS } from "@/lib/site";
 
 export function SiteNav() {
@@ -17,6 +18,7 @@ export function SiteNav() {
               {l.label}
             </Link>
           ))}
+          <PreferenceControls />
           <Link className="btn btn--evidence site-nav__cta" href="/create">
             أنشئ غرفة
           </Link>

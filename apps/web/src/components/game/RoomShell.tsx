@@ -1,11 +1,23 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { getCase } from "@al-riwayah/content";
 import type { GameCase } from "@al-riwayah/game-engine";
 import { useGameRoom } from "@/lib/useGameRoom";
 import { DeadlineRing } from "./DeadlineRing";
+import { PreferenceControls } from "../PreferenceControls";
+import { playCue, type Cue } from "@/lib/sound";
+
+const PHASE_CUE: Record<string, Cue> = {
+  PRIVATE_EVIDENCE: "evidence",
+  CONTRADICTION_REVEAL_1: "contradiction",
+  CONTRADICTION_REVEAL_2: "contradiction",
+  PATCH_1: "patch",
+  PATCH_2: "patch",
+  SURPRISE_EVIDENCE: "evidence",
+  VERDICT: "verdict",
+};
 
 const INTERROGATION = new Set([
   "INTERROGATION_FOUNDATION",
@@ -19,6 +31,16 @@ export function RoomShell({ code }: { code: string }) {
   const { pub, priv, connected, fatal, actions } = useGameRoom(code);
   const [busy, setBusy] = useState(false);
   const gameCase = useMemo<GameCase | undefined>(() => (pub ? getCase(pub.caseId) : undefined), [pub]);
+  const lastPhase = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!pub) return;
+    if (lastPhase.current !== null && lastPhase.current !== pub.phase) {
+      const cue = PHASE_CUE[pub.phase];
+      if (cue) playCue(cue);
+    }
+    lastPhase.current = pub.phase;
+  }, [pub]);
 
   if (fatal === "NO_SESSION") {
     return (
@@ -73,7 +95,10 @@ export function RoomShell({ code }: { code: string }) {
 
       <div className="game__top">
         <span className="game__phase">{phaseTitle(phase)}</span>
-        <DeadlineRing deadlineAt={pub.deadlineAt} serverTime={pub.serverTime} />
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+          <PreferenceControls compact />
+          <DeadlineRing deadlineAt={pub.deadlineAt} serverTime={pub.serverTime} />
+        </div>
       </div>
 
       {INTERROGATION.has(phase) && (

@@ -2,10 +2,10 @@
 
 ## Current state
 
-- Current phase: Phase 3 — Authoritative multiplayer server (in progress)
+- Current phase: Phase 6–7 — polish + comprehensive QA (in progress)
 - Last update: 2026-07-24
 - Branch: master
-- Implementation status: monorepo scaffolded; deterministic game engine + first case complete and tested
+- Implementation status: engine + content + server + full web app (marketing + game shell) built, tested, and building
 - Product specification: Complete initial version
 - Human playtests completed: 0
 
@@ -29,13 +29,29 @@
     8 no-good / 6 witness questions, 7 contradiction rules across all categories, 5 patches,
     plausibility rules, verdict bands) + content validator + CLI.
 
+- **Phase 3** — `packages/protocol` (Zod intent schemas, safe errors, envelopes) +
+  `apps/server` (RoomManager: rooms/codes/join/ready/start, injectable clock, deadlines,
+  reconnect + host transfer, replay/newGroup, rate limiting, idempotency, TTL cleanup,
+  redacted views, log redaction) + socket.io gateway + Fastify health.
+- **Phase 4 + 5** — `apps/web` (Next.js 16, React 19, RTL Arabic):
+  - Marketing site: home (13 sections incl. interactive contradiction demo, ticker,
+    patch cards, results axes, FAQ), /how-to-play, /cases (honest available/in-dev),
+    /create, /play, /privacy, /terms, 404, error boundary, sitemap/robots/manifest/icon,
+    full SEO metadata + JSON-LD. Original SVG "evidence board", editorial dossier design system.
+  - Game shell: socket client + `useGameRoom` hook + `RoomShell` rendering all 19 phases
+    (lobby, brief, private evidence, staged planning, interrogation, reveals, patch voting,
+    surprise evidence, verdict/results, replay), deadline ring, reconnect overlay.
+  - Verified live: `next build` (13 routes), create→lobby flow against the running server,
+    no console errors, home renders fully at 375px.
+
 ## In progress
 
-- Phase 3 — Fastify + Socket.IO authoritative server (rooms, protocol, redaction, reconnect).
+- Phase 6–7 — motion/sound preference controls, Playwright E2E, responsive visual pass,
+  accessibility smoke, performance checks.
 
 ## Not started
 
-- Phase 4 (mobile game shell), Phase 5 (marketing site), Phases 6–9 (polish, QA, deploy, playtest).
+- Phases 8–9 (deploy, human playtest) — blocked on external credentials + participants.
 
 ## Evidence table
 

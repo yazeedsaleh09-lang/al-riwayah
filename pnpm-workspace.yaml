@@ -7,3 +7,5 @@ packages:
 # esbuild ships a platform binary needed by Vitest and tsx.
 allowBuilds:
   esbuild: true
+  # sharp is Next's optional image optimizer; unused (we ship inline SVG).
+  sharp: false

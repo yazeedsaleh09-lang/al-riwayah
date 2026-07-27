@@ -9,7 +9,7 @@ import { NAV_LINKS } from "@/lib/site";
 export function SiteNav() {
   const [open, setOpen] = useState(false);
   return (
-    <header className="site-nav">
+    <header className="site-nav" id="top">
       <div className="container site-nav__row">
         <Wordmark />
         <nav aria-label="التنقل الرئيسي" className="site-nav__desktop">
@@ -40,6 +40,7 @@ export function SiteNav() {
               {l.label}
             </Link>
           ))}
+          <PreferenceControls />
           <Link className="btn btn--evidence btn--full" href="/play" onClick={() => setOpen(false)}>
             ادخل برمز
           </Link>

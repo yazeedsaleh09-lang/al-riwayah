@@ -66,6 +66,8 @@ export interface MatchState {
   phaseRevision: number;
   /** Absolute deadline in ms (server clock). Null when phase has no timer. */
   deadlineAt: number | null;
+  /** Server-configured multiplier used by automated realtime playtests. */
+  phaseDurationScale: number;
   players: PlayerState[];
   /** Locked shared-story facts, normalized. Keys are fact tags. */
   sharedStory: Record<string, string>;

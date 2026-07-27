@@ -13,7 +13,7 @@
     "@al-riwayah/content": "workspace:*",
     "@al-riwayah/game-engine": "workspace:*",
     "@al-riwayah/protocol": "workspace:*",
-    "next": "^16.2.0",
+    "next": "^16.2.12",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "socket.io-client": "^4.8.0"

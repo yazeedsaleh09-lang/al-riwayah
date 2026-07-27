@@ -9,12 +9,13 @@
  * The authoritative MatchState is never serialized directly.
  */
 import type { PhaseId } from "./phases";
-import type { GameCase, ScoreAxis } from "./case-types";
+import type { GameCase, PatchDefinition, ScoreAxis } from "./case-types";
 import type { MatchState, VerdictResult } from "./match-types";
 import type { LocalizedText } from "./i18n";
 import { fillLocalized } from "./i18n";
 import { currentReleasedContradiction } from "./match";
 import { applicablePatches } from "./patches";
+import { contradictionKey } from "./contradictions";
 
 export interface PublicPlayer {
   id: string;
@@ -59,6 +60,9 @@ export interface PublicResult {
   composite: number;
   scores: Record<ScoreAxis, number>;
   decisiveFactors: LocalizedText[];
+  firstFracture: LocalizedText | null;
+  strongestPatch: LocalizedText | null;
+  costliestPatch: LocalizedText | null;
   mostConsistentPlayerName: string | null;
   primarySuspectPlayerName: string | null;
 }
@@ -169,9 +173,12 @@ export function toPublicView(
       const filledParams = { ...c.params, ...names };
       releasedContradiction = {
         category: c.category,
-        statementA: fillLocalized(c.explanation, filledParams),
-        statementB: { ar: "" },
-        rule: fillLocalized(c.explanation, filledParams),
+        statementA: fillLocalized(c.statementA ?? c.explanation, filledParams),
+        statementB: fillLocalized(
+          c.statementB ?? { ar: "الشهادة المقابلة أو الدليل ما يطابق هذا القول." },
+          filledParams,
+        ),
+        rule: fillLocalized(c.rule ?? c.explanation, filledParams),
         involvedPlayerNames: playerNames(state, c.involvedPlayers),
       };
     }
@@ -198,6 +205,18 @@ export function toPublicView(
   let result: PublicResult | null = null;
   if ((state.phase === "VERDICT" || state.phase === "RESULTS") && state.verdict) {
     const v = state.verdict;
+    const releasedFirst = state.releasedContradictionIds[0];
+    const firstFracture = releasedFirst
+      ? state.detectedContradictions.find((item) => contradictionKey(item) === releasedFirst)
+      : undefined;
+    const selectedPatchDefinitions = state.selectedPatches
+      .map((selected) => gameCase.patches.find((patch) => patch.id === selected.patchId))
+      .filter((patch): patch is PatchDefinition => patch !== undefined);
+    const patchCost = (patch: PatchDefinition) =>
+      Object.values(patch.scoreEffects).reduce((total, delta) => total + Math.abs(delta ?? 0), 0);
+    const rankedPatches = selectedPatchDefinitions
+      .slice()
+      .sort((a, b) => patchCost(a) - patchCost(b));
     result = {
       band: v.band,
       label: v.label,
@@ -205,6 +224,9 @@ export function toPublicView(
       composite: v.composite,
       scores: v.scores,
       decisiveFactors: v.decisiveFactors,
+      firstFracture: firstFracture?.explanation ?? null,
+      strongestPatch: rankedPatches[0]?.publicLabel ?? null,
+      costliestPatch: rankedPatches.at(-1)?.publicLabel ?? null,
       mostConsistentPlayerName: v.mostConsistentPlayerId
         ? (state.players.find((p) => p.id === v.mostConsistentPlayerId)?.name ?? null)
         : null,

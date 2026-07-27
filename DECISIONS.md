@@ -105,3 +105,52 @@
 - Status: Accepted
 - Domain: Product/UX
 - Decision: Arabic Saudi-friendly game copy; architecture prepared for English.
+
+## ADR-012 — Review build is ephemeral and single-process
+
+- Status: Accepted (2026-07-27)
+- Domain: Architecture / Privacy
+- Decision: Rooms and recovery sessions remain in memory for the friends-playtest build.
+- Reason: It collects no accounts or durable private answers, keeps the trust boundary
+  small, and meets one local group per process.
+- Impact: A server restart closes active rooms; horizontal scaling requires sticky
+  sessions plus an audited shared room store.
+
+## ADR-013 — Production server executes TypeScript through pinned `tsx`
+
+- Status: Accepted (2026-07-27)
+- Domain: Operations
+- Decision: `@al-riwayah/server start` runs `tsx src/main.ts`.
+- Reason: emitted ESM imports are workspace-relative and were not directly runnable by
+  Node without a package rewrite; the pinned runtime is already used for development
+  and preserves the tested workspace graph.
+- Re-evaluate: when packages publish compiled ESM with explicit runtime exports.
+
+## ADR-014 — Isolated browser test ports and authoritative multi-client matrix
+
+- Status: Accepted (2026-07-27)
+- Domain: QA
+- Decision: Playwright owns web port 3100 and server port 4100 by default and creates
+  independent browser contexts for 4/5/6 players.
+- Reason: avoids accidentally reusing unrelated port-3000 processes and exercises the
+  actual socket/recovery/browser storage boundaries.
+
+## ADR-015 — Origin-derived invite links
+
+- Status: Accepted (2026-07-27)
+- Domain: UX / LAN
+- Decision: Lobby invite URLs use `window.location.origin` plus `/join?code=…`.
+- Reason: a phone must receive the reachable LAN or hosted origin, never the host's
+  loopback address. Native share is preferred; clipboard is the fallback.
+
+## ADR-016 — Security-patched transitive image/CSS processors
+
+- Status: Accepted (2026-07-27)
+- Domain: Supply chain
+- Decision: update Next to `^16.2.12` and pin workspace overrides for PostCSS
+  `8.5.23` and sharp `0.35.3`.
+- Reason: the production audit found disclosed file-read/XSS issues in the transitive
+  versions selected by Next. Both overrides are backward-compatible patch lines and
+  remove the advisories without adding a new runtime capability.
+- Re-evaluate: remove overrides when Next's own dependency ranges resolve to patched
+  versions; keep `pnpm audit --prod` in the release gate.

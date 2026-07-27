@@ -87,15 +87,19 @@ export interface RoomManagerOptions {
   ttlMs?: number;
   maxLifetimeMs?: number;
   logger?: Logger;
+  phaseDurationScale?: number;
 }
 
 export class RoomManager {
   private rooms = new Map<string, Room>();
+  /** Short-lived tombstones let joiners distinguish an expired code from a typo. */
+  private expiredCodes = new Map<string, number>();
   private now: () => number;
   private ttlMs: number;
   private maxLifetimeMs: number;
   private limiter: RateLimiter;
   private log: Logger;
+  private phaseDurationScale: number;
 
   constructor(opts: RoomManagerOptions = {}) {
     this.now = opts.now ?? Date.now;
@@ -103,6 +107,7 @@ export class RoomManager {
     this.maxLifetimeMs = opts.maxLifetimeMs ?? 2 * 60 * 60 * 1000;
     this.limiter = new RateLimiter(this.now);
     this.log = opts.logger ?? createLogger();
+    this.phaseDurationScale = opts.phaseDurationScale ?? 1;
   }
 
   // --- helpers ---
@@ -217,7 +222,11 @@ export class RoomManager {
   joinRoom(params: { code: string; name: string; ip: string }): ManagerResult<CreateResult> {
     if (!this.limiter.check("join", params.ip)) return this.err("RATE_LIMITED");
     const room = this.getRoom(params.code);
-    if (!room || room.status === "expired") return this.err("ROOM_NOT_FOUND");
+    if (!room) {
+      const tombstoneUntil = this.expiredCodes.get(params.code.toUpperCase());
+      return this.err(tombstoneUntil && tombstoneUntil > this.now() ? "ROOM_EXPIRED" : "ROOM_NOT_FOUND");
+    }
+    if (room.status === "expired") return this.err("ROOM_EXPIRED");
     if (room.status !== "lobby") return this.err("MATCH_STARTED");
     if (room.players.length >= MAX_PLAYERS) return this.err("ROOM_FULL");
     if (room.players.some((p) => p.name.toLowerCase() === params.name.toLowerCase()))
@@ -265,6 +274,7 @@ export class RoomManager {
       players: this.toEnginePlayers(room),
       now: this.now(),
       extendedPlanning: room.settings.extendedPlanning,
+      phaseDurationScale: this.phaseDurationScale,
     });
     room.status = "active";
     this.touch(room);
@@ -296,14 +306,17 @@ export class RoomManager {
     return this.err("SESSION_INVALID");
   }
 
-  bindSocket(code: string, playerId: string, socketId: string): void {
+  bindSocket(code: string, playerId: string, socketId: string): string | null {
     const room = this.getRoom(code);
     const player = room?.players.find((p) => p.id === playerId);
     if (room && player) {
+      const previousSocketId = player.socketId;
       player.socketId = socketId;
       player.connected = true;
       this.syncMatchPlayers(room);
+      return previousSocketId;
     }
+    return null;
   }
 
   /** Handle a socket dropping. Marks disconnected and transfers host if needed. */
@@ -420,6 +433,7 @@ export class RoomManager {
     const player = room.players.find((p) => p.id === params.playerId);
     if (!player) return this.err("SESSION_INVALID");
     if (!player.isHost) return this.err("NOT_HOST");
+    if (room.status !== "results") return this.err("INVALID_PHASE");
 
     // Full reset: new seed, cleared private state, back to an active match.
     room.seed = randomId("seed");
@@ -435,6 +449,7 @@ export class RoomManager {
       players: this.toEnginePlayers(room),
       now: this.now(),
       extendedPlanning: room.settings.extendedPlanning,
+      phaseDurationScale: this.phaseDurationScale,
     });
     room.status = "active";
     this.touch(room);
@@ -447,6 +462,7 @@ export class RoomManager {
     const player = room.players.find((p) => p.id === params.playerId);
     if (!player) return this.err("SESSION_INVALID");
     if (!player.isHost) return this.err("NOT_HOST");
+    if (room.status !== "results") return this.err("INVALID_PHASE");
     return this.createRoom({ hostName: player.name, caseId: room.caseId, settings: room.settings, ip: "internal" });
   }
 
@@ -484,8 +500,12 @@ export class RoomManager {
         room.match = null;
         room.players.forEach((p) => (p.idempotency = new Map()));
         this.rooms.delete(code);
+        this.expiredCodes.set(code, now + this.ttlMs);
         removed.push(code);
       }
+    }
+    for (const [code, expiresAt] of this.expiredCodes) {
+      if (expiresAt <= now) this.expiredCodes.delete(code);
     }
     if (removed.length) this.limiter.sweep();
     return removed;

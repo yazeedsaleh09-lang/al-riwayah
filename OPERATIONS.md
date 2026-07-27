@@ -31,10 +31,12 @@
 
 ## Runbook 3 — Share link uses wrong host
 
-1. Inspect `PUBLIC_APP_ORIGIN`.
-2. Ensure link generation does not use server-side localhost.
-3. In LAN mode, provide explicit local origin.
-4. Redeploy/restart after correction.
+1. Confirm the browser opened the web app through the reachable LAN/public origin.
+2. Inspect `NEXT_PUBLIC_SERVER_URL`; it must point to the reachable Socket.IO server.
+3. Ensure `CORS_ORIGIN` exactly includes the web origin in production.
+4. The lobby derives `/join?code=…` from `window.location.origin`; never open the host
+   page through `localhost` before sharing it with phones.
+5. Rebuild/restart after changing a `NEXT_PUBLIC_*` value.
 
 ## Runbook 4 — Player joins twice
 

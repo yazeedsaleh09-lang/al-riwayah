@@ -90,6 +90,10 @@ export interface DetectedContradiction {
   /** Template params. Keys listed in `playerParams` hold player ids. */
   params: Record<string, string>;
   playerParams: string[];
+  /** Two concrete sides plus the incompatibility rule used by the public reveal. */
+  statementA?: LocalizedText;
+  statementB?: LocalizedText;
+  rule?: LocalizedText;
   explanation: LocalizedText;
 }
 

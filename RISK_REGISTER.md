@@ -25,3 +25,27 @@
 | DEP-02 | Free hosting cold starts | Medium | Medium | Medium | first join timeout | honest provider choice/health UX | DevOps | 8 | Open |
 | LEG-01 | Legal details unavailable | High | Medium | Medium | privacy contact placeholder | owner checklist; does not block engineering | Owner | 9 | Open |
 | ASSET-01 | Unlicensed visual/audio asset | Medium | High | High | copied template/stock | original SVG/CSS and license ledger | Design | 5/6 | Open |
+
+## 2026-07-27 readiness review
+
+### Mitigated by implementation and automation
+
+- `GD-02`: every released contradiction now shows two concrete statements and the
+  matching rule; engine taxonomy and browser reveal tests pass.
+- `CT-01`, `CT-02`: schema validation and 4/5/6 evidence assignment are automated.
+- `TECH-01`–`TECH-03`: allowlisted DTOs, token rotation, socket replacement, authoritative
+  deadlines/revisions, and recovery scenarios have security/integration/browser coverage.
+- `TECH-04`: rooms expire, idempotency caches are bounded, and five consecutive replay
+  cycles retain one clean room without prior private state.
+- `TECH-05`, `UX-01`, `WEB-01`, `WEB-02`, `SEC-01`–`SEC-03`, `ASSET-01`: production
+  budgets, reduced motion, 64 responsive combinations, original-asset provenance,
+  schema/XSS/CSP/CORS/rate-limit/log-redaction checks all pass.
+
+### Still requires human or hosted evidence
+
+- `GD-01`, `GD-03`–`GD-05`, and `UX-02` are subjective playtest risks; use
+  `PLAYTEST_PLAN.md` with two groups and do not infer fun/fairness from automation.
+- `DEP-01`, `DEP-02` require the selected public host. LAN play is verified separately
+  and does not depend on hosting credentials.
+- `LEG-01` remains owner input and is visibly disclosed; it does not block a private
+  friends playtest.

@@ -16,6 +16,14 @@ Technical correctness does not prove that planning, contradiction reveal, and pa
 
 ## Test waves
 
+### Automated preflight — complete
+
+The harness completes authoritative 4-, 5-, and 6-player matches with independent
+browser contexts. It covers refresh recovery, socket replacement, disconnect timeout,
+duplicate input, replay, clean new groups, secrecy, axe scans, responsive layouts, and
+production performance. This proves technical readiness; it does not substitute for
+the human observations below.
+
 ### PT-0 Paper/system simulation
 
 4 players, no polished UI. Validate question logic and patch consequences.
@@ -33,6 +41,9 @@ Two separate groups of 4–6.
 At least one group should not know the designer well.
 
 Observe without teaching beyond built-in onboarding.
+
+Launch with `PLAY_WITH_FRIENDS.md`. Record actual devices and browser versions in the
+observation form. Never mark subjective success criteria as passed from automation.
 
 ### PT-2 Stress and replay
 

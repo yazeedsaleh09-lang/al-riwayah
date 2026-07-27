@@ -20,6 +20,9 @@ export interface BuiltServer {
 }
 
 export async function buildServer(env: Env): Promise<BuiltServer> {
+  if (isProduction(env) && env.CORS_ORIGIN === "*") {
+    throw new Error("Production requires an explicit CORS_ORIGIN allowlist");
+  }
   const log = createLogger(isProduction(env) ? "info" : "debug");
   const app = Fastify({ logger: false });
 
@@ -30,6 +33,7 @@ export async function buildServer(env: Env): Promise<BuiltServer> {
     ttlMs: env.ROOM_TTL_MS,
     maxLifetimeMs: env.ROOM_MAX_LIFETIME_MS,
     logger: log,
+    phaseDurationScale: env.PHASE_DURATION_SCALE,
   });
 
   app.get("/health", async () => ({ status: "ok", time: Date.now() }));
@@ -42,7 +46,7 @@ export async function buildServer(env: Env): Promise<BuiltServer> {
 
   const io = new IOServer(app.server, {
     cors: { origin: origins },
-    maxHttpBufferSize: 1e6,
+    maxHttpBufferSize: 8 * 1024,
     transports: ["websocket", "polling"],
   });
   registerGateway(io, manager, log);

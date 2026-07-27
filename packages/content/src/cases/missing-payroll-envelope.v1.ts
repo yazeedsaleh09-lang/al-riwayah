@@ -442,6 +442,9 @@ const contradictionRules: ContradictionRule[] = [
             involvedPlayers: [player.id],
             params: { A: player.id },
             playerParams: ["A"],
+            statementA: ar("{{A}}: ما دخلت المستودع."),
+            statementB: ar("الدليل: جهاز {{A}} اتصل بشبكة المستودع الساعة ١١:٤٨."),
+            rule: ar("إنكار الزيارة ما يركب مع اتصال الجهاز من نطاق المستودع."),
             explanation: ar(
               "{{A}} قال إنه ما دخل المستودع، لكن جهازه اتصل بشبكة المستودع الساعة ١١:٤٨.",
             ),
@@ -483,6 +486,9 @@ const contradictionRules: ContradictionRule[] = [
                   driver2: ctx.playerName(b.normalized),
                 },
                 playerParams: ["A", "B"],
+                statementA: ar("{{A}}: {{driver1}} كان يسوق."),
+                statementB: ar("{{B}}: {{driver2}} كان يسوق."),
+                rule: ar("السيارة لها سائق واحد في نفس الرحلة، والاسمان مختلفان."),
                 explanation: ar(
                   "{{A}} قال إن {{driver1}} كان يسوق، و{{B}} قال إن {{driver2}} كان يسوق — ما يمكن الاثنين صح.",
                 ),
@@ -521,6 +527,9 @@ const contradictionRules: ContradictionRule[] = [
             involvedPlayers: [p1, p2],
             params: { A: a.playerId, B: target },
             playerParams: ["A", "B"],
+            statementA: ar("{{A}}: كنت مع {{B}} وقت الانقطاع."),
+            statementB: ar("{{B}}: شهادتي ما تؤكد كلام {{A}}."),
+            rule: ar("الشاهد المذكور لازم يؤكد وجوده مع صاحب الشهادة في نفس اللحظة."),
             explanation: ar("{{A}} قال إنه كان مع {{B}}، بس {{B}} يقول غير كذا."),
           });
         }
@@ -550,6 +559,9 @@ const contradictionRules: ContradictionRule[] = [
             involvedPlayers: [player.id],
             params: { A: player.id },
             playerParams: ["A"],
+            statementA: ar("{{A}} ثبّت مكانه ضمن الرواية قبل التحقيق."),
+            statementB: ar("{{A}} أعطى مكانًا مختلفًا أثناء التحقيق."),
+            rule: ar("المكان المثبّت ما يتغيّر بعد قفل الرواية."),
             explanation: ar("{{A}} غيّر مكانه عن الرواية المتفق عليها وقت الانقطاع."),
           });
         }
@@ -581,6 +593,9 @@ const contradictionRules: ContradictionRule[] = [
             involvedPlayers: [p1, p2],
             params: { A: a.playerId, B: target },
             playerParams: ["A", "B"],
+            statementA: ar("{{A}}: كنت مع {{B}} وقت الانقطاع."),
+            statementB: ar("المكانان المثبّتان لـ{{A}} و{{B}} مختلفان."),
+            rule: ar("ما يقدر شخصان يكونان معًا في اللحظة نفسها ومكاناهما المثبّتان مختلفان."),
             explanation: ar("{{A}} قال إنه كان مع {{B}}، بس كل واحد مكانه المتفق عليه مختلف."),
           });
         }
@@ -614,6 +629,9 @@ const contradictionRules: ContradictionRule[] = [
               involvedPlayers: [c.playerId],
               params: { A: c.playerId },
               playerParams: ["A"],
+              statementA: ar("الترقيعة ألزمت {{A}} بالرجوع قبل ١١:٤٨."),
+              statementB: ar("{{A}}: ما رجعت قبل ١١:٤٨."),
+              rule: ar("الإجابة الجديدة خالفت التزامًا صار جزءًا من الرواية."),
               explanation: ar("{{A}} خالف التزام الترقيعة: قال إنه ما رجع قبل ١١:٤٨."),
             });
           }
@@ -647,6 +665,9 @@ const contradictionRules: ContradictionRule[] = [
           involvedPlayers: [odd.playerId],
           params: { A: odd.playerId },
           playerParams: ["A"],
+          statementA: ar("{{A}} أعطى سببًا مختلفًا لدخول الشركة."),
+          statementB: ar("باقي الشلة اتفقت على سبب واحد."),
+          rule: ar("هذا اختلاف عن أغلبية الرواية؛ علامة اشتباه، مو استحالة قاطعة."),
           explanation: ar("{{A}} عطى سبب مختلف عن سبب باقي الشلة."),
         },
       ];

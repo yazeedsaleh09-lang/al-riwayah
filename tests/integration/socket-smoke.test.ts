@@ -15,6 +15,7 @@ beforeAll(async () => {
     CORS_ORIGIN: "*",
     ROOM_TTL_MS: 60000,
     ROOM_MAX_LIFETIME_MS: 600000,
+    PHASE_DURATION_SCALE: 1,
   });
   await built.app.listen({ host: "127.0.0.1", port: 0 });
   const addr = built.app.server.address() as AddressInfo;
@@ -106,5 +107,28 @@ describe("socket gateway smoke (multi-client)", () => {
     const bad = await emit<{ ok: boolean; error?: { code: string } }>(s, "room:create", { nope: true });
     expect(bad.ok).toBe(false);
     expect(bad.error?.code).toBe("INVALID_PAYLOAD");
+  });
+
+  it("RECON-003: restoring on a new socket replaces the previous owner socket", async () => {
+    const oldSocket = connect();
+    const created = await emit<{
+      ok: true;
+      data: { roomCode: string; recoveryToken: string };
+    }>(oldSocket, "room:create", env("replace-create", { displayName: "لاعب الاستعادة" }));
+
+    const replaced = new Promise<{ reason: string }>((resolve) => {
+      oldSocket.once("connection:replaced", resolve);
+    });
+    const newSocket = connect();
+    const restored = await emit<{ ok: boolean }>(
+      newSocket,
+      "room:restore",
+      env("replace-restore", { recoveryToken: created.data.recoveryToken }),
+    );
+
+    expect(restored.ok).toBe(true);
+    await expect(replaced).resolves.toEqual({ reason: "REPLACED" });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(oldSocket.connected).toBe(false);
   });
 });

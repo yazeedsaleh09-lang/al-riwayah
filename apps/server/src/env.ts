@@ -11,6 +11,8 @@ const envSchema = z.object({
   ROOM_TTL_MS: z.coerce.number().int().positive().default(30 * 60 * 1000),
   /** Hard maximum room lifetime (ms). */
   ROOM_MAX_LIFETIME_MS: z.coerce.number().int().positive().default(2 * 60 * 60 * 1000),
+  /** Automated realtime UI tests may shorten deadlines; production remains 1. */
+  PHASE_DURATION_SCALE: z.coerce.number().min(0.01).max(1).default(1),
 });
 
 export type Env = z.infer<typeof envSchema>;

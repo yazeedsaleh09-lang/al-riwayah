@@ -2,10 +2,10 @@
 
 ## Current state
 
-- Current phase: Phase 6–7 — polish + comprehensive QA (in progress)
-- Last update: 2026-07-24
-- Branch: master
-- Implementation status: engine + content + server + full web app (marketing + game shell) built, tested, and building
+- Current phase: Phase 8 handoff — local/LAN friends-playtest candidate
+- Last update: 2026-07-27
+- Branch: `feat/premium-site-redesign`
+- Implementation status: production-buildable marketing site + one-case authoritative realtime game, visually refined and automated through 4/5/6-player browser runs
 - Product specification: Complete initial version
 - Human playtests completed: 0
 
@@ -44,14 +44,18 @@
   - Verified live: `next build` (13 routes), create→lobby flow against the running server,
     no console errors, home renders fully at 375px.
 
-## In progress
+## Completed in final readiness pass
 
-- Phase 6–7 — motion/sound preference controls, Playwright E2E, responsive visual pass,
-  accessibility smoke, performance checks.
-
-## Not started
-
-- Phases 8–9 (deploy, human playtest) — blocked on external credentials + participants.
+- Added the canonical `/join` route while preserving `/play`, clean session replacement,
+  expired-room handling, new-group flow, and production-safe server start.
+- Completed public/private contradiction explanations and the final report narrative.
+- Added deliberate phase/evidence/option/verdict motion, optional sound/haptics, and
+  a global reduced-motion path.
+- Completed 64 responsive route/viewport combinations, public and representative
+  in-game axe checks, keyboard/persistence checks, and production performance budgets.
+- Completed real browser-context 4-, 5-, and 6-player full matches including duplicate
+  input, refresh/recovery, disconnect/timeout, replay, and clean new-group creation.
+- Added exact LAN runbook and share-link behavior derived from the host origin.
 
 ## Evidence table
 
@@ -63,16 +67,29 @@
 | 2 | Engine + content typecheck | `pnpm --filter game-engine/content typecheck` | pass | tsc --noEmit clean |
 | 2 | Unit tests | `pnpm exec vitest run --project unit` | 56 passed (9 files) | — |
 | 2 | Content validation | `pnpm --filter @al-riwayah/content validate` | `All cases valid` | — |
+| 6–8 | Unit/workspace | `pnpm test` | 92 passed / 13 files | 2026-07-27 final |
+| 6–8 | Integration | `pnpm test:integration` | 26 passed / 3 files | 2026-07-27 final |
+| 6–8 | Security | `pnpm test:security` | 10 passed | 2026-07-27 final |
+| 6–8 | Browser matrix | `pnpm test:e2e` | 46 passed, 1 production-only skip | 2026-07-27 final |
+| 6–8 | Production performance/headers | `E2E_PRODUCTION=1 … performance.spec.ts` | 1 passed | `artifacts/final-playtest-pass/performance-report.json` |
+| 8 | Supply chain | `pnpm audit --prod` | no known vulnerabilities | Next 16.2.12 + audited overrides |
+| 8 | LAN origin | production lobby via `192.168.0.98` | create/share/join pass | 2026-07-27 |
 
 Test IDs covered so far: ENG-001..010 (detection, patch, follow-up-break, determinism,
 ledger, verdict boundary), evidence assignment (4/5/6), full 4/5/6 sessions, NO_RESPONSE
 fallback, SEC-001..004 redaction (view projection level).
 
-## Open blockers
+## External follow-up (not an engineering blocker)
 
-- Deployment account/domain not known (Phase 8).
-- Final legal details not known (privacy/terms owner placeholders).
-- Human playtest participants not scheduled (Phase 9).
+- Two real human groups must still supply subjective fun/fairness observations.
+- Public deployment requires the owner's chosen host/domain and account authorization.
+- Privacy/terms owner identity and contact details remain visibly marked for owner input.
+
+## Readiness evidence
+
+The authoritative final command output and artifact inventory live in
+`artifacts/final-playtest-pass/final-readiness-report.md`. The local review build does
+not require deployment credentials.
 
 ## Update rule
 

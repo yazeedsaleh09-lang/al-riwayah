@@ -80,6 +80,14 @@ export function updateToken(code: string, recoveryToken: string): void {
   if (s) saveSession({ ...s, recoveryToken });
 }
 
+export function clearSession(code: string): void {
+  try {
+    sessionStorage.removeItem(key(code));
+  } catch {
+    /* storage may be unavailable */
+  }
+}
+
 // --- entry flows ---
 
 export async function createRoom(input: {
@@ -104,6 +112,14 @@ export async function joinRoom(input: {
     displayName: input.displayName,
   });
   if (!ack.ok) throw new Error(ack.error.code);
+  saveSession(ack.data);
+  return ack.data;
+}
+
+export async function createNewGroup(previousCode: string): Promise<SessionInfo> {
+  const ack = await emitIntent<SessionInfo>("room:newGroup", {});
+  if (!ack.ok) throw new Error(ack.error.code);
+  clearSession(previousCode);
   saveSession(ack.data);
   return ack.data;
 }

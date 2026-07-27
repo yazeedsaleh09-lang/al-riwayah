@@ -179,6 +179,27 @@ Measured on production build, representative mid-tier mobile profile:
 
 ## Release gate
 
+### Final automation mapping
+
+- Room lifecycle and recovery: `tests/integration/room-lifecycle.test.ts`,
+  `tests/integration/socket-smoke.test.ts`, and `tests/e2e/game-lobby.spec.ts`.
+- Every authoritative phase and 4/5/6 results: `tests/integration/full-match.test.ts`
+  and `tests/e2e/full-ui-match.spec.ts`.
+- Secrecy/adversarial inputs: `tests/security/redaction.test.ts`.
+- Public routes, keyboard, preferences, representative game axe scans:
+  `tests/e2e/accessibility.spec.ts` and `tests/e2e/full-ui-match.spec.ts`.
+- Eight target widths across all public routes: `tests/e2e/responsive.spec.ts`.
+- Production budgets and security headers: `tests/e2e/performance.spec.ts`.
+- Motion evidence: `tests/e2e/motion-evidence.spec.ts`.
+
+Fresh outcomes and artifacts are recorded in
+`artifacts/final-playtest-pass/final-readiness-report.md`.
+
+Final automated outcome (2026-07-27): 92 workspace tests, 26 integration tests,
+10 security tests, 46 Playwright release checks, and 1 production-only performance
+check passed. The responsive test evaluates 8 public routes at 8 widths (64
+combinations). `pnpm audit --prod` reports no known vulnerabilities.
+
 Automatable release requires:
 
 ```bash
@@ -192,8 +213,7 @@ pnpm test:visual
 pnpm build
 ```
 
-Plus:
+Automation complete; remaining human/external gates:
 
-- real-device 4-player session;
 - human playtest criteria in `PLAYTEST_PLAN.md`;
-- production smoke after deploy.
+- public production smoke after an owner-authorized deploy.

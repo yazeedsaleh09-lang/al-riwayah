@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { getCase } from "@al-riwayah/content";
 import type { GameCase } from "@al-riwayah/game-engine";
 import { useGameRoom } from "@/lib/useGameRoom";
@@ -28,8 +29,10 @@ const INTERROGATION = new Set([
 ]);
 
 export function RoomShell({ code }: { code: string }) {
+  const router = useRouter();
   const { pub, priv, connected, fatal, actions } = useGameRoom(code);
   const [busy, setBusy] = useState(false);
+  const [shareStatus, setShareStatus] = useState("");
   const gameCase = useMemo<GameCase | undefined>(() => (pub ? getCase(pub.caseId) : undefined), [pub]);
   const lastPhase = useRef<string | null>(null);
 
@@ -56,6 +59,33 @@ export function RoomShell({ code }: { code: string }) {
     );
   }
 
+  if (fatal === "SESSION_REPLACED" || fatal === "SERVER_UNAVAILABLE") {
+    const replaced = fatal === "SESSION_REPLACED";
+    return (
+      <main className="game" id="main">
+        <div className="game__body" role="alert">
+          <span className="stamp">{replaced ? "تم نقل الجلسة" : "تعذّر الاتصال"}</span>
+          <h1 className="game__prompt">
+            {replaced ? "انفتحت جلستك من جهاز ثاني" : "الخادم ما رد"}
+          </h1>
+          <p style={{ color: "var(--muted)" }}>
+            {replaced
+              ? "حفاظًا على خصوصية إجاباتك، هذا الجهاز ما عاد يقدر يرسل قرارات."
+              : "تأكد أن خادم اللعبة شغّال وأن الجوال على نفس الشبكة، ثم جرّب مرة ثانية."}
+          </p>
+          <div className="game__actions">
+            <button className="btn btn--evidence" onClick={() => window.location.reload()}>
+              حاول مرة ثانية
+            </button>
+            <Link className="btn btn--ghost" href="/join">
+              ارجع للدخول
+            </Link>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   if (!pub || !priv) {
     return (
       <div className="game">
@@ -76,6 +106,34 @@ export function RoomShell({ code }: { code: string }) {
       setBusy(false);
     }
   };
+  const goToNewGroup = async () => {
+    setBusy(true);
+    try {
+      const session = await actions.newGroup();
+      router.push(`/room/${session.roomCode}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const shareRoom = async () => {
+    const url = `${window.location.origin}/join?code=${encodeURIComponent(pub.roomCode)}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: "الرواية — غرفة تحقيق",
+          text: `ادخل غرفة الرواية بالرمز ${pub.roomCode}`,
+          url,
+        });
+        setShareStatus("تمت المشاركة");
+      } else {
+        await navigator.clipboard.writeText(url);
+        setShareStatus("تم نسخ رابط الدخول");
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      setShareStatus("تعذّر النسخ — شارك الرمز الظاهر");
+    }
+  };
 
   const playerName = (id: string) => pub.players.find((p) => p.id === id)?.name ?? id;
   const reasonLabel = (id: string) => gameCase?.planning.reasons.find((r) => r.id === id)?.label.ar ?? id;
@@ -83,7 +141,7 @@ export function RoomShell({ code }: { code: string }) {
   const roleLabel = (id: string) => gameCase?.planning.roles.find((r) => r.id === id)?.label.ar ?? id;
 
   return (
-    <div className="game">
+    <main className="game" id="main" data-phase={phase}>
       {!connected && (
         <div className="reconnect-overlay" role="alert">
           <div>
@@ -114,6 +172,12 @@ export function RoomShell({ code }: { code: string }) {
             <p className="eyebrow">رمز الغرفة</p>
             <p className="room-code">{pub.roomCode}</p>
             <p style={{ color: "var(--muted)" }}>شارك الرمز مع الشلة</p>
+            <button className="btn btn--ghost" type="button" onClick={() => void shareRoom()}>
+              شارك رابط الدخول
+            </button>
+            <p className="share-status" aria-live="polite">
+              {shareStatus}
+            </p>
             <ul className="roster">
               {pub.players.map((p) => (
                 <li key={p.id}>
@@ -127,7 +191,12 @@ export function RoomShell({ code }: { code: string }) {
               <button
                 className={`btn ${me?.ready ? "btn--ghost" : "btn--evidence"}`}
                 disabled={busy}
-                onClick={() => run(() => actions.setReady(!me?.ready))}
+                onClick={() =>
+                  run(async () => {
+                    await actions.setReady(!me?.ready);
+                    playCue("ready");
+                  })
+                }
               >
                 {me?.ready ? "ألغِ الجاهزية" : "جاهز"}
               </button>
@@ -255,7 +324,12 @@ export function RoomShell({ code }: { code: string }) {
                       key={o.id}
                       className={`option-btn ${priv.submittedOptionId === o.id ? "is-selected" : ""}`}
                       disabled={priv.answerLocked || busy}
-                      onClick={() => run(() => actions.answer(priv.currentQuestion!.instanceId, o.id))}
+                      onClick={() =>
+                        run(async () => {
+                          await actions.answer(priv.currentQuestion!.instanceId, o.id);
+                          playCue("lock");
+                        })
+                      }
                     >
                       {o.label.ar}
                     </button>
@@ -282,6 +356,20 @@ export function RoomShell({ code }: { code: string }) {
                 <h1 className="game__prompt" style={{ marginTop: "var(--space-4)" }}>
                   كلامكم ما يركب
                 </h1>
+                <div className="demo__statements">
+                  <div className="statement">
+                    <span className="eyebrow">الشهادة الأولى</span>
+                    <p style={{ margin: "var(--space-3) 0 0" }}>
+                      {pub.releasedContradiction.statementA.ar}
+                    </p>
+                  </div>
+                  <div className="statement is-flagged">
+                    <span className="eyebrow">الشهادة المقابلة</span>
+                    <p style={{ margin: "var(--space-3) 0 0" }}>
+                      {pub.releasedContradiction.statementB.ar}
+                    </p>
+                  </div>
+                </div>
                 <p className="demo__rule">{pub.releasedContradiction.rule.ar}</p>
               </>
             ) : (
@@ -339,6 +427,38 @@ export function RoomShell({ code }: { code: string }) {
               <ScoreAxis label="الثبات" v={pub.result.scores.stability} />
               <ScoreAxis label="التهرّب" v={pub.result.scores.evasion} evasion />
             </div>
+            <div className="result-story" aria-label="ملخص التحقيق">
+              {pub.result.firstFracture && (
+                <div>
+                  <span className="eyebrow">أول شرخ</span>
+                  <p>{pub.result.firstFracture.ar}</p>
+                </div>
+              )}
+              {pub.result.strongestPatch && (
+                <div>
+                  <span className="eyebrow">أقوى ترقيعة</span>
+                  <p>{pub.result.strongestPatch.ar}</p>
+                </div>
+              )}
+              {pub.result.costliestPatch && (
+                <div>
+                  <span className="eyebrow">أغلى ترقيعة</span>
+                  <p>{pub.result.costliestPatch.ar}</p>
+                </div>
+              )}
+              {pub.result.mostConsistentPlayerName && (
+                <div>
+                  <span className="eyebrow">أقوى شاهد</span>
+                  <p>{pub.result.mostConsistentPlayerName}</p>
+                </div>
+              )}
+              {pub.result.primarySuspectPlayerName && (
+                <div className="is-pressure">
+                  <span className="eyebrow">أكثر شخص ضرّ الرواية</span>
+                  <p>{pub.result.primarySuspectPlayerName}</p>
+                </div>
+              )}
+            </div>
             {pub.result.decisiveFactors.length > 0 && (
               <ul className="features">
                 {pub.result.decisiveFactors.map((f, i) => (
@@ -348,25 +468,26 @@ export function RoomShell({ code }: { code: string }) {
             )}
             {phase === "RESULTS" && (
               <div className="game__actions">
-                {pub.result.mostConsistentPlayerName && (
-                  <p style={{ textAlign: "center" }}>
-                    أكثر واحد حافظ الرواية: <strong>{pub.result.mostConsistentPlayerName}</strong>
-                  </p>
-                )}
                 {me?.isHost && (
                   <button className="btn btn--evidence" disabled={busy} onClick={() => run(actions.replay)}>
                     أعيدوا القضية
                   </button>
                 )}
-                <Link className="btn btn--ghost" href="/create">
-                  مجموعة جديدة
-                </Link>
+                {me?.isHost ? (
+                  <button className="btn btn--ghost" disabled={busy} onClick={goToNewGroup}>
+                    مجموعة جديدة
+                  </button>
+                ) : (
+                  <Link className="btn btn--ghost" href="/create">
+                    أنشئ مجموعة جديدة
+                  </Link>
+                )}
               </div>
             )}
           </>
         )}
       </div>
-    </div>
+    </main>
   );
 }
 

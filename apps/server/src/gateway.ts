@@ -96,7 +96,12 @@ export function registerGateway(io: Server, manager: RoomManager, log: Logger): 
       };
       state.code = creds.roomCode;
       state.playerId = creds.playerId;
-      manager.bindSocket(creds.roomCode, creds.playerId, socket.id);
+      const previousSocketId = manager.bindSocket(creds.roomCode, creds.playerId, socket.id);
+      if (previousSocketId && previousSocketId !== socket.id) {
+        const previous = io.sockets.sockets.get(previousSocketId);
+        previous?.emit("connection:replaced", { reason: "REPLACED" });
+        previous?.disconnect(true);
+      }
       void socket.join(creds.roomCode);
       ack?.({ ok: true, requestId, data: creds });
       emitRoom(creds.roomCode);
@@ -106,6 +111,10 @@ export function registerGateway(io: Server, manager: RoomManager, log: Logger): 
       const g = guard("room:create", raw, ack);
       if (!g.ok) return;
       const { requestId, payload } = g.value;
+      if (state.code) {
+        ack?.({ ok: false, requestId, error: safeError("ACTION_NOT_ALLOWED") });
+        return;
+      }
       const result = manager.createRoom({
         hostName: payload.displayName,
         caseId: payload.caseId,
@@ -119,6 +128,10 @@ export function registerGateway(io: Server, manager: RoomManager, log: Logger): 
       const g = guard("room:join", raw, ack);
       if (!g.ok) return;
       const { requestId, payload } = g.value;
+      if (state.code) {
+        ack?.({ ok: false, requestId, error: safeError("ACTION_NOT_ALLOWED") });
+        return;
+      }
       const result = manager.joinRoom({
         code: payload.code,
         name: payload.displayName,
@@ -138,7 +151,16 @@ export function registerGateway(io: Server, manager: RoomManager, log: Logger): 
       }
       state.code = result.data.roomCode;
       state.playerId = result.data.playerId;
-      manager.bindSocket(result.data.roomCode, result.data.playerId, socket.id);
+      const previousSocketId = manager.bindSocket(
+        result.data.roomCode,
+        result.data.playerId,
+        socket.id,
+      );
+      if (previousSocketId && previousSocketId !== socket.id) {
+        const previous = io.sockets.sockets.get(previousSocketId);
+        previous?.emit("connection:replaced", { reason: "REPLACED" });
+        previous?.disconnect(true);
+      }
       void socket.join(result.data.roomCode);
       socket.emit("session:rotated", { recoveryToken: result.data.rotatedToken });
       ack?.({
@@ -254,6 +276,44 @@ export function registerGateway(io: Server, manager: RoomManager, log: Logger): 
         return r.ok ? { ok: true, requestId, data: {} } : { ok: false, requestId, error: r.error };
       }),
     );
+
+    socket.on("room:newGroup", (raw: unknown, ack?: AckFn) => {
+      const g = guard("room:newGroup", raw, ack);
+      if (!g.ok) return;
+      const { requestId } = g.value;
+      const current = requireSession(requestId, ack);
+      if (!current) return;
+      const result = manager.newGroup({
+        code: current.code!,
+        playerId: current.playerId!,
+      });
+      if (!result.ok) {
+        ack?.({ ok: false, requestId, error: result.error });
+        return;
+      }
+      const oldCode = current.code!;
+      manager.handleDisconnect(socket.id);
+      void socket.leave(oldCode);
+      state.code = undefined;
+      state.playerId = undefined;
+      bindAndReply(result, requestId, ack);
+      emitRoom(oldCode);
+    });
+
+    socket.on("player:leave", (raw: unknown, ack?: AckFn) => {
+      const g = guard("player:leave", raw, ack);
+      if (!g.ok) return;
+      const { requestId } = g.value;
+      const current = requireSession(requestId, ack);
+      if (!current) return;
+      const oldCode = current.code!;
+      manager.handleDisconnect(socket.id);
+      void socket.leave(oldCode);
+      state.code = undefined;
+      state.playerId = undefined;
+      ack?.({ ok: true, requestId, data: {} });
+      emitRoom(oldCode);
+    });
 
     socket.on("disconnect", () => {
       const changed = manager.handleDisconnect(socket.id);

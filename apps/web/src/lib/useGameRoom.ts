@@ -2,7 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PublicRoomView, PrivatePlayerView } from "@al-riwayah/game-engine";
-import { emitIntent, getSocket, loadSession, updateToken } from "./game-client";
+import {
+  createNewGroup,
+  emitIntent,
+  getSocket,
+  loadSession,
+  updateToken,
+} from "./game-client";
 
 export interface RoomState {
   publicView: PublicRoomView | null;
@@ -33,8 +39,11 @@ export function useGameRoom(code: string) {
     };
     const onPrivate = (v: PrivatePlayerView) => setPriv(v);
     const onRotated = (d: { recoveryToken: string }) => updateToken(code, d.recoveryToken);
+    const onReplaced = () => setFatal("SESSION_REPLACED");
+    const onConnectError = () => setFatal((current) => current ?? "SERVER_UNAVAILABLE");
     const onConnect = () => {
       setConnected(true);
+      setFatal(null);
       // (Re)bind this socket to the player via the recovery token.
       const s = loadSession(code);
       if (s) void emitIntent("room:restore", { recoveryToken: s.recoveryToken });
@@ -44,7 +53,9 @@ export function useGameRoom(code: string) {
     socket.on("view:public", onPublic);
     socket.on("view:private", onPrivate);
     socket.on("session:rotated", onRotated);
+    socket.on("connection:replaced", onReplaced);
     socket.on("connect", onConnect);
+    socket.on("connect_error", onConnectError);
     socket.on("disconnect", onDisconnect);
 
     if (socket.connected) onConnect();
@@ -53,7 +64,9 @@ export function useGameRoom(code: string) {
       socket.off("view:public", onPublic);
       socket.off("view:private", onPrivate);
       socket.off("session:rotated", onRotated);
+      socket.off("connection:replaced", onReplaced);
       socket.off("connect", onConnect);
+      socket.off("connect_error", onConnectError);
       socket.off("disconnect", onDisconnect);
     };
   }, [code]);
@@ -74,6 +87,7 @@ export function useGameRoom(code: string) {
       withRev("answer:submit", { questionInstanceId, optionId }),
     patchVote: (patchId: string) => withRev("patch:vote", { patchId }),
     replay: () => emitIntent("result:replay", {}),
+    newGroup: () => createNewGroup(code),
   };
 
   return { pub, priv, connected, fatal, actions };

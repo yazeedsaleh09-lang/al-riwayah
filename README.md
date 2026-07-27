@@ -28,6 +28,7 @@ Required public routes:
 - `/how-to-play`
 - `/cases`
 - `/play`
+- `/join` (canonical invite route; `/play` remains supported)
 - `/create`
 - `/room/[code]`
 - `/privacy`
@@ -92,3 +93,13 @@ The owner should confirm only these non-blocking brand decisions when convenient
 - Legal entity/contact details for privacy and terms.
 
 Claude must use safe visible placeholders for these legal/brand details and continue all other work.
+
+## Run the implemented review build
+
+```powershell
+pnpm.cmd install --frozen-lockfile
+pnpm.cmd dev
+```
+
+For a 4–6 phone friends session, production-like LAN variables, firewall guidance,
+and the one-minute verification flow, follow `PLAY_WITH_FRIENDS.md`.

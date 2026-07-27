@@ -6,7 +6,7 @@
  * original or correctly licensed only). Sound never carries exclusive info,
  * never autoplays before a user gesture, and always respects the mute pref.
  */
-import { getSound } from "./prefs";
+import { getMotion, getSound } from "./prefs";
 
 export type Cue = "join" | "ready" | "lock" | "warn" | "contradiction" | "patch" | "evidence" | "verdict";
 
@@ -35,6 +35,14 @@ const RECIPES: Record<Cue, { f: number; f2?: number; type: OscillatorType; dur: 
 
 /** Play a cue if sound is enabled. Safe to call from any user-gesture handler. */
 export function playCue(cue: Cue): void {
+  if (
+    typeof navigator !== "undefined" &&
+    "vibrate" in navigator &&
+    getMotion() !== "reduced"
+  ) {
+    const pattern = cue === "contradiction" ? [28, 45, 55] : cue === "verdict" ? [35, 35, 35] : [24];
+    navigator.vibrate(pattern);
+  }
   if (!getSound()) return;
   const ac = audio();
   if (!ac) return;

@@ -47,16 +47,6 @@
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #100f0d;
-    --fg: var(--paper-50);
-    --muted: var(--metal-300);
-    --line: rgba(243, 240, 232, 0.16);
-    --card: #17150f;
-  }
-}
-
 * {
   box-sizing: border-box;
 }
@@ -182,7 +172,7 @@ svg {
 }
 .btn--ghost {
   background: transparent;
-  color: var(--fg);
+  color: #4b4943;
   border-color: var(--line);
 }
 .btn--full {
@@ -269,8 +259,8 @@ svg {
   gap: var(--space-2);
 }
 .prefs__btn {
-  min-width: 40px;
-  min-height: 40px;
+  min-width: 44px;
+  min-height: 44px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: transparent;

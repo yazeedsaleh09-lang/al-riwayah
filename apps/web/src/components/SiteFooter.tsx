@@ -19,7 +19,7 @@ export function SiteFooter() {
             <Link href="/how-to-play">كيف تُلعب</Link>
             <Link href="/cases">القضايا</Link>
             <Link href="/create">أنشئ غرفة</Link>
-            <Link href="/play">ادخل برمز</Link>
+            <Link href="/join">ادخل برمز</Link>
             <Link href="/privacy">الخصوصية</Link>
             <Link href="/terms">الشروط</Link>
           </nav>

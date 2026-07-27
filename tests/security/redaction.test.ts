@@ -133,9 +133,10 @@ describe("secrecy & security (SEC-001..010)", () => {
       NODE_ENV: "production",
       HOST: "127.0.0.1",
       PORT: 0,
-      CORS_ORIGIN: "*",
+      CORS_ORIGIN: "https://play.example.test",
       ROOM_TTL_MS: 60000,
       ROOM_MAX_LIFETIME_MS: 600000,
+      PHASE_DURATION_SCALE: 1,
     });
     const res = await app.inject({ method: "GET", url: "/debug/rooms" });
     expect(res.statusCode).toBe(404);
@@ -143,5 +144,19 @@ describe("secrecy & security (SEC-001..010)", () => {
     expect(health.statusCode).toBe(200);
     stopTimers();
     await app.close();
+  });
+
+  it("production refuses a wildcard CORS policy", async () => {
+    await expect(
+      buildServer({
+        NODE_ENV: "production",
+        HOST: "127.0.0.1",
+        PORT: 0,
+        CORS_ORIGIN: "*",
+        ROOM_TTL_MS: 60000,
+        ROOM_MAX_LIFETIME_MS: 600000,
+        PHASE_DURATION_SCALE: 1,
+      }),
+    ).rejects.toThrow("explicit CORS_ORIGIN");
   });
 });

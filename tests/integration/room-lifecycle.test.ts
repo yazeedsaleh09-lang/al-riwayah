@@ -73,6 +73,20 @@ describe("room lifecycle (ROOM/JOIN/READY/RECON)", () => {
     expect(mgr.publicView(code)!.phaseRevision).toBe(rev1);
   });
 
+  it("results actions cannot reset an active match early", () => {
+    const mgr = new RoomManager({ now: makeClock().now });
+    const { code, players } = createRoomWithPlayers(mgr, 4);
+    readyAndStart(mgr, code, players);
+    expect(mgr.replay({ code, playerId: players[0]!.id })).toMatchObject({
+      ok: false,
+      error: { code: "INVALID_PHASE" },
+    });
+    expect(mgr.newGroup({ code, playerId: players[0]!.id })).toMatchObject({
+      ok: false,
+      error: { code: "INVALID_PHASE" },
+    });
+  });
+
   it("RECON-001/003: refresh restores the same player and rotates token", () => {
     const mgr = new RoomManager({ now: makeClock().now });
     const { code, players } = createRoomWithPlayers(mgr, 4);
@@ -86,6 +100,17 @@ describe("room lifecycle (ROOM/JOIN/READY/RECON)", () => {
     expect(restored.data.rotatedToken).not.toBe(p.token);
     // Old token no longer works after rotation.
     expect(mgr.restore({ recoveryToken: p.token }).ok).toBe(false);
+  });
+
+  it("RECON-003: rebinding identifies the socket that must be replaced", () => {
+    const mgr = new RoomManager({ now: makeClock().now });
+    const { code, players } = createRoomWithPlayers(mgr, 4);
+    const player = players[1]!;
+    expect(mgr.bindSocket(code, player.id, "sock-old")).toBeNull();
+    expect(mgr.bindSocket(code, player.id, "sock-new")).toBe("sock-old");
+    expect(mgr.roomSockets(code).find((p) => p.playerId === player.id)?.socketId).toBe(
+      "sock-new",
+    );
   });
 
   it("RECON-004: stolen/invalid token is denied without leak", () => {
@@ -113,5 +138,9 @@ describe("room lifecycle (ROOM/JOIN/READY/RECON)", () => {
     const removed = mgr.cleanupExpired();
     expect(removed).toContain(code);
     expect(mgr.publicView(code)).toBeNull();
+    expect(mgr.joinRoom({ code, name: "late", ip: "5" })).toMatchObject({
+      ok: false,
+      error: { code: "ROOM_EXPIRED" },
+    });
   });
 });

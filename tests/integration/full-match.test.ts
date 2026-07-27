@@ -102,4 +102,27 @@ describe("full match through the server authority (GAME-*)", () => {
       expect(mgr.privateView(code, p.id)!.answerLocked).toBe(false);
     }
   });
+
+  it("five consecutive replays keep one room and clear prior private state", () => {
+    const { clock, now } = makeClock();
+    const mgr = new RoomManager({ now });
+    const { code, players } = createRoomWithPlayers(mgr, 4);
+    readyAndStart(mgr, code, players);
+
+    for (let replayIndex = 0; replayIndex < 5; replayIndex++) {
+      playToResults(mgr, code, players, clock);
+      expect(mgr.publicView(code)!.phase).toBe("RESULTS");
+      expect(mgr.replay({ code, playerId: players[0]!.id }).ok).toBe(true);
+      expect(mgr.roomCount()).toBe(1);
+      expect(mgr.publicView(code)).toMatchObject({ phase: "CASE_BRIEF", result: null });
+      for (const player of players) {
+        expect(mgr.privateView(code, player.id)).toMatchObject({
+          currentQuestion: null,
+          answerLocked: false,
+          submittedOptionId: null,
+          ownResultNote: null,
+        });
+      }
+    }
+  });
 });

@@ -29,20 +29,27 @@ export interface InitMatchInput {
   players: PlayerState[];
   now: number;
   extendedPlanning?: boolean;
+  phaseDurationScale?: number;
 }
 
 function phaseDurationMs(
   phase: PhaseId,
   extendedPlanning: boolean,
+  durationScale: number,
 ): number | null {
   const base = DEFAULT_PHASE_DURATIONS_S[phase];
   if (base === null) return null;
   const mult = extendedPlanning && PLANNING_PHASES.includes(phase) ? EXTENDED_PLANNING_MULTIPLIER : 1;
-  return Math.round(base * mult * 1000);
+  return Math.max(50, Math.round(base * mult * durationScale * 1000));
 }
 
-function deadlineFor(phase: PhaseId, now: number, extendedPlanning: boolean): number | null {
-  const ms = phaseDurationMs(phase, extendedPlanning);
+function deadlineFor(
+  phase: PhaseId,
+  now: number,
+  extendedPlanning: boolean,
+  durationScale: number,
+): number | null {
+  const ms = phaseDurationMs(phase, extendedPlanning, durationScale);
   return ms === null ? null : now + ms;
 }
 
@@ -54,6 +61,7 @@ function connectedPlayers(state: MatchState): PlayerState[] {
 export function initializeMatch(input: InitMatchInput): MatchState {
   const { matchId, seed, gameCase, players, now } = input;
   const extendedPlanning = input.extendedPlanning ?? false;
+  const phaseDurationScale = input.phaseDurationScale ?? 1;
   const evidenceRng = createRng(`${seed}:evidence`);
   const ordered = players
     .slice()
@@ -69,7 +77,8 @@ export function initializeMatch(input: InitMatchInput): MatchState {
     caseVersion: gameCase.version,
     phase: "CASE_BRIEF",
     phaseRevision: 1,
-    deadlineAt: deadlineFor("CASE_BRIEF", now, extendedPlanning),
+    deadlineAt: deadlineFor("CASE_BRIEF", now, extendedPlanning, phaseDurationScale),
+    phaseDurationScale,
     players: ordered,
     sharedStory: {},
     proposals: {},
@@ -291,7 +300,7 @@ export function advancePhase(
 
   state.phase = next;
   state.phaseRevision += 1;
-  state.deadlineAt = deadlineFor(next, now, isExtended(state));
+  state.deadlineAt = deadlineFor(next, now, isExtended(state), state.phaseDurationScale);
   state.answeredThisPhase = [];
   state.acknowledgedThisPhase = [];
 

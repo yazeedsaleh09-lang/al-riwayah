@@ -216,3 +216,14 @@ Marketing images and SVG remain crisp. Game remains constrained for readability.
 - No tiny metadata.
 - No animated background that competes with questions.
 - No full-screen loader longer than necessary.
+
+## Implemented motion language
+
+- Marketing hero copy enters in a short staged editorial sequence.
+- Evidence cards arrive with a restrained clip reveal; board threads draw toward the
+  relevant item instead of decorating continuously.
+- A locked option confirms with one compact state transition.
+- Deadline pressure remains subtle and never obscures text or blocks input.
+- Contradiction, evidence, verdict, and result phases each receive one semantic reveal.
+- `prefers-reduced-motion: reduce` disables nonessential transitions and scrolling;
+  haptics are skipped with it. Sound remains muted unless the player enables it.

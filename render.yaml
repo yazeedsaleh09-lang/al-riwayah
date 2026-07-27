@@ -1,0 +1,48 @@
+services:
+  - type: web
+    name: al-riwayah-server
+    runtime: node
+    repo: https://github.com/yazeedsaleh09-lang/al-riwayah
+    branch: main
+    plan: starter
+    region: frankfurt
+    numInstances: 1
+    autoDeployTrigger: commit
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @al-riwayah/server... build
+    startCommand: pnpm --filter @al-riwayah/server start
+    healthCheckPath: /health
+    maxShutdownDelaySeconds: 30
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: CORS_ORIGIN
+        value: https://al-riwayah-web.onrender.com
+      - key: ROOM_TTL_MS
+        value: "1800000"
+      - key: ROOM_MAX_LIFETIME_MS
+        value: "7200000"
+      - key: PHASE_DURATION_SCALE
+        value: "1"
+
+  - type: web
+    name: al-riwayah-web
+    runtime: node
+    repo: https://github.com/yazeedsaleh09-lang/al-riwayah
+    branch: main
+    plan: starter
+    region: frankfurt
+    numInstances: 1
+    autoDeployTrigger: commit
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @al-riwayah/web... build
+    startCommand: pnpm --filter @al-riwayah/web start
+    healthCheckPath: /
+    maxShutdownDelaySeconds: 30
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_SERVER_URL
+        value: https://al-riwayah-server.onrender.com
+      - key: NEXT_PUBLIC_SITE_URL
+        value: https://al-riwayah-web.onrender.com

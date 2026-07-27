@@ -159,4 +159,40 @@ describe("secrecy & security (SEC-001..010)", () => {
       }),
     ).rejects.toThrow("explicit CORS_ORIGIN");
   });
+
+  it("production CORS allows the Render web origin and rejects other origins", async () => {
+    const allowedOrigin = "https://al-riwayah-web.onrender.com";
+    const { app, stopTimers } = await buildServer({
+      NODE_ENV: "production",
+      HOST: "127.0.0.1",
+      PORT: 0,
+      CORS_ORIGIN: allowedOrigin,
+      ROOM_TTL_MS: 60000,
+      ROOM_MAX_LIFETIME_MS: 600000,
+      PHASE_DURATION_SCALE: 1,
+    });
+
+    const allowed = await app.inject({
+      method: "OPTIONS",
+      url: "/socket.io/",
+      headers: {
+        origin: allowedOrigin,
+        "access-control-request-method": "GET",
+      },
+    });
+    expect(allowed.headers["access-control-allow-origin"]).toBe(allowedOrigin);
+
+    const denied = await app.inject({
+      method: "OPTIONS",
+      url: "/socket.io/",
+      headers: {
+        origin: "https://attacker.example",
+        "access-control-request-method": "GET",
+      },
+    });
+    expect(denied.headers["access-control-allow-origin"]).toBeUndefined();
+
+    stopTimers();
+    await app.close();
+  });
 });

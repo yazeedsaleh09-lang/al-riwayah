@@ -1,7 +1,23 @@
 import type { NextConfig } from "next";
 
 const isProduction = process.env.NODE_ENV === "production";
-const realtimeUrl = process.env.NEXT_PUBLIC_SERVER_URL ?? "http://localhost:4000";
+const configuredRealtimeUrl = process.env.NEXT_PUBLIC_SERVER_URL;
+
+if (isProduction && !configuredRealtimeUrl) {
+  throw new Error("NEXT_PUBLIC_SERVER_URL is required for production builds");
+}
+
+const realtimeUrl = configuredRealtimeUrl ?? "http://localhost:4000";
+const parsedRealtimeUrl = new URL(realtimeUrl);
+
+if (
+  isProduction &&
+  (parsedRealtimeUrl.protocol !== "https:" ||
+    ["localhost", "127.0.0.1", "::1"].includes(parsedRealtimeUrl.hostname))
+) {
+  throw new Error("NEXT_PUBLIC_SERVER_URL must be a public HTTPS origin in production");
+}
+
 const realtimeOrigin = new URL(realtimeUrl).origin;
 const realtimeSocketOrigin = realtimeOrigin.replace(/^http/, "ws");
 
@@ -17,7 +33,7 @@ const nextConfig: NextConfig = {
     "@al-riwayah/protocol",
   ],
   env: {
-    NEXT_PUBLIC_SERVER_URL: process.env.NEXT_PUBLIC_SERVER_URL ?? "http://localhost:4000",
+    NEXT_PUBLIC_SERVER_URL: realtimeUrl,
   },
   async headers() {
     const securityHeaders = [

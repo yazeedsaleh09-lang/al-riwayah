@@ -48,6 +48,10 @@ export async function buildServer(env: Env): Promise<BuiltServer> {
     cors: { origin: origins },
     maxHttpBufferSize: 8 * 1024,
     transports: ["websocket", "polling"],
+    // Socket.IO ping/pong heartbeat. Render can replace instances or interrupt
+    // connections, so stale clients must be detected and allowed to reconnect.
+    pingInterval: 25_000,
+    pingTimeout: 20_000,
   });
   registerGateway(io, manager, log);
 

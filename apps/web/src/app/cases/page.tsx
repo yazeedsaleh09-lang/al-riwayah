@@ -21,41 +21,62 @@ export default function CasesPage() {
   return (
     <>
       <SiteNav />
-      <main id="main" className="container section">
-        <p className="eyebrow">المكتبة</p>
-        <h1 className="display" style={{ fontSize: "clamp(2.4rem,8vw,4rem)" }}>القضايا</h1>
+      <main id="main">
+        <header className="container page-hero">
+          <p className="eyebrow">ملفات التحقيق</p>
+          <h1 className="display">القضايا.</h1>
+          <p className="page-hero__lede">
+            كل قضية تختبر نوعًا مختلفًا من الكذب الجماعي. الملف الأول جاهز للمواجهة.
+          </p>
+        </header>
+        <section className="container section">
+          <div className="patches">
+            {cases.map((c) => (
+              <article className="patch-card" key={c.id}>
+                <span className="stamp">متاحة الآن</span>
+                <h3 style={{ marginTop: "var(--space-4)" }}>{c.title.ar}</h3>
+                <p style={{ color: "var(--muted)" }}>{c.pitch.ar}</p>
+                <p className="mono" style={{ fontSize: "0.82rem", color: "var(--muted)" }}>
+                  {c.playerCounts[0]}–{c.playerCounts.at(-1)} لاعبين · {c.durationMinutes[0]}–
+                  {c.durationMinutes[1]} دقيقة · {c.complexity.ar}
+                </p>
+                <Link
+                  className="btn btn--evidence"
+                  href="/create"
+                  style={{ marginTop: "var(--space-3)" }}
+                >
+                  العب هذه القضية
+                </Link>
+              </article>
+            ))}
 
-        <div className="patches" style={{ marginTop: "var(--space-8)" }}>
-          {cases.map((c) => (
-            <article className="patch-card" key={c.id}>
-              <span className="stamp">متاحة الآن</span>
-              <h3 style={{ marginTop: "var(--space-4)" }}>{c.title.ar}</h3>
-              <p style={{ color: "var(--muted)" }}>{c.pitch.ar}</p>
-              <p className="mono" style={{ fontSize: "0.82rem", color: "var(--muted)" }}>
-                {c.playerCounts[0]}–{c.playerCounts.at(-1)} لاعبين · {c.durationMinutes[0]}–
-                {c.durationMinutes[1]} دقيقة · {c.complexity.ar}
-              </p>
-              <Link className="btn btn--evidence" href="/create" style={{ marginTop: "var(--space-3)" }}>
-                العب هذه القضية
-              </Link>
-            </article>
-          ))}
+            {IN_DEV.map((c) => (
+              <article className="patch-card" key={c.title} style={{ opacity: 0.85 }}>
+                <span
+                  className="mono"
+                  style={{
+                    fontSize: "0.72rem",
+                    color: "var(--muted)",
+                    border: "1px solid var(--line)",
+                    padding: "3px 8px",
+                    borderRadius: 3,
+                  }}
+                >
+                  قيد التطوير
+                </span>
+                <h3 style={{ marginTop: "var(--space-4)" }}>{c.title}</h3>
+                <p style={{ color: "var(--muted)" }}>{c.pitch}</p>
+                <p className="mono" style={{ fontSize: "0.82rem", color: "var(--muted)" }}>
+                  غير متاحة بعد
+                </p>
+              </article>
+            ))}
+          </div>
 
-          {IN_DEV.map((c) => (
-            <article className="patch-card" key={c.title} style={{ opacity: 0.85 }}>
-              <span className="mono" style={{ fontSize: "0.72rem", color: "var(--muted)", border: "1px solid var(--line)", padding: "3px 8px", borderRadius: 3 }}>
-                قيد التطوير
-              </span>
-              <h3 style={{ marginTop: "var(--space-4)" }}>{c.title}</h3>
-              <p style={{ color: "var(--muted)" }}>{c.pitch}</p>
-              <p className="mono" style={{ fontSize: "0.82rem", color: "var(--muted)" }}>غير متاحة بعد</p>
-            </article>
-          ))}
-        </div>
-
-        <p style={{ color: "var(--muted)", marginTop: "var(--space-8)" }}>
-          نعرض القضايا القادمة كأفكار قيد التطوير فقط — بدون أي وعود زائفة بمواعيد أو محتوى غير جاهز.
-        </p>
+          <p style={{ color: "var(--muted)", marginTop: "var(--space-8)", maxWidth: "58ch" }}>
+            الملفات القادمة أفكار قيد التطوير، وليست وعودًا بمواعيد أو محتوى غير جاهز.
+          </p>
+        </section>
       </main>
       <SiteFooter />
     </>

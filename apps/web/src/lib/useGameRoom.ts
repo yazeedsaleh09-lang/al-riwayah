@@ -2,13 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PublicRoomView, PrivatePlayerView } from "@al-riwayah/game-engine";
-import {
-  createNewGroup,
-  emitIntent,
-  getSocket,
-  loadSession,
-  updateToken,
-} from "./game-client";
+import { createNewGroup, emitIntent, getSocket, loadSession, updateToken } from "./game-client";
+import type { ConnectionStage } from "./game-client";
 
 export interface RoomState {
   publicView: PublicRoomView | null;
@@ -22,6 +17,7 @@ export function useGameRoom(code: string) {
   const [pub, setPub] = useState<PublicRoomView | null>(null);
   const [priv, setPriv] = useState<PrivatePlayerView | null>(null);
   const [connected, setConnected] = useState(false);
+  const [connectionStage, setConnectionStage] = useState<ConnectionStage>("connecting");
   const [fatal, setFatal] = useState<string | null>(null);
   const revisionRef = useRef(0);
 
@@ -32,6 +28,17 @@ export function useGameRoom(code: string) {
       return;
     }
     const socket = getSocket();
+    let unavailableTimer: ReturnType<typeof setTimeout> | null = null;
+    const startUnavailableTimer = () => {
+      if (unavailableTimer) return;
+      unavailableTimer = setTimeout(() => {
+        setFatal((current) => current ?? "SERVER_UNAVAILABLE");
+      }, 75_000);
+    };
+    const clearUnavailableTimer = () => {
+      if (unavailableTimer) clearTimeout(unavailableTimer);
+      unavailableTimer = null;
+    };
 
     const onPublic = (v: PublicRoomView) => {
       revisionRef.current = v.phaseRevision;
@@ -40,15 +47,25 @@ export function useGameRoom(code: string) {
     const onPrivate = (v: PrivatePlayerView) => setPriv(v);
     const onRotated = (d: { recoveryToken: string }) => updateToken(code, d.recoveryToken);
     const onReplaced = () => setFatal("SESSION_REPLACED");
-    const onConnectError = () => setFatal((current) => current ?? "SERVER_UNAVAILABLE");
+    const onConnectError = () => {
+      setConnected(false);
+      setConnectionStage("retrying");
+      startUnavailableTimer();
+    };
     const onConnect = () => {
+      clearUnavailableTimer();
       setConnected(true);
+      setConnectionStage("ready");
       setFatal(null);
       // (Re)bind this socket to the player via the recovery token.
       const s = loadSession(code);
       if (s) void emitIntent("room:restore", { recoveryToken: s.recoveryToken });
     };
-    const onDisconnect = () => setConnected(false);
+    const onDisconnect = () => {
+      setConnected(false);
+      setConnectionStage("retrying");
+      startUnavailableTimer();
+    };
 
     socket.on("view:public", onPublic);
     socket.on("view:private", onPrivate);
@@ -59,6 +76,7 @@ export function useGameRoom(code: string) {
     socket.on("disconnect", onDisconnect);
 
     if (socket.connected) onConnect();
+    else startUnavailableTimer();
 
     return () => {
       socket.off("view:public", onPublic);
@@ -68,6 +86,7 @@ export function useGameRoom(code: string) {
       socket.off("connect", onConnect);
       socket.off("connect_error", onConnectError);
       socket.off("disconnect", onDisconnect);
+      clearUnavailableTimer();
     };
   }, [code]);
 
@@ -90,5 +109,5 @@ export function useGameRoom(code: string) {
     newGroup: () => createNewGroup(code),
   };
 
-  return { pub, priv, connected, fatal, actions };
+  return { pub, priv, connected, connectionStage, fatal, actions };
 }

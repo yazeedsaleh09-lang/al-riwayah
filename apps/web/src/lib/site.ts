@@ -7,7 +7,7 @@ export const SITE = {
   descriptorLatin: "Keep the story straight.",
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://al-riwayah.example",
   locale: "ar_SA",
-  themeColor: "#0b0b0a",
+  themeColor: "#050505",
   description:
     "الرواية لعبة جماعية على الجوالات. اتفقوا على رواية واحدة، وانفصلوا للتحقيق. المحقق يكفيه تناقض واحد.",
 } as const;

@@ -1,9 +1,9 @@
 {
-  "lcpMs": 560,
+  "lcpMs": 276,
   "cls": 0,
-  "domContentLoadedMs": 586,
-  "loadMs": 586,
-  "scriptTransferBytes": 183757,
+  "domContentLoadedMs": 89,
+  "loadMs": 296,
+  "scriptTransferBytes": 184492,
   "longTaskCount": 1,
-  "longestTaskMs": 129
+  "longestTaskMs": 92
 }

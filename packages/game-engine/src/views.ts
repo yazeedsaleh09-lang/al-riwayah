@@ -9,7 +9,7 @@
  * The authoritative MatchState is never serialized directly.
  */
 import type { PhaseId } from "./phases";
-import type { GameCase, PatchDefinition, ScoreAxis } from "./case-types";
+import type { DetectedContradiction, GameCase, PatchDefinition, ScoreAxis } from "./case-types";
 import type { MatchState, VerdictResult } from "./match-types";
 import type { LocalizedText } from "./i18n";
 import { fillLocalized } from "./i18n";
@@ -98,12 +98,7 @@ export interface PrivateQuestion {
 }
 
 export type AllowedActionType =
-  | "ACKNOWLEDGE"
-  | "STORY_PROPOSE"
-  | "STORY_CONFIRM"
-  | "ANSWER"
-  | "PATCH_VOTE"
-  | "WAIT";
+  "ACKNOWLEDGE" | "STORY_PROPOSE" | "STORY_CONFIRM" | "ANSWER" | "PATCH_VOTE" | "WAIT";
 
 export interface PrivatePlayerView {
   protocolVersion: 1;
@@ -122,6 +117,20 @@ export interface PrivatePlayerView {
 
 function playerNames(state: MatchState, ids: string[]): string[] {
   return ids.map((id) => state.players.find((p) => p.id === id)?.name ?? id);
+}
+
+function contradictionTemplateParams(
+  state: MatchState,
+  contradiction: DetectedContradiction,
+): Record<string, string> {
+  const names = contradiction.playerParams.reduce<Record<string, string>>((acc, key) => {
+    const playerId = contradiction.params[key];
+    if (playerId) {
+      acc[key] = state.players.find((player) => player.id === playerId)?.name ?? playerId;
+    }
+    return acc;
+  }, {});
+  return { ...contradiction.params, ...names };
 }
 
 /** Build the public, broadcast-safe room view. */
@@ -165,12 +174,7 @@ export function toPublicView(
   ) {
     const c = currentReleasedContradiction(state);
     if (c) {
-      const names = c.playerParams.reduce<Record<string, string>>((acc, key) => {
-        const pid = c.params[key];
-        if (pid) acc[key] = state.players.find((p) => p.id === pid)?.name ?? pid;
-        return acc;
-      }, {});
-      const filledParams = { ...c.params, ...names };
+      const filledParams = contradictionTemplateParams(state, c);
       releasedContradiction = {
         category: c.category,
         statementA: fillLocalized(c.statementA ?? c.explanation, filledParams),
@@ -224,7 +228,12 @@ export function toPublicView(
       composite: v.composite,
       scores: v.scores,
       decisiveFactors: v.decisiveFactors,
-      firstFracture: firstFracture?.explanation ?? null,
+      firstFracture: firstFracture
+        ? fillLocalized(
+            firstFracture.explanation,
+            contradictionTemplateParams(state, firstFracture),
+          )
+        : null,
       strongestPatch: rankedPatches[0]?.publicLabel ?? null,
       costliestPatch: rankedPatches.at(-1)?.publicLabel ?? null,
       mostConsistentPlayerName: v.mostConsistentPlayerId

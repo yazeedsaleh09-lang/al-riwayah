@@ -64,7 +64,7 @@
 - Re-evaluate: Phase 0.
 - Phase 0 note: Repository contained specs only (no source). Proposed monorepo accepted
   and scaffolded as `apps/{web,server}` + `packages/{protocol,game-engine,content,ui,config}`
-  + `tests/`, pnpm workspace with `node-linker=hoisted` for Windows/OneDrive compatibility.
+  - `tests/`, pnpm workspace with `node-linker=hoisted` for Windows/OneDrive compatibility.
 
 ## ADR-011 — Toolchain versions (2026-07-24)
 
@@ -154,3 +154,20 @@
   remove the advisories without adding a new runtime capability.
 - Re-evaluate: remove overrides when Next's own dependency ranges resolve to patched
   versions; keep `pnpm audit --prod` in the release gate.
+
+## ADR-017 — Final visual authority and cold-start entry contract
+
+- Date: 2026-07-27
+- Status: Accepted
+- Domain: Brand / UX / Deployment
+- Decision: Replace the beige/red dossier presentation with a true monochrome system
+  and one forensic-cobalt signal. Use Alexandria for display and Noto Sans Arabic for
+  body/UI. Translate Fabrica's scale, pacing, responsive composition, and motion
+  discipline without copying its brand, assets, layouts, content, or agency structure.
+- Signature: a shared statement that fractures into two testimony tracks.
+- Product boundary: marketing may use rare 640ms reveals; game controls remain
+  120–280ms and state-driven.
+- Connection decision: room entry must warm the health endpoint, wait for a confirmed
+  Socket.IO connection, retry through a bounded 75-second provider wake window, and
+  expose explicit wake/retry/failure stages instead of a six-second hard error.
+- Evidence: `design/FINAL_VISUAL_AUDIT.md` and `design-system/al-riwayah/MASTER.md`.

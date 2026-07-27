@@ -1,73 +1,74 @@
-/** Original SVG "evidence board" hero composition. No external/stock assets. */
+/** Original fracture composition: one shared statement splitting into incompatible testimony. */
 export function EvidenceBoard() {
   return (
-    <div className="evidence-board" role="img" aria-label="لوحة أدلة: قصاصات مربوطة بخيط وتواريخ التحقيق">
-      <svg viewBox="0 0 400 300" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-            <path d="M20 0H0V20" fill="none" stroke="var(--line)" strokeWidth="0.5" />
-          </pattern>
-        </defs>
-        <rect width="400" height="300" fill="url(#grid)" />
+    <div
+      className="evidence-board"
+      role="img"
+      aria-label="رواية واحدة تتشقق إلى شهادتين متعارضتين عند الساعة ٢٣:٤٨"
+    >
+      <svg viewBox="0 0 560 640" xmlns="http://www.w3.org/2000/svg">
+        <rect width="560" height="640" fill="var(--black-soft)" />
+        <g className="evidence-board__grid" stroke="rgba(247,247,245,.09)">
+          <path d="M0 80h560M0 160h560M0 240h560M0 320h560M0 400h560M0 480h560M0 560h560" />
+          <path d="M80 0v640M160 0v640M240 0v640M320 0v640M400 0v640M480 0v640" />
+        </g>
+        <text x="40" y="56" fill="var(--steel)" fontFamily="var(--font-mono)" fontSize="13">
+          CASE / 001
+        </text>
+        <text
+          x="520"
+          y="56"
+          textAnchor="end"
+          fill="var(--white)"
+          fontFamily="var(--font-mono)"
+          fontSize="13"
+        >
+          23:48
+        </text>
 
-        {/* thread */}
         <path
-          d="M70 70 C 150 40, 250 120, 330 90"
+          className="evidence-board__fracture"
+          d="M300 78 263 172l38 42-66 80 48 55-84 84 54 55-41 78"
           fill="none"
-          stroke="var(--evidence-600)"
-          strokeWidth="1.5"
-          strokeDasharray="4 4"
+          stroke="var(--signal)"
+          strokeWidth="5"
         />
-        <path
-          d="M90 210 C 180 240, 240 160, 320 200"
-          fill="none"
-          stroke="var(--metal-500)"
-          strokeWidth="1"
-          strokeDasharray="3 5"
-        />
+        <path d="M301 214 388 176" stroke="var(--signal)" strokeWidth="2" />
+        <path d="m284 350 111 66" stroke="var(--signal)" strokeWidth="2" />
+        <path d="m253 488-96 42" stroke="var(--signal)" strokeWidth="2" />
 
-        {/* note 1 */}
-        <g transform="rotate(-4 80 70)">
-          <rect x="40" y="45" width="110" height="70" rx="3" fill="var(--card)" stroke="var(--line)" />
-          <rect x="52" y="58" width="70" height="7" rx="2" fill="var(--ink-950)" />
-          <rect x="52" y="72" width="86" height="6" rx="2" fill="var(--metal-300)" />
-          <rect x="52" y="84" width="50" height="6" rx="2" fill="var(--metal-300)" />
-          <text x="52" y="106" fontFamily="monospace" fontSize="8" fill="var(--evidence-700)">
-            23:46
+        <g fill="var(--white)" fontFamily="var(--font-display)" fontWeight="700">
+          <text x="40" y="142" fontSize="28">
+            قال: كنت في
+          </text>
+          <text x="40" y="177" fontSize="28">
+            غرفة السيرفر.
+          </text>
+          <text x="520" y="282" textAnchor="end" fontSize="28">
+            وقال: شفته
+          </text>
+          <text x="520" y="317" textAnchor="end" fontSize="28">
+            عند المستودع.
           </text>
         </g>
 
-        {/* note 2 (redacted) */}
-        <g transform="rotate(3 300 90)">
-          <rect x="250" y="60" width="110" height="66" rx="3" fill="var(--card)" stroke="var(--evidence-600)" />
-          <rect x="262" y="74" width="60" height="8" rx="2" fill="var(--ink-950)" />
-          <rect x="262" y="88" width="82" height="6" rx="2" fill="var(--metal-300)" />
-          <rect x="262" y="100" width="40" height="6" rx="2" fill="var(--ink-950)" />
-          <text x="262" y="120" fontFamily="monospace" fontSize="8" fill="var(--evidence-700)">
-            WIFI · 23:48
+        <g fontFamily="var(--font-mono)" fontSize="12">
+          <text x="40" y="210" fill="var(--steel)">
+            شهادة / أ
+          </text>
+          <text x="520" y="350" textAnchor="end" fill="var(--steel)">
+            شهادة / ب
+          </text>
+          <text x="40" y="596" fill="#a9baff">
+            لا يمكن أن يكون الجوابان صحيحين في اللحظة نفسها.
           </text>
         </g>
 
-        {/* note 3 */}
-        <g transform="rotate(-2 110 220)">
-          <rect x="60" y="185" width="120" height="72" rx="3" fill="var(--card)" stroke="var(--line)" />
-          <rect x="72" y="200" width="80" height="7" rx="2" fill="var(--ink-950)" />
-          <rect x="72" y="214" width="94" height="6" rx="2" fill="var(--metal-300)" />
-          <rect x="72" y="226" width="60" height="6" rx="2" fill="var(--metal-300)" />
-          <text x="72" y="248" fontFamily="monospace" fontSize="8" fill="var(--evidence-700)">
-            00:01 · CAR OUT
-          </text>
-        </g>
-
-        {/* pin dots */}
-        {[
-          [70, 70],
-          [330, 90],
-          [110, 210],
-        ].map(([cx, cy], i) => (
-          <circle key={i} cx={cx} cy={cy} r="4" fill="var(--evidence-600)" />
-        ))}
+        <circle cx="301" cy="214" r="8" fill="var(--signal)" />
+        <circle cx="284" cy="350" r="8" fill="var(--signal)" />
+        <circle cx="253" cy="488" r="8" fill="var(--signal)" />
       </svg>
+      <span className="evidence-board__caption mono">إشارة ٠١ / أول شرخ</span>
     </div>
   );
 }

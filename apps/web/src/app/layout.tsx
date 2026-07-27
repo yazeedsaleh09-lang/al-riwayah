@@ -1,8 +1,21 @@
 import type { Metadata, Viewport } from "next";
+import { Alexandria, Noto_Sans_Arabic } from "next/font/google";
 import "./globals.css";
 import "./marketing.css";
 import { SITE } from "@/lib/site";
 import { HydrationMarker } from "@/components/HydrationMarker";
+
+const display = Alexandria({
+  subsets: ["arabic", "latin"],
+  variable: "--font-display",
+  display: "swap",
+});
+
+const body = Noto_Sans_Arabic({
+  subsets: ["arabic", "latin"],
+  variable: "--font-body",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
@@ -41,8 +54,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ar" dir="rtl">
-      <body>
+    <html lang="ar" dir="rtl" data-scroll-behavior="smooth">
+      <body className={`${display.variable} ${body.variable}`}>
         <HydrationMarker />
         <a href="#main" className="skip-link">
           تجاوز إلى المحتوى

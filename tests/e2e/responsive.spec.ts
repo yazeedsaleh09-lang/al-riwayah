@@ -17,6 +17,7 @@ const VIEWPORTS = [
 test("responsive route matrix has no overflow, console errors, or clipped primary controls", async ({
   page,
 }) => {
+  test.setTimeout(180_000);
   const stage = process.env.EVIDENCE_STAGE ?? "after";
   const evidenceDir = path.resolve("artifacts", "final-playtest-pass", stage);
   await mkdir(evidenceDir, { recursive: true });
@@ -30,7 +31,7 @@ test("responsive route matrix has no overflow, console errors, or clipped primar
     await page.setViewportSize(viewport);
     for (const route of ROUTES) {
       consoleErrors.length = 0;
-      await page.goto(route, { waitUntil: "networkidle" });
+      await page.goto(route, { waitUntil: "domcontentloaded" });
       await expect(page.locator("h1").first()).toBeVisible();
 
       const metrics = await page.evaluate(() => ({
@@ -66,11 +67,8 @@ test("responsive route matrix has no overflow, console errors, or clipped primar
         );
       expect(smallControls, `${route} at ${viewport.name}`).toEqual([]);
 
-      if (
-        (viewport.name === "390x844" || viewport.name === "1440x900") &&
-        ["/", "/create", "/join"].includes(route)
-      ) {
-        const routeName = route === "/" ? "home" : route.slice(1);
+      if (viewport.name === "390x844" || viewport.name === "1440x900") {
+        const routeName = route === "/" ? "home" : route.slice(1).replaceAll("/", "-");
         await page.screenshot({
           path: path.join(evidenceDir, `${routeName}-${viewport.name}.png`),
           fullPage: true,

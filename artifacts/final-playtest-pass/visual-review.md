@@ -1,18 +1,29 @@
-# Visual review — 2026-07-27
+# Final visual review — 2026-07-27
 
-The final implementation retains the established editorial investigation dossier:
-paper/ink surfaces, evidence red, mono timestamps, red-thread board, compact stamps,
-and Arabic RTL hierarchy. No stock or copied reference assets were added.
+The rejected beige/red dossier direction was removed. The release candidate now
+uses a controlled black/white/steel system with one forensic cobalt signal,
+Alexandria display typography, Noto Sans Arabic body typography, large editorial
+hierarchy, asymmetric composition, disciplined borders, and a single fracture-line
+motif shared by marketing and game states.
+
+Fabrica informed the quality bar—confident type scale, monochrome control, paced
+sections, compact fixed navigation, restrained reveals, ticker motion, and
+responsive recomposition—without copying its identity, assets, text, or layouts.
 
 Reviewed evidence:
 
-- before/after home, create, and join at 390×844 and 1440×900;
+- every public route at 390×844 and 1440×900;
+- overflow/control checks at 320, 360, 390, 430, 768, 1280, 1440, and 1920;
+- create, join, wake, reconnect, error, lobby, private evidence, contradiction,
+  patch, verdict, and result states;
 - 4-player lobby/result and 5/6-player results;
-- homepage semantic motion recording at `motion/homepage-motion.webm`;
-- 64 route/viewport responsive combinations: 320, 360, 390, 430, 768, 1280,
-  1440, and 1920 pixels.
+- homepage motion recording at `motion/homepage-motion.webm`.
 
-Refinements include a calmer footer, 44px navigation/preferences, explicit invite
-sharing, accessible contrast during animation, evidence/contradiction/verdict state
-motion, result sequencing, and a reduced-motion path. No overflow, clipped primary
-control, hydration warning, or console error remained.
+Final refinements from critical screenshot comparison:
+
+- legal pages use a left-reading/right-title editorial grid, never centered copy;
+- mobile and desktop hero compositions reflow without clipping;
+- text-bearing reveals never animate opacity, preserving WCAG contrast mid-motion;
+- unresolved `{{A}}`/`{{B}}` result templates are filled with public player names;
+- no generic equal-card grid remains as the dominant composition;
+- no horizontal overflow or clipped primary controls remain in the route matrix.

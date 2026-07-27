@@ -66,7 +66,9 @@ async function waitForPhase(page: Page, phase: string, timeout = 15_000): Promis
 }
 
 async function clickFirstAvailable(page: Page): Promise<void> {
-  const button = page.locator(".game__actions button:not([disabled]), .option-btn:not([disabled])").first();
+  const button = page
+    .locator(".game__actions button:not([disabled]), .option-btn:not([disabled])")
+    .first();
   if (await button.isVisible().catch(() => false)) await button.click();
 }
 
@@ -106,9 +108,7 @@ async function driveToResults(
 
     if (
       options.axe &&
-      ["CASE_BRIEF", "PRIVATE_EVIDENCE", "INTERROGATION_FOUNDATION", "PATCH_1"].includes(
-        phase,
-      ) &&
+      ["CASE_BRIEF", "PRIVATE_EVIDENCE", "INTERROGATION_FOUNDATION", "PATCH_1"].includes(phase) &&
       !auditedPhases.has(phase)
     ) {
       auditedPhases.add(phase);
@@ -117,8 +117,7 @@ async function driveToResults(
         .analyze();
       expect(
         results.violations.filter(
-          (violation) =>
-            violation.impact === "serious" || violation.impact === "critical",
+          (violation) => violation.impact === "serious" || violation.impact === "critical",
         ),
         `axe violations during ${phase}`,
       ).toEqual([]);
@@ -152,10 +151,13 @@ async function driveToResults(
       }
       if (options.duplicateAnswer && !duplicated && phase === "INTERROGATION_FOUNDATION") {
         duplicated = true;
-        await pages[0]!.locator(".option-btn:not([disabled])").first().evaluate((button) => {
-          (button as HTMLButtonElement).click();
-          (button as HTMLButtonElement).click();
-        });
+        await pages[0]!
+          .locator(".option-btn:not([disabled])")
+          .first()
+          .evaluate((button) => {
+            (button as HTMLButtonElement).click();
+            (button as HTMLButtonElement).click();
+          });
         await Promise.all(pages.slice(1).map((page) => clickFirstAvailable(page)));
       } else {
         await Promise.all(pages.map((page) => clickFirstAvailable(page)));
@@ -176,11 +178,11 @@ async function saveEvidence(page: Page, name: string): Promise<void> {
 }
 
 async function closeClients(clients: MatchClients): Promise<void> {
-  await Promise.all(clients.contexts.map((context) => context.close()));
+  await Promise.allSettled(clients.contexts.map((context) => context.close()));
 }
 
 test.describe("real multi-client UI matches", () => {
-  test.setTimeout(180_000);
+  test.setTimeout(300_000);
 
   test("4 players complete, reject a duplicate answer, and replay cleanly", async ({ browser }) => {
     const clients = await createClients(browser, 4);
@@ -191,8 +193,7 @@ test.describe("real multi-client UI matches", () => {
         .analyze();
       expect(
         lobbyAxe.violations.filter(
-          (violation) =>
-            violation.impact === "serious" || violation.impact === "critical",
+          (violation) => violation.impact === "serious" || violation.impact === "critical",
         ),
       ).toEqual([]);
       await driveToResults(clients, { duplicateAnswer: true, axe: true });
@@ -200,13 +201,13 @@ test.describe("real multi-client UI matches", () => {
       await expect(host.locator(".verdict-band")).toBeVisible();
       await expect(host.locator(".axis")).toHaveCount(4);
       await expect(host.locator(".result-story")).toBeVisible();
+      await expect(host.locator(".result-story")).not.toContainText("{{");
       const resultsAxe = await new AxeBuilder({ page: host })
         .withTags(["wcag2a", "wcag2aa"])
         .analyze();
       expect(
         resultsAxe.violations.filter(
-          (violation) =>
-            violation.impact === "serious" || violation.impact === "critical",
+          (violation) => violation.impact === "serious" || violation.impact === "critical",
         ),
       ).toEqual([]);
       await saveEvidence(host, "4-player-results");

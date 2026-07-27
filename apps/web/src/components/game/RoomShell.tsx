@@ -30,10 +30,13 @@ const INTERROGATION = new Set([
 
 export function RoomShell({ code }: { code: string }) {
   const router = useRouter();
-  const { pub, priv, connected, fatal, actions } = useGameRoom(code);
+  const { pub, priv, connected, connectionStage, fatal, actions } = useGameRoom(code);
   const [busy, setBusy] = useState(false);
   const [shareStatus, setShareStatus] = useState("");
-  const gameCase = useMemo<GameCase | undefined>(() => (pub ? getCase(pub.caseId) : undefined), [pub]);
+  const gameCase = useMemo<GameCase | undefined>(
+    () => (pub ? getCase(pub.caseId) : undefined),
+    [pub],
+  );
   const lastPhase = useRef<string | null>(null);
 
   useEffect(() => {
@@ -71,7 +74,7 @@ export function RoomShell({ code }: { code: string }) {
           <p style={{ color: "var(--muted)" }}>
             {replaced
               ? "حفاظًا على خصوصية إجاباتك، هذا الجهاز ما عاد يقدر يرسل قرارات."
-              : "تأكد أن خادم اللعبة شغّال وأن الجوال على نفس الشبكة، ثم جرّب مرة ثانية."}
+              : "حاولنا إيقاظ خادم اللعبة وإعادة الاتصال لمدة دقيقة. انتظر شوي ثم جرّب مرة ثانية."}
           </p>
           <div className="game__actions">
             <button className="btn btn--evidence" onClick={() => window.location.reload()}>
@@ -90,7 +93,13 @@ export function RoomShell({ code }: { code: string }) {
     return (
       <div className="game">
         <div className="game__body" aria-busy="true">
-          <p>نجهّز الغرفة…</p>
+          <p className="eyebrow">اتصال مشفّر</p>
+          <h1 className="game__prompt">نرجّع جلستك.</h1>
+          <p className="connection-status" role="status" aria-live="polite">
+            {connectionStage === "retrying"
+              ? "خادم اللعبة يصحى — مستمرين بالمحاولة، لا تقفل الصفحة."
+              : "نثبّت الاتصال ونستعيد آخر حالة آمنة…"}
+          </p>
         </div>
       </div>
     );
@@ -136,9 +145,12 @@ export function RoomShell({ code }: { code: string }) {
   };
 
   const playerName = (id: string) => pub.players.find((p) => p.id === id)?.name ?? id;
-  const reasonLabel = (id: string) => gameCase?.planning.reasons.find((r) => r.id === id)?.label.ar ?? id;
-  const locationLabel = (id: string) => gameCase?.planning.locations.find((l) => l.id === id)?.label.ar ?? id;
-  const roleLabel = (id: string) => gameCase?.planning.roles.find((r) => r.id === id)?.label.ar ?? id;
+  const reasonLabel = (id: string) =>
+    gameCase?.planning.reasons.find((r) => r.id === id)?.label.ar ?? id;
+  const locationLabel = (id: string) =>
+    gameCase?.planning.locations.find((l) => l.id === id)?.label.ar ?? id;
+  const roleLabel = (id: string) =>
+    gameCase?.planning.roles.find((r) => r.id === id)?.label.ar ?? id;
 
   return (
     <main className="game" id="main" data-phase={phase}>
@@ -181,7 +193,9 @@ export function RoomShell({ code }: { code: string }) {
             <ul className="roster">
               {pub.players.map((p) => (
                 <li key={p.id}>
-                  <span className={`dot ${p.connected ? "is-on" : ""} ${p.ready ? "is-ready" : ""}`} />
+                  <span
+                    className={`dot ${p.connected ? "is-on" : ""} ${p.ready ? "is-ready" : ""}`}
+                  />
                   {p.name}
                   {p.isHost ? " ★" : ""}
                 </li>
@@ -210,7 +224,9 @@ export function RoomShell({ code }: { code: string }) {
                 </button>
               )}
               {me?.isHost && pub.players.length < 4 && (
-                <p style={{ color: "var(--muted)", textAlign: "center" }}>نحتاج ٤ لاعبين على الأقل</p>
+                <p style={{ color: "var(--muted)", textAlign: "center" }}>
+                  نحتاج ٤ لاعبين على الأقل
+                </p>
               )}
             </div>
           </>
@@ -257,10 +273,12 @@ export function RoomShell({ code }: { code: string }) {
             title="ليش دخلتوا الشركة؟"
             options={gameCase.planning.reasons.map((r) => ({ id: r.id, label: r.label.ar }))}
             busy={busy}
-            onPick={(v) => run(async () => {
-              await actions.propose("reason", v);
-              await actions.confirm("reason");
-            })}
+            onPick={(v) =>
+              run(async () => {
+                await actions.propose("reason", v);
+                await actions.confirm("reason");
+              })
+            }
           />
         )}
 
@@ -270,10 +288,12 @@ export function RoomShell({ code }: { code: string }) {
             title="وين كنت وقت انطفت الكهرباء؟"
             options={gameCase.planning.locations.map((l) => ({ id: l.id, label: l.label.ar }))}
             busy={busy}
-            onPick={(v) => run(async () => {
-              await actions.propose(`location.${me.id}`, v);
-              await actions.confirm(`location.${me.id}`);
-            })}
+            onPick={(v) =>
+              run(async () => {
+                await actions.propose(`location.${me.id}`, v);
+                await actions.confirm(`location.${me.id}`);
+              })
+            }
           />
         )}
 
@@ -283,10 +303,12 @@ export function RoomShell({ code }: { code: string }) {
             roles={gameCase.planning.roles.map((r) => ({ id: r.id, label: r.label.ar }))}
             players={pub.players.map((p) => ({ id: p.id, name: p.name }))}
             busy={busy}
-            onPick={(roleId, playerId) => run(async () => {
-              await actions.propose(`role.${roleId}`, playerId);
-              await actions.confirm(`role.${roleId}`);
-            })}
+            onPick={(roleId, playerId) =>
+              run(async () => {
+                await actions.propose(`role.${roleId}`, playerId);
+                await actions.confirm(`role.${roleId}`);
+              })
+            }
           />
         )}
 
@@ -297,15 +319,29 @@ export function RoomShell({ code }: { code: string }) {
             <p style={{ color: "var(--muted)" }}>بعدها تختفي الرواية.</p>
             <ul className="features">
               {pub.releasedStory["reason"] && (
-                <li><span>السبب: {reasonLabel(pub.releasedStory["reason"])}</span></li>
+                <li>
+                  <span>السبب: {reasonLabel(pub.releasedStory["reason"])}</span>
+                </li>
               )}
               {gameCase?.planning.roles.map((r) => {
                 const pid = pub.releasedStory[`role.${r.id}`];
-                return pid ? <li key={r.id}><span>{roleLabel(r.id)}: {playerName(pid)}</span></li> : null;
+                return pid ? (
+                  <li key={r.id}>
+                    <span>
+                      {roleLabel(r.id)}: {playerName(pid)}
+                    </span>
+                  </li>
+                ) : null;
               })}
               {pub.players.map((p) => {
                 const loc = pub.releasedStory[`location.${p.id}`];
-                return loc ? <li key={p.id}><span>{p.name}: {locationLabel(loc)}</span></li> : null;
+                return loc ? (
+                  <li key={p.id}>
+                    <span>
+                      {p.name}: {locationLabel(loc)}
+                    </span>
+                  </li>
+                ) : null;
               })}
             </ul>
             <AckBar priv={priv} busy={busy} onAck={() => run(actions.acknowledge)} />
@@ -336,7 +372,10 @@ export function RoomShell({ code }: { code: string }) {
                   ))}
                 </div>
                 {priv.answerLocked && (
-                  <p aria-live="polite" style={{ textAlign: "center", color: "var(--success-600)", fontWeight: 700 }}>
+                  <p
+                    aria-live="polite"
+                    style={{ textAlign: "center", color: "var(--success-600)", fontWeight: 700 }}
+                  >
                     تم تثبيت إجابتك — ارفع نظرك وانتظر البقية
                   </p>
                 )}
@@ -462,14 +501,20 @@ export function RoomShell({ code }: { code: string }) {
             {pub.result.decisiveFactors.length > 0 && (
               <ul className="features">
                 {pub.result.decisiveFactors.map((f, i) => (
-                  <li key={i}><span>{f.ar}</span></li>
+                  <li key={i}>
+                    <span>{f.ar}</span>
+                  </li>
                 ))}
               </ul>
             )}
             {phase === "RESULTS" && (
               <div className="game__actions">
                 {me?.isHost && (
-                  <button className="btn btn--evidence" disabled={busy} onClick={() => run(actions.replay)}>
+                  <button
+                    className="btn btn--evidence"
+                    disabled={busy}
+                    onClick={() => run(actions.replay)}
+                  >
                     أعيدوا القضية
                   </button>
                 )}

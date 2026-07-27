@@ -5,6 +5,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Wordmark } from "./Wordmark";
 import { joinRoom } from "@/lib/game-client";
+import type { ConnectionStage } from "@/lib/game-client";
 
 const ERROR_AR: Record<string, string> = {
   ROOM_NOT_FOUND: "الغرفة غير موجودة",
@@ -14,7 +15,14 @@ const ERROR_AR: Record<string, string> = {
   NAME_TAKEN: "الاسم مستخدم",
   NAME_INVALID: "الاسم غير صالح",
   RATE_LIMITED: "محاولات كثيرة — انتظر شوي",
-  SERVER_UNAVAILABLE: "ما قدرنا نوصل للخادم",
+  SERVER_UNAVAILABLE: "خادم اللعبة ما استجاب خلال دقيقة. انتظر شوي وجرّب مرة ثانية.",
+};
+
+const STAGE_AR: Partial<Record<ConnectionStage, string>> = {
+  waking: "نوقّظ خادم اللعبة… أول تشغيل ممكن يأخذ قرابة دقيقة.",
+  connecting: "الخادم جاهز. نثبّت الاتصال الآمن…",
+  retrying: "الخادم ما زال يجهّز نفسه — مستمرين بالمحاولة.",
+  ready: "تم الاتصال. ندخّلك الغرفة الآن…",
 };
 
 export function PlayForm() {
@@ -24,6 +32,7 @@ export function PlayForm() {
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [stage, setStage] = useState<ConnectionStage>("idle");
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,11 +47,12 @@ export function PlayForm() {
     }
     setBusy(true);
     try {
-      const session = await joinRoom({ code: code.trim(), displayName: name.trim() });
+      const session = await joinRoom({ code: code.trim(), displayName: name.trim() }, setStage);
       router.push(`/room/${session.roomCode}`);
     } catch (err) {
       setError(ERROR_AR[(err as Error).message] ?? "صار خطأ، جرّب مرة ثانية");
       setBusy(false);
+      setStage("idle");
     }
   };
 
@@ -54,7 +64,16 @@ export function PlayForm() {
         </div>
         <h1>ادخل برمز</h1>
         <form onSubmit={submit}>
-          {error && <p className="form-error" role="alert">{error}</p>}
+          {error && (
+            <p className="form-error" role="alert">
+              {error}
+            </p>
+          )}
+          {busy && stage !== "idle" && (
+            <p className="connection-status" role="status" aria-live="polite">
+              {STAGE_AR[stage]}
+            </p>
+          )}
           <div className="field">
             <label htmlFor="code">رمز الغرفة</label>
             <input
@@ -71,7 +90,14 @@ export function PlayForm() {
           </div>
           <div className="field">
             <label htmlFor="pname">اسمك</label>
-            <input id="pname" value={name} onChange={(e) => setName(e.target.value)} maxLength={24} autoComplete="off" placeholder="مثال: نواف" />
+            <input
+              id="pname"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={24}
+              autoComplete="off"
+              placeholder="مثال: نواف"
+            />
           </div>
           <button className="btn btn--evidence btn--full" type="submit" disabled={busy}>
             {busy ? "ندخّلك…" : "ادخل الغرفة"}

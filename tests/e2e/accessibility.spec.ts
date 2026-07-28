@@ -76,6 +76,9 @@ test.describe("accessibility smoke (axe)", () => {
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/");
+    await expect(page.locator("html")).toHaveAttribute("data-hydrated", "true", {
+      timeout: 30_000,
+    });
     const toggle = page.getByRole("button", { name: "افتح القائمة" });
     await toggle.click();
     const menu = page.locator("#mobile-menu");
@@ -103,6 +106,9 @@ test.describe("accessibility smoke (axe)", () => {
     page,
   }) => {
     await page.goto("/create");
+    await expect(page.locator("html")).toHaveAttribute("data-hydrated", "true", {
+      timeout: 30_000,
+    });
     await page.getByRole("button", { name: "أنشئ الغرفة" }).click();
     const createName = page.locator("#name");
     await expect(createName).toBeFocused();
@@ -110,6 +116,9 @@ test.describe("accessibility smoke (axe)", () => {
     await expect(createName).toHaveAttribute("aria-describedby", /create-error/);
 
     await page.goto("/join");
+    await expect(page.locator("html")).toHaveAttribute("data-hydrated", "true", {
+      timeout: 30_000,
+    });
     await page.getByRole("button", { name: "ادخل الغرفة" }).click();
     const roomCode = page.locator("#code");
     await expect(roomCode).toBeFocused();
@@ -119,6 +128,9 @@ test.describe("accessibility smoke (axe)", () => {
 
   test("ticker and revision comparison remain keyboard operable", async ({ page }) => {
     await page.goto("/");
+    await expect(page.locator("html")).toHaveAttribute("data-hydrated", "true", {
+      timeout: 30_000,
+    });
     const tickerControl = page.locator(".ticker__control");
     await tickerControl.focus();
     await tickerControl.press("Enter");

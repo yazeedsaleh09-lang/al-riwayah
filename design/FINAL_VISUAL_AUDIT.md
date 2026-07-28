@@ -95,8 +95,8 @@ The final score is 12/12 categories at 9.0 or above. See
 - `pnpm.cmd build`: pass
 - `pnpm.cmd test:e2e`: 62 executed tests passed; production performance skipped
   there by design and passed separately
-- production performance: LCP 2240ms, CLS 0.0027, 196,877 script bytes, longest
-  task 160ms
+- production performance: LCP 372ms, CLS 0, 196,877 script bytes, longest
+  task 138ms
 
 This audit approves the local release candidate. It does not claim the redesign is
 live; the same Nudge and production checks must repeat after Render deploys the

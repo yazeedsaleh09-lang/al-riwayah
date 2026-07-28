@@ -3175,30 +3175,24 @@
 
 @keyframes editor-settle {
   from {
-    opacity: 0;
     transform: translateY(12px);
   }
 }
 
 @keyframes editor-old-phrase {
   from {
-    color: var(--statement);
-    opacity: 1;
-    text-decoration-color: transparent;
     transform: translateY(0);
   }
 }
 
 @keyframes editor-new-phrase {
   from {
-    opacity: 0;
     transform: translateY(8px);
   }
 }
 
 @keyframes editor-reason-in {
   from {
-    opacity: 0;
     transform: translateY(8px);
   }
 }

@@ -37,10 +37,10 @@ authoritative multiplayer behavior and public/private view boundaries remain int
 
 Production metrics from `performance-report.json`:
 
-- LCP: **2240ms**
-- CLS: **0.0027**
+- LCP: **372ms**
+- CLS: **0**
 - script transfer: **196,877 bytes**
-- longest main-thread task: **160ms**
+- longest main-thread task: **138ms**
 - security headers: CSP, `X-Frame-Options: DENY`, and
   `X-Content-Type-Options: nosniff` present
 

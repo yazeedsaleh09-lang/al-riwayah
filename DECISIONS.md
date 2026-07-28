@@ -171,3 +171,40 @@
   Socket.IO connection, retry through a bounded 75-second provider wake window, and
   expose explicit wake/retry/failure stages instead of a six-second hard error.
 - Evidence: `design/FINAL_VISUAL_AUDIT.md` and `design-system/al-riwayah/MASTER.md`.
+
+## ADR-018 — Void-black fracture identity supersedes ADR-017 typography and cobalt
+
+- Date: 2026-07-28
+- Status: Accepted
+- Domain: Brand / UX
+- Decision: Keep ADR-017’s cold-start entry contract, but supersede its visual
+  direction. Use void black, carbon, statement ivory, and state-only red/amber/green.
+  Use IBM Plex Sans Arabic across display, body, and UI. The recurring mechanism is
+  one shared statement separating into incompatible testimonies.
+- Rejected: forensic cobalt, Alexandria/Noto pairing, beige dossier surfaces,
+  gradients, glass, decorative grids, and equal-card marketing layouts.
+- Motion boundary: one scroll-progress source controls the six-stage desktop rail;
+  mobile and reduced-motion modes expose the stages as ordered static content.
+  Entrance animation must never make readable content transparent at rest.
+- Evidence: `design/FINAL_VISUAL_AUDIT.md`,
+  `artifacts/final-playtest-pass/visual-review.md`, and the production Axe matrix.
+
+## ADR-019 — Light Versioned Testimony identity supersedes ADR-018
+
+- Date: 2026-07-28
+- Status: Accepted
+- Domain: Brand / UX
+- Decision: Keep all authoritative multiplayer, privacy, recovery, and cold-start
+  behavior, but supersede the void-black identity and reject the Alibi Table,
+  circular player-seat geometry, orbit, and circular mark. Use warm paper, dark
+  ink, restrained verdict red, state-only warning/success colors, and the non-circular Versioned Testimony
+  mechanism: one authored phrase becomes a different version with an explicit
+  written reason.
+- Truthfulness: the marketing comparison uses synthetic authored data and does
+  not imply free-text collaboration or public synchronization of private answers.
+- Motion boundary: panel settle → old phrase retires → new phrase inserts →
+  written reason appears, then rests. Reduced motion renders the final state
+  immediately. Game state changes stay at or below 280ms.
+- Evidence: `design/research-v3/selection-decision.md`,
+  `design/research-v3/latest-implementation-principles.md`, and fresh four-viewport
+  local release-candidate captures.

@@ -14,28 +14,38 @@ export default function TermsPage() {
       <SiteNav />
       <main id="main" className="container legal-page">
         <header className="legal-page__title">
-          <p className="eyebrow">بيننا وبينكم</p>
+          <p className="section-label">بيننا وبينكم</p>
           <h1 className="display">الشروط</h1>
-          <p style={{ color: "var(--muted)" }}>آخر تحديث: يوليو ٢٠٢٦ · نسخة المراجعة</p>
+          <dl className="legal-meta">
+            <div><dt>آخر تحديث</dt><dd>يوليو ٢٠٢٦</dd></div>
+            <div><dt>الحالة</dt><dd>نسخة المراجعة</dd></div>
+          </dl>
         </header>
+        <aside className="legal-page__index" aria-label="فهرس الشروط">
+          <span className="mono">INDEX / 04</span>
+          <a href="#usage">الاستخدام</a>
+          <a href="#content">المحتوى</a>
+          <a href="#warranty">عدم الضمان</a>
+          <a href="#ownership">الملكية</a>
+        </aside>
         <article className="legal-page__body">
           <p className="legal-lede">العبوا بصدق مع بعض، حتى لو كانت مهمتكم داخل اللعبة هي الكذب.</p>
 
-          <h2>الاستخدام</h2>
+          <h2 id="usage">الاستخدام</h2>
           <p>
             الرواية لعبة ترفيهية للعب الجماعي. باستخدامك اللعبة توافق على استخدامها بشكل مسؤول
             واحترام باقي اللاعبين.
           </p>
 
-          <h2>المحتوى</h2>
+          <h2 id="content">المحتوى</h2>
           <p>
             هذه نسخة مراجعة فيها قضية واحدة كاملة. قد تتغير التفاصيل والتوازن بناءً على التجارب.
           </p>
 
-          <h2>عدم الضمان</h2>
+          <h2 id="warranty">عدم الضمان</h2>
           <p>تُقدَّم الخدمة «كما هي» خلال فترة المراجعة. قد تنتهي الغرف عند إعادة تشغيل الخادم.</p>
 
-          <h2>الملكية</h2>
+          <h2 id="ownership">الملكية</h2>
           <p>التصميم والنصوص والرسومات أصلية. لا تُستخدم قوالب أو أصول غير مرخّصة.</p>
         </article>
       </main>

@@ -23,6 +23,9 @@ const realtimeSocketOrigin = realtimeOrigin.replace(/^http/, "ws");
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // Automated design evidence must represent the product surface, not the
+  // framework's floating development badge.
+  devIndicators: false,
   // Keep Playwright's development compiler cache isolated from the production
   // bundle, whose NEXT_PUBLIC_* values may intentionally target a different host.
   distDir: process.env.E2E_DEV === "1" ? ".next-e2e" : ".next",

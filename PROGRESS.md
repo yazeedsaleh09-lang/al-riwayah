@@ -2,10 +2,10 @@
 
 ## Current state
 
-- Current phase: Phase 8 handoff — local/LAN friends-playtest candidate
-- Last update: 2026-07-27
-- Branch: `feat/premium-site-redesign`
-- Implementation status: production-buildable marketing site + one-case authoritative realtime game, visually refined and automated through 4/5/6-player browser runs
+- Current phase: Phase 8 release — local gate passed, production deployment verification pending
+- Last update: 2026-07-28
+- Branch: `main`
+- Implementation status: light editorial redesign + one-case authoritative realtime game, verified locally through Nudge comparison, responsive, accessibility, reduced-motion, and 4/5/6-player browser runs
 - Product specification: Complete initial version
 - Human playtests completed: 0
 
@@ -37,7 +37,8 @@
   - Marketing site: home (13 sections incl. interactive contradiction demo, ticker,
     patch cards, results axes, FAQ), /how-to-play, /cases (honest available/in-dev),
     /create, /play, /privacy, /terms, 404, error boundary, sitemap/robots/manifest/icon,
-    full SEO metadata + JSON-LD. Original SVG "evidence board", editorial dossier design system.
+    full SEO metadata + JSON-LD. The current release supersedes this original
+    evidence-board/dossier implementation with the light editorial system.
   - Game shell: socket client + `useGameRoom` hook + `RoomShell` rendering all 19 phases
     (lobby, brief, private evidence, staged planning, interrogation, reveals, patch voting,
     surprise evidence, verdict/results, replay), deadline ring, reconnect overlay.
@@ -46,6 +47,14 @@
 
 ## Completed in final readiness pass
 
+- Rejected and removed the Alibi Table / circular player-seat hero without
+  resetting unrelated local work or changing authoritative multiplayer boundaries.
+- Compared three non-circular hero concepts and selected the Versioned Testimony
+  editor as the strongest product-specific direction.
+- Rebuilt the homepage, task forms, lobby, investigation, contradiction, patch,
+  and result presentation around the light editorial system.
+- Completed a live Nudge side-by-side and strict reviewer challenge at 390×844,
+  768×1024, 1440×900, and 1920×1080; all 12 categories score 9.0 or above.
 - Added the canonical `/join` route while preserving `/play`, clean session replacement,
   expired-room handling, new-group flow, and production-safe server start.
 - Completed public/private contradiction explanations and the final report narrative.
@@ -67,13 +76,13 @@
 | 2 | Engine + content typecheck | `pnpm --filter game-engine/content typecheck` | pass | tsc --noEmit clean |
 | 2 | Unit tests | `pnpm exec vitest run --project unit` | 56 passed (9 files) | — |
 | 2 | Content validation | `pnpm --filter @al-riwayah/content validate` | `All cases valid` | — |
-| 6–8 | Unit/workspace | `pnpm test` | 92 passed / 13 files | 2026-07-27 final |
+| 6–8 | Unit/workspace | `pnpm test` | 93 passed / 13 files | 2026-07-28 final |
 | 6–8 | Integration | `pnpm test:integration` | 26 passed / 3 files | 2026-07-27 final |
-| 6–8 | Security | `pnpm test:security` | 10 passed | 2026-07-27 final |
-| 6–8 | Browser matrix | `pnpm test:e2e` | 46 passed, 1 production-only skip | 2026-07-27 final |
+| 6–8 | Security | `pnpm test:security` | 11 passed | 2026-07-28 final |
+| 6–8 | Browser matrix | `pnpm test:e2e` | 62 passed, 1 production-only skip | 2026-07-28 local final |
 | 6–8 | Production performance/headers | `E2E_PRODUCTION=1 … performance.spec.ts` | 1 passed | `artifacts/final-playtest-pass/performance-report.json` |
-| 8 | Supply chain | `pnpm audit --prod` | no known vulnerabilities | Next 16.2.12 + audited overrides |
-| 8 | LAN origin | production lobby via `192.168.0.98` | create/share/join pass | 2026-07-27 |
+| 8 | Nudge visual benchmark | live interaction + 4 paired viewports + strict ECC reviewer | 12/12 categories ≥9.0 | `artifacts/final-playtest-pass/nudge-comparison.md` |
+| 8 | Production origins | Render web + realtime server | pending exact-SHA deploy and rerun | not yet claimed |
 
 Test IDs covered so far: ENG-001..010 (detection, patch, follow-up-break, determinism,
 ledger, verdict boundary), evidence assignment (4/5/6), full 4/5/6 sessions, NO_RESPONSE
@@ -82,14 +91,13 @@ fallback, SEC-001..004 redaction (view projection level).
 ## External follow-up (not an engineering blocker)
 
 - Two real human groups must still supply subjective fun/fairness observations.
-- Public deployment requires the owner's chosen host/domain and account authorization.
 - Privacy/terms owner identity and contact details remain visibly marked for owner input.
 
 ## Readiness evidence
 
-The authoritative final command output and artifact inventory live in
-`artifacts/final-playtest-pass/final-readiness-report.md`. The local review build does
-not require deployment credentials.
+The authoritative local command output and artifact inventory live in
+`artifacts/final-playtest-pass/final-readiness-report.md`. Production approval is
+recorded only after the exact pushed SHA is live and the production gate is rerun.
 
 ## Update rule
 

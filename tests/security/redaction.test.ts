@@ -161,7 +161,7 @@ describe("secrecy & security (SEC-001..010)", () => {
   });
 
   it("production CORS allows the Render web origin and rejects other origins", async () => {
-    const allowedOrigin = "https://al-riwayah-web.onrender.com";
+    const allowedOrigin = "https://al-riwayah.onrender.com";
     const { app, stopTimers } = await buildServer({
       NODE_ENV: "production",
       HOST: "127.0.0.1",

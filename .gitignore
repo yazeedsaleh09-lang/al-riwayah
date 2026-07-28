@@ -69,6 +69,15 @@ artifacts/
 Thumbs.db
 desktop.ini
 
+# Local Codex/Claude design skill bundles (workspace tooling, not product source)
+.claude/skills/banner-design/
+.claude/skills/brand/
+.claude/skills/design-system/
+.claude/skills/design/
+.claude/skills/slides/
+.claude/skills/ui-styling/
+.claude/skills/ui-ux-pro-max/
+
 # Local deployment
 .vercel/
 .netlify/

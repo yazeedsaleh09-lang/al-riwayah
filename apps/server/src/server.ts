@@ -34,6 +34,7 @@ export async function buildServer(env: Env): Promise<BuiltServer> {
     maxLifetimeMs: env.ROOM_MAX_LIFETIME_MS,
     logger: log,
     phaseDurationScale: env.PHASE_DURATION_SCALE,
+    ...(env.E2E_FIXED_SEED ? { seedFactory: () => env.E2E_FIXED_SEED! } : {}),
   });
 
   app.get("/health", async () => ({ status: "ok", time: Date.now() }));

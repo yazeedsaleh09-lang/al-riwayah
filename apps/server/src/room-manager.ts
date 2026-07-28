@@ -88,6 +88,8 @@ export interface RoomManagerOptions {
   maxLifetimeMs?: number;
   logger?: Logger;
   phaseDurationScale?: number;
+  /** Test-only injection for reproducible authored assignments. */
+  seedFactory?: () => string;
 }
 
 export class RoomManager {
@@ -100,6 +102,7 @@ export class RoomManager {
   private limiter: RateLimiter;
   private log: Logger;
   private phaseDurationScale: number;
+  private seedFactory: () => string;
 
   constructor(opts: RoomManagerOptions = {}) {
     this.now = opts.now ?? Date.now;
@@ -108,6 +111,7 @@ export class RoomManager {
     this.limiter = new RateLimiter(this.now);
     this.log = opts.logger ?? createLogger();
     this.phaseDurationScale = opts.phaseDurationScale ?? 1;
+    this.seedFactory = opts.seedFactory ?? (() => randomId("seed"));
   }
 
   // --- helpers ---
@@ -210,7 +214,7 @@ export class RoomManager {
       createdAt: t,
       lastActivityAt: t,
       expiresAt: t + this.ttlMs,
-      seed: randomId("seed"),
+      seed: this.seedFactory(),
       players: [player],
       match: null,
     };
@@ -436,7 +440,7 @@ export class RoomManager {
     if (room.status !== "results") return this.err("INVALID_PHASE");
 
     // Full reset: new seed, cleared private state, back to an active match.
-    room.seed = randomId("seed");
+    room.seed = this.seedFactory();
     for (const p of room.players) {
       p.ready = true;
       p.idempotency.clear();

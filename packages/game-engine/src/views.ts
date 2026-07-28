@@ -133,6 +133,17 @@ function contradictionTemplateParams(
   return { ...contradiction.params, ...names };
 }
 
+function safeUniqueLocalized(items: LocalizedText[]): LocalizedText[] {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    if (item.ar.includes("{{") || item.en?.includes("{{")) return false;
+    const key = `${item.ar}\u0000${item.en ?? ""}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 /** Build the public, broadcast-safe room view. */
 export function toPublicView(
   state: MatchState,
@@ -227,7 +238,9 @@ export function toPublicView(
       summary: v.summary,
       composite: v.composite,
       scores: v.scores,
-      decisiveFactors: v.decisiveFactors,
+      // Never project unresolved authored placeholders. The explicit
+      // firstFracture row above carries the filled contradiction narrative.
+      decisiveFactors: safeUniqueLocalized(v.decisiveFactors),
       firstFracture: firstFracture
         ? fillLocalized(
             firstFracture.explanation,

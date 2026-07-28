@@ -1,42 +1,37 @@
 import Link from "next/link";
+import { publicCaseSummaries } from "@al-riwayah/content";
 import { SiteNav } from "@/components/SiteNav";
 import { SiteFooter } from "@/components/SiteFooter";
-import { EvidenceBoard } from "@/components/EvidenceBoard";
+import { TestimonyEditor } from "@/components/TestimonyEditor";
 import { Ticker } from "@/components/Ticker";
 import { ContradictionDemo } from "@/components/ContradictionDemo";
-import { publicCaseSummaries } from "@al-riwayah/content";
+import { GalleryRail } from "@/components/GalleryRail";
 import { SITE } from "@/lib/site";
 
-const LOOP = [
-  { t: "اتفقوا", d: "دقيقة واحدة تتفقون فيها على سبب وجودكم وأماكنكم وأدواركم." },
-  { t: "انفصلوا", d: "كل واحد بجواله لحاله. لا كلام، لا تنسيق." },
-  { t: "جاوبوا", d: "أسئلة سريعة، وإجاباتكم تُقارن بالرواية والأدلة." },
-  { t: "انقفطوا", d: "المحرك يكشف أقوى تناقض بينكم ويشرح سببه." },
-  { t: "رقّعوا", d: "تختارون حلًّا… لكن كل حل يفتح التزامًا جديدًا." },
-  { t: "واجهوا التقرير", d: "أربعة معايير تحكي روايتكم: تماسك، معقولية، ثبات، تهرّب." },
-];
-
-const PATCHES = [
-  { t: "عدّلوا الوقت", d: "«كان معه قبلها، ثم طلع للمواقف.»", cost: "−ثبات −معقولية", chip: "متى رجع؟" },
-  { t: "التبس عليه الشخص", d: "«خلط بين اثنين في الظلمة.»", cost: "−معقولية", chip: "شهادة أضعف" },
-  { t: "اعترفوا بجزء", d: "«دخل المستودع عشان شاحن فقط.»", cost: "−ثبات", chip: "مين صاحب الشاحن؟" },
-];
+const COLLAPSE = [
+  {
+    label: "إفادة واحدة",
+    title: "اتفقوا",
+    copy: "اختاروا سبب وجودكم، أماكنكم، وأدواركم. هذه هي الجملة الوحيدة اللي يشوفها الجميع.",
+  },
+  {
+    label: "ست شاشات",
+    title: "انفصلوا",
+    copy: "كل لاعب يأخذ دليلًا وسؤالًا مختلفًا. محد يقدر يراجع الرواية بعد الآن.",
+  },
+  {
+    label: "شرخ واضح",
+    title: "انكشفوا",
+    copy: "الخادم يقارن الإجابات بالأدلة ويكشف أقوى تعارض مع سبب مفهوم للجميع.",
+  },
+] as const;
 
 const AXES = [
-  { label: "تماسك الرواية", v: 78, evasion: false },
-  { label: "معقولية الرواية", v: 64, evasion: false },
-  { label: "الثبات", v: 55, evasion: false },
-  { label: "التهرّب", v: 30, evasion: true },
-];
-
-const FAQ = [
-  { q: "كم لاعب نحتاج؟", a: "من ٤ إلى ٦ لاعبين. المنشئ نفسه لاعب عادي." },
-  { q: "هل الكلام مسموح؟", a: "الكلام مسموح ومطلوب وقت التخطيط، وممنوع وقت التحقيق الفردي — كل واحد بجواله." },
-  { q: "هل ألعب عن بُعد؟", a: "اللعبة مصممة للجلسة الواحدة (نفس المكان). اللعب عن بُعد عبر مكالمة ممكن تقنيًا لكنه ليس التجربة الأساسية." },
-  { q: "وش عن بياناتي؟", a: "لا حسابات ولا تحميل. الغرف مؤقتة في ذاكرة الخادم وتنتهي بانتهاء الجلسة. لا نحفظ إجاباتكم." },
-  { q: "أي أجهزة مدعومة؟", a: "أي جوال فيه متصفح حديث. لا يلزم تلفزيون ولا تطبيق." },
-  { q: "بتنزلون قضايا أكثر؟", a: "هذه النسخة فيها قضية واحدة كاملة. القضايا القادمة معروضة كـ«قيد التطوير» فقط، بدون أي وعود زائفة." },
-];
+  { label: "تماسك الرواية", value: 78, danger: false },
+  { label: "معقولية الرواية", value: 64, danger: false },
+  { label: "الثبات", value: 55, danger: false },
+  { label: "التهرّب", value: 30, danger: true },
+] as const;
 
 const jsonLd = {
   "@context": "https://schema.org",
@@ -50,215 +45,203 @@ const jsonLd = {
 };
 
 export default function HomePage() {
-  const cases = publicCaseSummaries();
-  const firstCase = cases[0];
+  const firstCase = publicCaseSummaries()[0];
+
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <SiteNav />
       <main id="main">
-        {/* Hero */}
         <section className="hero" id="top">
-          <div className="container hero__grid">
-            <div>
-              <p className="eyebrow">لعبة جماعية · جوالات فقط</p>
-              <h1 className="hero__title display">
-                <span>كلّكم متورطين.</span>
-                <span className="accent">روايتكم وحدة.</span>
+          <div className="container hero__inner">
+            <div className="hero__copy">
+              <p className="hero__eyebrow">رواية واحدة · ست شهادات · ٤–٦ أشخاص</p>
+              <h1 className="hero__title">
+                <span>كل رواية تتغيّر</span>
+                <span>مع كل شهادة.</span>
               </h1>
               <p className="hero__lede">
-                اتفقوا على اللي صار، وبعدها كل واحد ينفصل بجواله. المحقق ما يحتاج يعرف الحقيقة — يكفي
-                يلقى تناقض واحد.
+                اسألوا، قارِنوا، واكشفوا التفصيلة اللي ما تثبت.
+                <br />
+                كل لاعب على جواله — بدون تحميل أو شاشة مشتركة.
               </p>
               <div className="hero__actions">
-                <Link className="btn btn--evidence" href="/create">
-                  أنشئ غرفة
+                <Link className="btn btn--primary" href="/create">
+                  ابدأ جلسة
                 </Link>
                 <Link className="btn btn--ghost" href="/play">
-                  ادخل برمز
+                  عندي رمز
                 </Link>
               </div>
-              <p className="hero__proof">٤–٦ لاعبين · جوالات فقط · بدون تحميل</p>
             </div>
-            <EvidenceBoard />
+            <TestimonyEditor />
           </div>
         </section>
+
+        <div className="credibility-strip" aria-label="متطلبات اللعب">
+          <div className="container">
+            <span>٤–٦ لاعبين</span>
+            <span>جوالات فقط</span>
+            <span>بدون تحميل</span>
+          </div>
+        </div>
 
         <Ticker />
 
-        {/* Loop */}
-        <section className="section container" aria-labelledby="loop-h">
-          <div className="section-head">
-            <p className="eyebrow">الحلقة الأساسية</p>
-            <h2 id="loop-h">من الاتفاق إلى التقرير</h2>
+        <section className="collapse-story" aria-labelledby="collapse-title">
+          <div className="container">
+            <header className="collapse-story__heading">
+              <p className="section-label">كيف تنهار الرواية</p>
+              <h2 id="collapse-title">
+                تبدأ بجملة.
+                <br />
+                وتنتهي بست نسخ.
+              </h2>
+            </header>
+            <div className="collapse-story__sequence">
+              {COLLAPSE.map((item, index) => (
+                <article key={item.title}>
+                  <div className="collapse-story__line" aria-hidden>
+                    <span />
+                    {index > 0 && <span />}
+                    {index > 1 && <span />}
+                  </div>
+                  <p className="mono">{String(index + 1).padStart(2, "0")}</p>
+                  <span>{item.label}</span>
+                  <h3>{item.title}</h3>
+                  <p>{item.copy}</p>
+                </article>
+              ))}
+            </div>
           </div>
-          <div className="loop">
-            {LOOP.map((s, i) => (
-              <div className="loop__step" key={s.t}>
-                <span className="num mono">{String(i + 1).padStart(2, "0")}</span>
-                <div>
-                  <h3>{s.t}</h3>
-                  <p>{s.d}</p>
+        </section>
+
+        <GalleryRail compact />
+
+        <section className="contradiction-section" aria-labelledby="contradiction-title">
+          <div className="container">
+            <header className="contradiction-section__heading">
+              <p className="section-label">لحظة التناقض</p>
+              <h2 id="contradiction-title">
+                الدليل ما يصرخ.
+                <br />
+                يغيّر معنى كلامكم.
+              </h2>
+              <p>اسحب فوق الشهادتين وشوف وين تنفصل الرواية عن اللي أثبته الدليل.</p>
+            </header>
+            <ContradictionDemo />
+          </div>
+        </section>
+
+        {firstCase && (
+          <section className="case-feature" aria-labelledby="case-title">
+            <div className="container case-feature__grid">
+              <div className="case-feature__index">
+                <span className="mono">CASE / 001</span>
+                <span className="availability">
+                  <span aria-hidden />
+                  متاحة الآن
+                </span>
+              </div>
+              <div className="case-feature__copy">
+                <p className="section-label">القضية القابلة للعب</p>
+                <h2 id="case-title">{firstCase.title.ar}</h2>
+                <p>{firstCase.pitch.ar}</p>
+                <dl>
+                  <div>
+                    <dt>اللاعبون</dt>
+                    <dd className="mono">
+                      {firstCase.playerCounts[0]}–{firstCase.playerCounts.at(-1)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>المدة</dt>
+                    <dd className="mono">
+                      {firstCase.durationMinutes[0]}–{firstCase.durationMinutes[1]} دقيقة
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>التعقيد</dt>
+                    <dd>{firstCase.complexity.ar}</dd>
+                  </div>
+                </dl>
+                <div className="hero__actions">
+                  <Link className="btn btn--primary" href="/create">
+                    العبوا القضية
+                  </Link>
+                  <Link className="text-link" href="/cases">
+                    افتح فهرس القضايا
+                  </Link>
                 </div>
               </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Contradiction moment */}
-        <section className="section container" aria-labelledby="demo-h">
-          <div className="section-head">
-            <p className="eyebrow">لحظة التناقض</p>
-            <h2 id="demo-h">المحقق يكفيه شرخ واحد</h2>
-            <p className="reading" style={{ color: "var(--muted)" }}>
-              المحرك حتمي وشفّاف: يوضّح بالضبط ليش اعتبر الجوابين متعارضين — بالنص، مو باللون فقط.
-            </p>
-          </div>
-          <ContradictionDemo />
-        </section>
-
-        {/* Patching */}
-        <section className="section container" aria-labelledby="patch-h">
-          <div className="section-head">
-            <p className="eyebrow">الترقيع له ثمن</p>
-            <h2 id="patch-h">كل حل يفتح سؤال</h2>
-          </div>
-          <div className="patches">
-            {PATCHES.map((p) => (
-              <div className="patch-card" key={p.t}>
-                <h3>{p.t}</h3>
-                <p style={{ color: "var(--muted)" }}>{p.d}</p>
-                <p className="cost mono">{p.cost}</p>
-                <span className="commitment-chip">التزام جديد: {p.chip}</span>
+              <div className="case-feature__evidence" aria-label="أدلة القضية العامة">
+                <span className="mono">23:46</span>
+                <p>انطفأت الكهرباء.</p>
+                <span className="mono">23:48</span>
+                <p>جهاز اتصل بشبكة المستودع.</p>
+                <span className="mono">00:01</span>
+                <p>سيارة غادرت المواقف.</p>
               </div>
-            ))}
-          </div>
-        </section>
-
-        {/* First case */}
-        {firstCase && (
-          <section className="section container" aria-labelledby="case-h">
-            <div className="section-head">
-              <p className="eyebrow">القضية الأولى</p>
-              <h2 id="case-h">{firstCase.title.ar}</h2>
-            </div>
-            <div className="card reading">
-              <span className="stamp">متاحة الآن</span>
-              <p style={{ marginTop: "var(--space-4)" }}>{firstCase.pitch.ar}</p>
-              <p className="mono" style={{ color: "var(--muted)", fontSize: "0.9rem" }}>
-                {firstCase.playerCounts[0]}–{firstCase.playerCounts.at(-1)} لاعبين ·{" "}
-                {firstCase.durationMinutes[0]}–{firstCase.durationMinutes[1]} دقيقة ·{" "}
-                {firstCase.complexity.ar}
-              </p>
-              <Link className="btn btn--ghost" href="/cases" style={{ marginTop: "var(--space-4)" }}>
-                كل القضايا
-              </Link>
             </div>
           </section>
         )}
 
-        {/* Results */}
-        <section className="section container" aria-labelledby="results-h">
-          <div className="section-head">
-            <p className="eyebrow">تقرير يتذكّر الغرفة</p>
-            <h2 id="results-h">أربعة معايير تحكي روايتكم</h2>
-          </div>
-          <div className="axes">
-            {AXES.map((a) => (
-              <div className={`axis ${a.evasion ? "is-evasion" : ""}`} key={a.label}>
-                <div className="label">
-                  <span>{a.label}</span>
-                  <span className="mono">{a.v}</span>
-                </div>
-                <div className="bar">
-                  <span style={{ width: `${a.v}%` }} />
-                </div>
+        <section className="report-preview" aria-labelledby="report-title">
+          <div className="container report-preview__grid">
+            <header>
+              <p className="section-label">التقرير النهائي</p>
+              <h2 id="report-title">
+                التقرير ما يعطيكم
+                <br />
+                رقمًا وخلاص.
+              </h2>
+              <p>يربط أول شرخ بأغلى ترقيعة، ويقول مين حافظ الرواية ومين فتح عليها أبوابًا جديدة.</p>
+            </header>
+            <div className="report-sheet">
+              <div className="report-sheet__top">
+                <span>الرواية تماسكت</span>
+                <strong className="mono">B</strong>
               </div>
-            ))}
-          </div>
-          <p className="reading" style={{ marginTop: "var(--space-6)", color: "var(--muted)" }}>
-            مثال من جلسة: «تفسير الشاحن أنقذ تناقضين… وفتح ثلاثة.»
-          </p>
-        </section>
-
-        {/* How it plays (3 steps) */}
-        <section className="section container" aria-labelledby="how-h">
-          <div className="section-head">
-            <p className="eyebrow">باختصار</p>
-            <h2 id="how-h">كيف تُلعب في ٣ خطوات</h2>
-          </div>
-          <ol className="loop" style={{ counterReset: "none" }}>
-            <li className="loop__step">
-              <span className="num mono">١</span>
-              <div>
-                <h3>أنشئ غرفة وشارك الرمز</h3>
-                <p>المنشئ لاعب مثل الكل. باقي الشلة يدخلون بالرمز.</p>
+              <div className="report-sheet__fracture" aria-hidden>
+                <span />
+                <span />
               </div>
-            </li>
-            <li className="loop__step">
-              <span className="num mono">٢</span>
-              <div>
-                <h3>اتفقوا ثم انفصلوا</h3>
-                <p>خطّطوا الرواية سوا، وبعدها كل واحد يجاوب لحاله.</p>
+              <div className="axes">
+                {AXES.map((axis) => (
+                  <div className={`axis ${axis.danger ? "is-evasion" : ""}`} key={axis.label}>
+                    <div className="label">
+                      <span>{axis.label}</span>
+                      <span className="mono">{axis.value}</span>
+                    </div>
+                    <div className="bar">
+                      <span style={{ width: `${axis.value}%` }} />
+                    </div>
+                  </div>
+                ))}
               </div>
-            </li>
-            <li className="loop__step">
-              <span className="num mono">٣</span>
-              <div>
-                <h3>واجهوا التناقضات</h3>
-                <p>رقّعوا الرواية قبل ما تنهار، ووصلوا للتقرير النهائي.</p>
-              </div>
-            </li>
-          </ol>
-          <Link className="btn btn--ghost" href="/how-to-play" style={{ marginTop: "var(--space-6)" }}>
-            الشرح الكامل
-          </Link>
-        </section>
-
-        {/* Built for the room */}
-        <section className="section container" aria-labelledby="built-h">
-          <div className="section-head">
-            <p className="eyebrow">مصمّمة للجلسة</p>
-            <h2 id="built-h">للغرفة، مو للتلفزيون</h2>
-          </div>
-          <ul className="features reading">
-            <li>بدون حساب ولا تسجيل.</li>
-            <li>بدون تلفزيون — كل شي على الجوالات.</li>
-            <li>بدون تحميل ولا تطبيق.</li>
-            <li>محد يطلع من القصة؛ لو انقطع اتصالك نرجّعك.</li>
-            <li>الرواية والتوقيت يديرها الخادم — ما فيه غش بالحساب.</li>
-          </ul>
-        </section>
-
-        {/* FAQ */}
-        <section className="section container" aria-labelledby="faq-h">
-          <div className="section-head">
-            <p className="eyebrow">أسئلة متكررة</p>
-            <h2 id="faq-h">قبل ما تبدأون</h2>
-          </div>
-          <div className="faq reading">
-            {FAQ.map((f) => (
-              <details key={f.q}>
-                <summary>{f.q}</summary>
-                <p>{f.a}</p>
-              </details>
-            ))}
+              <p className="report-sheet__note">تفسير الشاحن أنقذ تناقضين… وفتح ثلاثة.</p>
+            </div>
           </div>
         </section>
 
-        {/* Final CTA */}
-        <section className="section container">
-          <div className="final-cta">
-            <h2>جاهزين تتفقون؟</h2>
-            <p style={{ color: "var(--paper-100)", maxWidth: "40ch", marginInline: "auto" }}>
-              أنشئ غرفة الحين، شارك الرمز مع الشلة، وشوفوا مين بيخرب الرواية.
-            </p>
+        <section className="closing-cta" aria-labelledby="closing-title">
+          <div className="container">
+            <p className="section-label">الرواية تبدأ منكم</p>
+            <h2 id="closing-title">
+              نفس الجملة.
+              <br />
+              ست ذاكرات.
+            </h2>
+            <p>افتحوا غرفة، اتفقوا على التفاصيل، وشوفوا أي شهادة تنفصل أول.</p>
             <div className="hero__actions">
-              <Link className="btn btn--evidence" href="/create">
-                أنشئ غرفة
+              <Link className="btn btn--primary" href="/create">
+                افتحوا غرفة
               </Link>
-              <Link className="btn btn--ghost" href="/play" style={{ color: "var(--paper-50)", borderColor: "var(--paper-100)" }}>
-                ادخل برمز
+              <Link className="btn btn--ghost" href="/play">
+                عندي رمز
               </Link>
             </div>
           </div>

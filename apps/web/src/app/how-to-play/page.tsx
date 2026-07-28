@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteNav } from "@/components/SiteNav";
 import { SiteFooter } from "@/components/SiteFooter";
+import { GalleryRail } from "@/components/GalleryRail";
+import { ContradictionDemo } from "@/components/ContradictionDemo";
 
 export const metadata: Metadata = {
   title: "كيف تُلعب",
@@ -9,101 +11,103 @@ export const metadata: Metadata = {
   alternates: { canonical: "/how-to-play" },
 };
 
-const PHASES = [
-  ["القضية", "تشوفون تفاصيل الحادثة والأدلة الثابتة."],
-  ["دليلك الخاص", "كل واحد ياخذ دليل يخصه لحاله — لا تورّي شاشتك."],
-  ["التخطيط", "تتفقون على السبب، أماكنكم وقت الحادثة، والأدوار."],
-  ["التحقيق", "كل واحد بجواله يجاوب أسئلة سريعة، بدون كلام."],
-  ["التناقض", "المحرك يكشف أقوى تعارض ويشرح سببه بالنص."],
-  ["الترقيع", "تختارون حلًّا يصلح التناقض لكنه يفتح التزامًا جديدًا."],
-  ["دليل مفاجئ", "دليل جديد يقلب بعض حساباتكم."],
-  ["السؤال الأخير", "سؤال حاسم، بصمت، وكل واحد لحاله."],
-  ["التقرير", "أربعة معايير: تماسك، معقولية، ثبات، تهرّب."],
-];
+const ETIQUETTE = [
+  ["وقت التخطيط", "الكلام مسموح ومطلوب. اتفقوا على الرواية بصوت عالٍ."],
+  ["وقت التحقيق", "لا كلام، ولا تورّي شاشتك. كل واحد يجاوب لحاله."],
+  ["وقت التناقض", "ارفعوا أصواتكم. ناقشوا الشرخ واختاروا ترقيعة واحدة."],
+  ["السؤال الأخير", "صمت تام. آخر إجابة تُقفل الرواية."],
+] as const;
 
 export default function HowToPlay() {
   return (
     <>
       <SiteNav />
       <main id="main" className="guide-page">
-        <header className="container page-hero">
-          <p className="eyebrow">دليل اللعب / ٠١</p>
-          <h1 className="display">
-            اتفقوا.
-            <br />
-            ثم افترقوا.
-          </h1>
-          <p className="page-hero__lede">
-            أنتم مجموعة متورطة في حادثة. المحقق ما يحتاج يعرف الحقيقة؛ يكفيه يلقى شرخ واحد في
-            كلامكم.
-          </p>
+        <header className="page-hero page-hero--guide">
+          <div className="container">
+            <p className="section-label">الشرح في أقل من دقيقة</p>
+            <h1>
+              رواية واحدة.
+              <br />
+              ستة شهود سيئين.
+            </h1>
+            <div className="page-hero__summary">
+              <p>
+                اتفقوا على اللي صار. بعدها ينفصل كل لاعب بجواله ويجاوب بدون مساعدة. كل تعارض واضح
+                يصير شرخًا لازم تصلحونه قبل التقرير.
+              </p>
+              <span className="mono">06 مراحل / 10–15 دقيقة</span>
+            </div>
+          </div>
         </header>
 
-        <section className="container section">
-          <div className="section-head">
-            <p className="eyebrow">تسع محطات</p>
-            <h2>من القضية إلى الحكم.</h2>
+        <GalleryRail />
+
+        <section className="etiquette" aria-labelledby="etiquette-title">
+          <div className="container etiquette__grid">
+            <header>
+              <p className="section-label">قواعد الغرفة</p>
+              <h2 id="etiquette-title">
+                متى تتكلمون.
+                <br />
+                ومتى تسكتون.
+              </h2>
+            </header>
+            <ol>
+              {ETIQUETTE.map(([title, copy], index) => (
+                <li key={title}>
+                  <span className="mono">{String(index + 1).padStart(2, "0")}</span>
+                  <div>
+                    <h3>{title}</h3>
+                    <p>{copy}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
           </div>
-          <ol className="loop">
-            {PHASES.map(([t, d], i) => (
-              <li className="loop__step" key={t}>
-                <span className="num mono">{String(i + 1).padStart(2, "0")}</span>
-                <div>
-                  <h3>{t}</h3>
-                  <p>{d}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
         </section>
 
-        <section className="container section guide-split">
-          <div>
-            <p className="eyebrow">قاعدة الشاشة</p>
-            <h2>
-              ارفعوا أصواتكم.
-              <br />
-              إلا وقت التحقيق.
-            </h2>
+        <section className="contradiction-section contradiction-section--guide" aria-labelledby="worked-title">
+          <div className="container">
+            <header className="contradiction-section__heading">
+              <p className="section-label">مثال كامل</p>
+              <h2 id="worked-title">
+                الشرخ واضح.
+                <br />
+                ترقيعه أصعب.
+              </h2>
+              <p>
+                الشهادة الأولى تربط لاعبين في مكان واحد. الثانية تنكر العلاقة والمكان. الحل ممكن،
+                لكنه يخلق سؤالًا جديدًا عن الوقت.
+              </p>
+            </header>
+            <ContradictionDemo />
           </div>
-          <ul className="features">
-            <li>وقت التخطيط: الكلام مسموح ومطلوب.</li>
-            <li>وقت التحقيق الفردي: لا كلام، ولا تورّي شاشتك.</li>
-            <li>وقت التناقض والترقيع: نقاش مفتوح.</li>
-            <li>السؤال الأخير: صمت تام.</li>
-          </ul>
         </section>
 
-        <section className="container section">
-          <div className="section-head">
-            <p className="eyebrow">مثال حي</p>
-            <h2>الشرخ، ثم ثمن ترقيعه.</h2>
-          </div>
-          <div className="demo__statements">
-            <div className="statement">
-              <p className="who">لاعب / أ</p>
-              <p>«كنت مع لاعب ب في المستودع.»</p>
+        <section className="reconnect-note" aria-labelledby="reconnect-title">
+          <div className="container reconnect-note__grid">
+            <p className="mono">RECOVER / 01</p>
+            <div>
+              <h2 id="reconnect-title">لو انقطع اتصالك، ما تطلع من الرواية.</h2>
+              <p>
+                نوقف التفاعل عندك، نحاول نرجّع الجلسة، ونستعيد شاشتك الخاصة فقط. الوقت والمرحلة
+                يظلون عند الخادم، مو عند جوالك.
+              </p>
             </div>
-            <div className="statement is-flagged">
-              <p className="who">لاعب / ب</p>
-              <p>«كنت لحالي في المواقف.»</p>
-            </div>
           </div>
-          <p className="demo__rule" style={{ marginTop: "var(--space-6)" }}>
-            ما يمكن الجوابين يكونون صح بنفس اللحظة. ممكن تقولون إنه طلع بعدها، لكن متى رجع بالضبط؟
-          </p>
         </section>
 
-        <section className="container section">
-          <div className="final-cta">
-            <h2>فهمتوها؟ ورّونا.</h2>
-            <p>نرجّعك لو انقطع اتصالك، ونشرح كل تناقض بالنص—مو باللون لحاله.</p>
+        <section className="closing-cta closing-cta--light" aria-labelledby="guide-cta-title">
+          <div className="container">
+            <p className="section-label">فهمتوها؟</p>
+            <h2 id="guide-cta-title">اختبروا ذاكرتكم.</h2>
             <div className="hero__actions">
-              <Link className="btn btn--evidence" href="/create">
-                أنشئ غرفة
+              <Link className="btn btn--primary" href="/create">
+                افتحوا غرفة
               </Link>
               <Link className="btn btn--ghost" href="/play">
-                ادخل برمز
+                عندي رمز
               </Link>
             </div>
           </div>

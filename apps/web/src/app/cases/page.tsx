@@ -10,72 +10,97 @@ export const metadata: Metadata = {
   alternates: { canonical: "/cases" },
 };
 
-// Honestly labeled future concepts — clearly "in development", never playable.
-const IN_DEV = [
-  { title: "العقد الموقّع", pitch: "توقيع ظهر على عقد ما حضره أحد." },
-  { title: "الوردية الأخيرة", pitch: "اختفت البضاعة بين تسليم ورديتين." },
-];
-
 export default function CasesPage() {
-  const cases = publicCaseSummaries();
+  const firstCase = publicCaseSummaries()[0];
+
   return (
     <>
       <SiteNav />
-      <main id="main">
-        <header className="container page-hero">
-          <p className="eyebrow">ملفات التحقيق</p>
-          <h1 className="display">القضايا.</h1>
-          <p className="page-hero__lede">
-            كل قضية تختبر نوعًا مختلفًا من الكذب الجماعي. الملف الأول جاهز للمواجهة.
-          </p>
-        </header>
-        <section className="container section">
-          <div className="patches">
-            {cases.map((c) => (
-              <article className="patch-card" key={c.id}>
-                <span className="stamp">متاحة الآن</span>
-                <h3 style={{ marginTop: "var(--space-4)" }}>{c.title.ar}</h3>
-                <p style={{ color: "var(--muted)" }}>{c.pitch.ar}</p>
-                <p className="mono" style={{ fontSize: "0.82rem", color: "var(--muted)" }}>
-                  {c.playerCounts[0]}–{c.playerCounts.at(-1)} لاعبين · {c.durationMinutes[0]}–
-                  {c.durationMinutes[1]} دقيقة · {c.complexity.ar}
-                </p>
-                <Link
-                  className="btn btn--evidence"
-                  href="/create"
-                  style={{ marginTop: "var(--space-3)" }}
-                >
-                  العب هذه القضية
-                </Link>
-              </article>
-            ))}
-
-            {IN_DEV.map((c) => (
-              <article className="patch-card" key={c.title} style={{ opacity: 0.85 }}>
-                <span
-                  className="mono"
-                  style={{
-                    fontSize: "0.72rem",
-                    color: "var(--muted)",
-                    border: "1px solid var(--line)",
-                    padding: "3px 8px",
-                    borderRadius: 3,
-                  }}
-                >
-                  قيد التطوير
-                </span>
-                <h3 style={{ marginTop: "var(--space-4)" }}>{c.title}</h3>
-                <p style={{ color: "var(--muted)" }}>{c.pitch}</p>
-                <p className="mono" style={{ fontSize: "0.82rem", color: "var(--muted)" }}>
-                  غير متاحة بعد
-                </p>
-              </article>
-            ))}
+      <main id="main" className="cases-page">
+        <header className="page-hero page-hero--cases">
+          <div className="container case-hero">
+            <div>
+              <p className="section-label">فهرس القضايا</p>
+              <h1>
+                قضية واحدة جاهزة.
+                <br />
+                والباقي ما زال كتابة.
+              </h1>
+            </div>
+            <div className="case-hero__proof" aria-label="لمحة عامة من القضية المتاحة">
+              <div>
+                <span className="availability"><span aria-hidden />متاحة الآن</span>
+                <bdi className="mono">CASE / 001</bdi>
+              </div>
+              <strong>ظرف الرواتب المفقود</strong>
+              <ol>
+                <li><bdi className="mono">23:46</bdi><span>انقطعت الكهرباء</span></li>
+                <li><bdi className="mono">23:48</bdi><span>ظهر اتصال في المستودع</span></li>
+                <li><bdi className="mono">00:01</bdi><span>غادرت سيارة المواقف</span></li>
+              </ol>
+            </div>
           </div>
+        </header>
 
-          <p style={{ color: "var(--muted)", marginTop: "var(--space-8)", maxWidth: "58ch" }}>
-            الملفات القادمة أفكار قيد التطوير، وليست وعودًا بمواعيد أو محتوى غير جاهز.
-          </p>
+        {firstCase && (
+          <section className="case-primary" aria-labelledby="primary-case-title">
+            <div className="container case-primary__grid">
+              <div className="case-primary__number">
+                <span className="mono">001</span>
+                <span className="availability">
+                  <span aria-hidden />
+                  قابلة للعب
+                </span>
+              </div>
+              <div className="case-primary__copy">
+                <h2 id="primary-case-title">{firstCase.title.ar}</h2>
+                <p>{firstCase.pitch.ar}</p>
+                <dl>
+                  <div>
+                    <dt>اللاعبون</dt>
+                    <dd className="mono">
+                      {firstCase.playerCounts[0]}–{firstCase.playerCounts.at(-1)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>المدة</dt>
+                    <dd className="mono">
+                      {firstCase.durationMinutes[0]}–{firstCase.durationMinutes[1]} دقيقة
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>التعقيد</dt>
+                    <dd>{firstCase.complexity.ar}</dd>
+                  </div>
+                </dl>
+                <Link className="btn btn--primary" href="/create">
+                  العبوا هذه القضية
+                </Link>
+              </div>
+              <div className="case-primary__timeline" aria-label="الخط الزمني العام للقضية">
+                <span className="mono">23:46</span>
+                <p>انقطاع الكهرباء</p>
+                <span className="mono">23:48</span>
+                <p>اتصال شبكة المستودع</p>
+                <span className="mono">00:01</span>
+                <p>مغادرة سيارة</p>
+              </div>
+            </div>
+          </section>
+        )}
+
+        <section className="case-index" aria-labelledby="case-boundary-title">
+          <div className="container">
+            <header>
+              <p className="section-label">نسخة المراجعة</p>
+              <h2 id="case-boundary-title">قضية مكتملة، من البداية إلى التقرير.</h2>
+            </header>
+            <p className="case-index__note">
+              ما نعرض أسماء أو مواعيد لقضايا غير جاهزة. النسخة الحالية تركّز على جودة قضية
+              «ظرف الرواتب المفقود» وتدفقها الكامل لأربع أو خمس أو ستة لاعبين.
+            </p>
+            <Link className="btn btn--primary" href="/create">ابدأوا القضية المتاحة</Link>
+          </div>
         </section>
       </main>
       <SiteFooter />

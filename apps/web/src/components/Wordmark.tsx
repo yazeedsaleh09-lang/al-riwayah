@@ -8,9 +8,10 @@ export function Wordmark({ size = 1 }: { size?: number }) {
       className="wordmark"
       style={{ "--mark-size": size } as React.CSSProperties}
     >
-      <svg aria-hidden viewBox="0 0 24 32" className="wordmark__mark">
-        <path d="M2 2h20v8L13 16l9 6v8H2v-8l9-6-9-6V2Z" fill="currentColor" />
-        <path d="m7 7 10 18" stroke="var(--black)" strokeWidth="2.25" />
+      <svg aria-hidden viewBox="0 0 34 34" className="wordmark__mark">
+        <path className="wordmark__rule" d="M3 9.5h28M3 24.5h10M22 24.5h9" />
+        <path className="wordmark__revision" d="m12 25 10-7" />
+        <path className="wordmark__caret" d="M18 5v12" />
       </svg>
       <span className="wordmark__name">الرواية</span>
     </Link>

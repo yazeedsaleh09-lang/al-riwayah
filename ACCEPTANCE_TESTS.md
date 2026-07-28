@@ -191,14 +191,21 @@ Measured on production build, representative mid-tier mobile profile:
 - Eight target widths across all public routes: `tests/e2e/responsive.spec.ts`.
 - Production budgets and security headers: `tests/e2e/performance.spec.ts`.
 - Motion evidence: `tests/e2e/motion-evidence.spec.ts`.
+- Light editorial identity, non-circular Versioned Testimony hero, direct
+  pointer/keyboard revision scrub, explicit contradiction reveal, and static
+  reduced-motion journey:
+  `tests/e2e/identity-motion.spec.ts`.
 
 Fresh outcomes and artifacts are recorded in
 `artifacts/final-playtest-pass/final-readiness-report.md`.
 
-Final automated outcome (2026-07-27): 92 workspace tests, 26 integration tests,
-10 security tests, 46 Playwright release checks, and 1 production-only performance
-check passed. The responsive test evaluates 8 public routes at 8 widths (64
-combinations). `pnpm audit --prod` reports no known vulnerabilities.
+Local release-candidate outcome (2026-07-28): 93 workspace tests, 26 integration
+tests, 11 security tests, the complete accessibility/keyboard matrix, and the
+production performance case passed. The Playwright aggregate passed all 62
+executed tests; its production-only performance case was intentionally skipped
+there and passed separately. The 4/5/6-player UI matches and the strict four-size
+Nudge comparison passed. Production Render verification for this exact redesign
+remains pending. See `artifacts/final-playtest-pass/final-readiness-report.md`.
 
 Automatable release requires:
 
@@ -213,7 +220,6 @@ pnpm test:visual
 pnpm build
 ```
 
-Automation complete; remaining human/external gates:
+Remaining post-handoff gate:
 
-- human playtest criteria in `PLAYTEST_PLAN.md`;
-- public production smoke after an owner-authorized deploy.
+- human fun and fairness criteria in `PLAYTEST_PLAN.md`; do not fabricate them.

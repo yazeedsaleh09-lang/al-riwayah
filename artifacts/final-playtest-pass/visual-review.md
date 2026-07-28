@@ -1,29 +1,40 @@
-# Final visual review — 2026-07-27
+# Light editorial visual review — 2026-07-28
 
-The rejected beige/red dossier direction was removed. The release candidate now
-uses a controlled black/white/steel system with one forensic cobalt signal,
-Alexandria display typography, Noto Sans Arabic body typography, large editorial
-hierarchy, asymmetric composition, disciplined borders, and a single fracture-line
-motif shared by marketing and game states.
+The accepted visual system uses warm editorial paper, near-black statement ink,
+muted evidence text, verdict red, warning amber, and success green. Typography,
+rules, revision metadata, and controlled asymmetry create the confidence; decoration
+does not carry the composition.
 
-Fabrica informed the quality bar—confident type scale, monochrome control, paced
-sections, compact fixed navigation, restrained reveals, ticker motion, and
-responsive recomposition—without copying its identity, assets, text, or layouts.
+## Reviewed evidence
 
-Reviewed evidence:
+- Nudge and AL RIWAYAH side by side at 390×844, 768×1024, 1440×900, and
+  1920×1080;
+- public routes at eight widths from 320 through 1920;
+- lobby and active interrogation at seven widths;
+- create, join, reconnect, private answer lock, true contradiction, patch choice,
+  result, replay, and clean-group states;
+- homepage pointer/keyboard scrub, scroll-stage changes, ticker pause, phase motion,
+  and a reduced-motion recording;
+- real independent-browser 4/5/6-player matches.
 
-- every public route at 390×844 and 1440×900;
-- overflow/control checks at 320, 360, 390, 430, 768, 1280, 1440, and 1920;
-- create, join, wake, reconnect, error, lobby, private evidence, contradiction,
-  patch, verdict, and result states;
-- 4-player lobby/result and 5/6-player results;
-- homepage motion recording at `motion/homepage-motion.webm`.
+## Final decisions
 
-Final refinements from critical screenshot comparison:
+- the Alibi Table and all circular/radial player-seat compositions are rejected and
+  absent from the active implementation;
+- the Versioned Testimony editor is the hero product object and remains directly
+  operable by pointer, touch, and keyboard;
+- mobile keeps a visible `اسحب للمقارنة` instruction instead of relying on gesture
+  discovery;
+- expired answer or patch phases replace actionable-looking controls with a waiting
+  receipt while the server remains authoritative;
+- game screens use the same editorial evidence language and finish quality as the
+  marketing site;
+- square controls, phase markers, and evidence bands are intentional identity
+  geometry rather than generic card stacks;
+- all primary controls are at least 44px and no reviewed route has horizontal
+  overflow;
+- reduced motion preserves the full information order without spatial travel.
 
-- legal pages use a left-reading/right-title editorial grid, never centered copy;
-- mobile and desktop hero compositions reflow without clipping;
-- text-bearing reveals never animate opacity, preserving WCAG contrast mid-motion;
-- unresolved `{{A}}`/`{{B}}` result templates are filled with public player names;
-- no generic equal-card grid remains as the dominant composition;
-- no horizontal overflow or clipped primary controls remain in the route matrix.
+The strict reviewer score is recorded in `nudge-comparison.md`. All 12 categories
+pass at 9.0 or above. Production evidence remains pending until the approved commit
+is live on Render.

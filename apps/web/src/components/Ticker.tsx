@@ -1,3 +1,7 @@
+"use client";
+
+import { useState } from "react";
+
 /** Interrogation ticker — synthetic redacted phrases. Pauses on hover/focus and
  * for reduced motion (handled in CSS). All examples are fictional. */
 const ITEMS = [
@@ -10,15 +14,31 @@ const ITEMS = [
 ];
 
 export function Ticker() {
-  const doubled = [...ITEMS, ...ITEMS];
+  const [paused, setPaused] = useState(false);
+
   return (
-    <div className="ticker" aria-label="أمثلة من التحقيق" role="marquee">
-      <div className="ticker__track">
-        {doubled.map((it, i) => (
-          <span className="ticker__item" key={i}>
+    <div className={`ticker ${paused ? "is-paused" : ""}`} aria-label="أمثلة مختصرة من التحقيق">
+      <button
+        className="ticker__control"
+        type="button"
+        aria-pressed={paused}
+        onClick={() => setPaused((value) => !value)}
+      >
+        {paused ? "شغّل الشريط" : "أوقف الشريط"}
+      </button>
+      <div className="ticker__track" aria-live={paused ? "polite" : "off"}>
+        {ITEMS.map((it) => (
+          <span className="ticker__item" key={`${it.ts}-${it.text}`}>
             <span className="ts">{it.ts}</span> — {it.text}
           </span>
         ))}
+        <span className="ticker__duplicate" aria-hidden>
+          {ITEMS.map((it) => (
+            <span className="ticker__item" key={`duplicate-${it.ts}-${it.text}`}>
+              <span className="ts">{it.ts}</span> — {it.text}
+            </span>
+          ))}
+        </span>
       </div>
     </div>
   );

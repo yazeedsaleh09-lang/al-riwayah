@@ -9,6 +9,16 @@ type MatchClients = {
   code: string;
 };
 
+const GAME_VIEWPORTS = [
+  { width: 320, height: 568 },
+  { width: 360, height: 800 },
+  { width: 390, height: 844 },
+  { width: 430, height: 932 },
+  { width: 768, height: 1024 },
+  { width: 1440, height: 900 },
+  { width: 1920, height: 1080 },
+];
+
 const PHASES_WITH_ACK = new Set([
   "CASE_BRIEF",
   "PRIVATE_EVIDENCE",
@@ -26,11 +36,24 @@ const INTERROGATION = new Set([
 async function createClients(browser: Browser, count: number): Promise<MatchClients> {
   const contexts: BrowserContext[] = [];
   const pages: Page[] = [];
+  if (count === 4) {
+    await mkdir(path.resolve("artifacts", "final-playtest-pass", "motion"), {
+      recursive: true,
+    });
+  }
   for (let index = 0; index < count; index++) {
     const context = await browser.newContext({
       viewport: { width: 390, height: 844 },
       locale: "ar",
       reducedMotion: "no-preference",
+      ...(count === 4 && index === 0
+        ? {
+            recordVideo: {
+              dir: path.resolve("artifacts", "final-playtest-pass", "motion"),
+              size: { width: 390, height: 844 },
+            },
+          }
+        : {}),
     });
     contexts.push(context);
     pages.push(await context.newPage());
@@ -66,17 +89,34 @@ async function waitForPhase(page: Page, phase: string, timeout = 15_000): Promis
 }
 
 async function clickFirstAvailable(page: Page): Promise<void> {
+  const phase = await page.locator(".game").getAttribute("data-phase");
   const button = page
     .locator(".game__actions button:not([disabled]), .option-btn:not([disabled])")
     .first();
-  if (await button.isVisible().catch(() => false)) await button.click();
+  if (!(await button.isVisible().catch(() => false))) return;
+  try {
+    await button.click({ timeout: 5_000 });
+  } catch (error) {
+    const next = await page.locator(".game").getAttribute("data-phase");
+    if (phase && next && next !== phase) return;
+    if (!(await button.isVisible().catch(() => false))) return;
+    throw error;
+  }
+}
+
+async function clickLastAvailable(page: Page): Promise<void> {
+  const button = page.locator(".game__body button:not([disabled])").last();
+  if ((await button.count()) > 0) await button.click();
 }
 
 async function waitForPhaseChange(page: Page, current: string): Promise<void> {
   await page.waitForFunction(
-    (phase) => document.querySelector<HTMLElement>(".game")?.dataset.phase !== phase,
+    (phase) => {
+      const next = document.querySelector<HTMLElement>(".game")?.dataset.phase;
+      return Boolean(next && next !== phase);
+    },
     current,
-    { timeout: 15_000 },
+    { timeout: 60_000 },
   );
 }
 
@@ -87,6 +127,7 @@ async function driveToResults(
     disconnect?: boolean;
     duplicateAnswer?: boolean;
     axe?: boolean;
+    evidence?: boolean;
   } = {},
 ): Promise<void> {
   const { pages, contexts } = clients;
@@ -95,6 +136,7 @@ async function driveToResults(
   let disconnected = false;
   let duplicated = false;
   const auditedPhases = new Set<string>();
+  const capturedPhases = new Set<string>();
 
   await host.getByRole("button", { name: "ابدأ التحقيق" }).click();
 
@@ -105,6 +147,23 @@ async function driveToResults(
       continue;
     }
     if (phase === "RESULTS") return;
+
+    if (options.evidence && !capturedPhases.has(phase)) {
+      if (phase === "INTERROGATION_FOUNDATION") {
+        capturedPhases.add(phase);
+        await saveEvidence(host, "4-player-question");
+        await captureResponsivePhase(host, "4-player-question");
+      } else if (phase === "CONTRADICTION_REVEAL_1") {
+        capturedPhases.add(phase);
+        await expect(host.locator(".demo__statements .statement")).toHaveCount(2);
+        await expect(host.locator(".demo__rule")).toBeVisible();
+        await saveEvidence(host, "4-player-contradiction");
+      } else if (phase === "PATCH_1") {
+        capturedPhases.add(phase);
+        await expect(host.locator(".game__actions .option-btn")).not.toHaveCount(0);
+        await saveEvidence(host, "4-player-patch");
+      }
+    }
 
     if (
       options.axe &&
@@ -129,11 +188,20 @@ async function driveToResults(
       const majority = Math.floor(pages.length / 2) + 1;
       await Promise.all(pages.slice(0, majority).map((page) => clickFirstAvailable(page)));
     } else if (phase === "PLAN_LOCATIONS") {
-      await Promise.all(pages.map((page) => clickFirstAvailable(page)));
+      // Lock a location that differs from the first authored interrogation
+      // answer. This deterministically exercises the real contradiction and
+      // patch surfaces without touching engine authority.
+      await Promise.all(pages.map((page) => clickLastAvailable(page)));
     } else if (phase === "PLAN_ROLES") {
       const roleRows = host.locator(".game__body .roster");
       for (let index = 0; index < (await roleRows.count()); index++) {
-        await roleRows.nth(index).locator("button").first().click();
+        if ((await host.locator('.game[data-phase="PLAN_ROLES"]').count()) === 0) break;
+        try {
+          await roleRows.nth(index).locator("button").first().click({ timeout: 5_000 });
+        } catch (error) {
+          if ((await host.locator('.game[data-phase="PLAN_ROLES"]').count()) === 0) break;
+          throw error;
+        }
       }
     } else if (INTERROGATION.has(phase)) {
       if (options.refresh && !refreshed && phase === "INTERROGATION_GAPS") {
@@ -142,7 +210,10 @@ async function driveToResults(
       }
       if (options.disconnect && !disconnected && phase === "INTERROGATION_NO_GOOD_ANSWER") {
         disconnected = true;
+        const disconnectedPage = pages.at(-1)!;
         await contexts.at(-1)!.setOffline(true);
+        await expect(disconnectedPage.locator(".reconnect-overlay")).toBeVisible();
+        await saveEvidence(disconnectedPage, "6-player-reconnect");
         await Promise.all(pages.slice(0, -1).map((page) => clickFirstAvailable(page)));
         await waitForPhaseChange(host, phase);
         await contexts.at(-1)!.setOffline(false);
@@ -158,12 +229,26 @@ async function driveToResults(
             (button as HTMLButtonElement).click();
             (button as HTMLButtonElement).click();
           });
+        if (options.evidence) {
+          await expect(host.locator('.game[data-phase="INTERROGATION_FOUNDATION"]')).toBeVisible();
+          await expect(host.locator(".option-btn.is-selected")).toHaveCount(1);
+          await saveEvidence(host, "4-player-selection");
+          await expect(host.locator(".answer-receipt")).toBeVisible();
+          await saveEvidence(host, "4-player-waiting");
+        }
         await Promise.all(pages.slice(1).map((page) => clickFirstAvailable(page)));
       } else {
         await Promise.all(pages.map((page) => clickFirstAvailable(page)));
       }
     } else if (phase === "PATCH_1" || phase === "PATCH_2") {
-      await Promise.all(pages.map((page) => clickFirstAvailable(page)));
+      if (options.evidence && phase === "PATCH_1") {
+        await clickFirstAvailable(host);
+        await expect(host.locator(".patch-choice-receipt")).toBeVisible();
+        await saveEvidence(host, "4-player-patch-selection");
+        await Promise.all(pages.slice(1).map((page) => clickFirstAvailable(page)));
+      } else {
+        await Promise.all(pages.map((page) => clickFirstAvailable(page)));
+      }
     }
 
     await waitForPhaseChange(host, phase);
@@ -174,7 +259,44 @@ async function driveToResults(
 async function saveEvidence(page: Page, name: string): Promise<void> {
   const evidenceDir = path.resolve("artifacts", "final-playtest-pass", "full-match");
   await mkdir(evidenceDir, { recursive: true });
-  await page.screenshot({ path: path.join(evidenceDir, `${name}.png`), fullPage: true });
+  await page.screenshot({
+    path: path.join(evidenceDir, `${name}.png`),
+    animations: "disabled",
+    caret: "initial",
+  });
+}
+
+async function saveBodyEvidence(page: Page, name: string): Promise<void> {
+  const evidenceDir = path.resolve("artifacts", "final-playtest-pass", "full-match");
+  await mkdir(evidenceDir, { recursive: true });
+  await page.locator(".game").evaluate((node) => node.classList.add("is-evidence-capture"));
+  await page.locator(".game__body").screenshot({
+    path: path.join(evidenceDir, `${name}.png`),
+    animations: "disabled",
+    caret: "initial",
+  });
+  await page.locator(".game").evaluate((node) => node.classList.remove("is-evidence-capture"));
+}
+
+async function captureResponsivePhase(page: Page, name: string): Promise<void> {
+  const evidenceDir = path.resolve("artifacts", "final-playtest-pass", "responsive-game");
+  await mkdir(evidenceDir, { recursive: true });
+  for (const viewport of GAME_VIEWPORTS) {
+    await page.setViewportSize(viewport);
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+        ),
+      )
+      .toBe(true);
+    await expect(page.locator(".game__body")).toBeVisible();
+    await page.screenshot({
+      path: path.join(evidenceDir, `${name}-${viewport.width}x${viewport.height}.png`),
+      animations: "disabled",
+    });
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
 }
 
 async function closeClients(clients: MatchClients): Promise<void> {
@@ -182,12 +304,14 @@ async function closeClients(clients: MatchClients): Promise<void> {
 }
 
 test.describe("real multi-client UI matches", () => {
-  test.setTimeout(300_000);
+  test.setTimeout(600_000);
 
   test("4 players complete, reject a duplicate answer, and replay cleanly", async ({ browser }) => {
     const clients = await createClients(browser, 4);
+    const hostVideo = clients.pages[0]!.video();
     try {
       await saveEvidence(clients.pages[0]!, "4-player-lobby");
+      await captureResponsivePhase(clients.pages[0]!, "4-player-lobby");
       const lobbyAxe = await new AxeBuilder({ page: clients.pages[0]! })
         .withTags(["wcag2a", "wcag2aa"])
         .analyze();
@@ -196,7 +320,7 @@ test.describe("real multi-client UI matches", () => {
           (violation) => violation.impact === "serious" || violation.impact === "critical",
         ),
       ).toEqual([]);
-      await driveToResults(clients, { duplicateAnswer: true, axe: true });
+      await driveToResults(clients, { duplicateAnswer: true, axe: true, evidence: true });
       const host = clients.pages[0]!;
       await expect(host.locator(".verdict-band")).toBeVisible();
       await expect(host.locator(".axis")).toHaveCount(4);
@@ -211,12 +335,16 @@ test.describe("real multi-client UI matches", () => {
         ),
       ).toEqual([]);
       await saveEvidence(host, "4-player-results");
+      await saveBodyEvidence(host, "4-player-results-full");
 
       await host.getByRole("button", { name: "أعيدوا القضية" }).click();
       await waitForPhase(host, "CASE_BRIEF");
       await expect(host.locator(".verdict-band")).toHaveCount(0);
     } finally {
       await closeClients(clients);
+      await hostVideo?.saveAs(
+        path.resolve("artifacts", "final-playtest-pass", "motion", "gameplay-4-player.webm"),
+      );
     }
   });
 
@@ -225,11 +353,13 @@ test.describe("real multi-client UI matches", () => {
   }) => {
     const clients = await createClients(browser, 5);
     try {
+      await saveEvidence(clients.pages[0]!, "5-player-lobby");
       await driveToResults(clients, { refresh: true });
       const host = clients.pages[0]!;
       await expect(host.locator(".verdict-band")).toBeVisible();
       await expect(clients.pages[2]!.locator(".verdict-band")).toBeVisible();
       await saveEvidence(host, "5-player-results");
+      await saveBodyEvidence(host, "5-player-results-full");
 
       await host.getByRole("button", { name: "مجموعة جديدة" }).click();
       await waitForPhase(host, "LOBBY");
@@ -245,11 +375,13 @@ test.describe("real multi-client UI matches", () => {
   }) => {
     const clients = await createClients(browser, 6);
     try {
+      await saveEvidence(clients.pages[0]!, "6-player-lobby");
       await driveToResults(clients, { disconnect: true });
       for (const page of clients.pages) {
         await expect(page.locator(".verdict-band")).toBeVisible();
       }
       await saveEvidence(clients.pages[0]!, "6-player-results");
+      await saveBodyEvidence(clients.pages[0]!, "6-player-results-full");
     } finally {
       await closeClients(clients);
     }

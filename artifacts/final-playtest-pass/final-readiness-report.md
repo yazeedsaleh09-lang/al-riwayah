@@ -1,66 +1,67 @@
-# Final visual and playtest readiness report
+# AL RIWAYAH local release-candidate readiness
 
-Date: 2026-07-27
-
+Date: 2026-07-28
 Branch: `main`
+Status: **local quality gate passed; production deployment verification pending**
 
-Status: **CODE RELEASE CANDIDATE VERIFIED; CURRENT RENDER HOSTS ARE NOT LIVE**
+## Approved direction
 
-## Fresh verification
+The release uses the light editorial direction. Its signature is the non-circular
+Versioned Testimony editor: one shared statement can be scrubbed between authored
+revisions, then the product journey carries that cause-and-effect language through
+the lobby, private answers, contradiction, patch, and result.
 
-| Command / gate | Outcome |
+The Alibi Table / circular player-seat concept is removed. No active hero, lobby,
+or gameplay surface depends on a circular or radial player composition. Existing
+authoritative multiplayer behavior and public/private view boundaries remain intact.
+
+## Fresh local verification
+
+| Command or gate | Fresh result |
 |---|---|
-| `pnpm install --frozen-lockfile` | pass, lock current |
-| `pnpm lint` | pass |
-| `pnpm typecheck` | pass, 6 workspace projects |
-| `pnpm test` | 93 passed / 13 files |
-| `pnpm --filter @al-riwayah/content validate` | all cases valid |
-| `pnpm test:integration` | 26 passed / 3 files |
-| `pnpm test:security` | 11 passed |
-| `pnpm build` with production URLs | pass, Next 16.2.12, 14 routes |
-| `pnpm test:e2e` | 46 passed; production-only performance test skipped by design |
-| production `performance.spec.ts` | 1 passed |
-| 4/5/6 independent browser contexts | pass through all 19 phases |
-| create + join on real local server | pass |
+| `pnpm.cmd install --frozen-lockfile` | pass; lockfile current |
+| `pnpm.cmd lint` | pass |
+| `pnpm.cmd typecheck` | pass across 6 workspace projects |
+| `pnpm.cmd test` | 93 passed in 13 files |
+| `pnpm.cmd --filter @al-riwayah/content validate` | pass; authored case valid |
+| `pnpm.cmd test:integration` | 26 passed in 3 files |
+| `pnpm.cmd test:security` | 11 passed |
+| production `pnpm.cmd build` with documented HTTPS origins | pass; 14 Next routes |
+| `pnpm.cmd test:e2e` | 62 passed; production-only performance case intentionally skipped |
+| production performance case | pass |
+| 4-player browser match | pass; duplicate rejection, private receipt, contradiction, patch, result, replay |
+| 5-player browser match | pass; refresh/recovery and clean new group |
+| 6-player browser match | pass; disconnect, server-timed missing answer, reconnect-safe result |
+| responsive route matrix | pass at 320, 360, 390, 430, 768, 1280, 1440, and 1920 |
+| Nudge side-by-side reviewer gate | pass; all 12 categories at 9.0 or above |
 
-## Production performance
+Production metrics from `performance-report.json`:
 
-- LCP: 276 ms (budget 2,500 ms)
-- CLS: 0 (budget 0.1)
-- DOM content loaded: 89 ms
-- transferred script bytes: 184,492 (budget 600,000)
-- longest long task: 92 ms (budget 200 ms)
-- CSP/frame/no-sniff response-header assertions: pass
-
-Raw metrics: `performance-report.json`.
-
-## Room-creation incident
-
-Two independent causes were confirmed:
-
-1. Both documented Render hosts returned `404 Not Found` with
-   `x-render-routing: no-server`. There is no active Render service behind the
-   public hostnames, so no client code can complete a production room request
-   until the Blueprint services are provisioned or relinked.
-2. The browser emitted `room:create` immediately and failed after 6 seconds.
-   A sleeping service could therefore be reported dead before it completed a
-   cold start.
-
-The client now probes `/health`, waits for a confirmed Socket.IO connection,
-reports honest Arabic wake/connect/retry states, and retries within a bounded
-75-second window before exposing a safe error. Reload/reconnect uses the same
-grace window. `render.yaml` remains the deployment source of truth.
+- LCP: **2240ms**
+- CLS: **0.0027**
+- script transfer: **196,877 bytes**
+- longest main-thread task: **160ms**
+- security headers: CSP, `X-Frame-Options: DENY`, and
+  `X-Content-Type-Options: nosniff` present
 
 ## Evidence
 
-- responsive screenshots: `after/`
-- 4/5/6-player lobby/results: `full-match/`
-- homepage motion capture: `motion/homepage-motion.webm`
-- performance: `performance-report.json`
-- visual audit: `../../design/FINAL_VISUAL_AUDIT.md`
+- Nudge comparison: `artifacts/final-playtest-pass/nudge-comparison.md`
+- Reference and AL RIWAYAH captures:
+  `artifacts/publishable-design-v3/nudge-benchmark/` and
+  `artifacts/publishable-design-v3/after/`
+- Public route matrix: `artifacts/final-playtest-pass/after/`
+- 4/5/6-player states: `artifacts/final-playtest-pass/full-match/`
+- Active-game responsive matrix: `artifacts/final-playtest-pass/responsive-game/`
+- Homepage and gameplay motion: `artifacts/final-playtest-pass/motion/`
+- Performance: `artifacts/final-playtest-pass/performance-report.json`
 
-## Remaining external work
+## Remaining release work
 
-Provisioning or relinking the two Render services requires account-side Render
-authority that is not available in this workspace. Human fun and fairness must
-still be observed with real groups; automation does not fabricate those findings.
+This record does **not** claim that the current redesign is live. After commit and
+push, the exact remote SHA must be verified, Render must finish, and the production
+site must repeat the functional smoke, production performance check, four-viewport
+Nudge comparison, and reviewer challenge.
+
+Human fun, social tension, and fairness findings remain post-handoff activities in
+`PLAYTEST_PLAN.md`; automation cannot fabricate them.

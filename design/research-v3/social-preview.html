@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      * { box-sizing: border-box; }
+      html, body { width: 1200px; height: 630px; margin: 0; overflow: hidden; }
+      body {
+        display: grid;
+        grid-template-columns: .92fr 1.08fr;
+        align-items: center;
+        gap: 68px;
+        padding: 70px;
+        background:
+          linear-gradient(rgba(26, 25, 21, .04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(26, 25, 21, .04) 1px, transparent 1px),
+          #f3ecdf;
+        background-size: 64px 64px;
+        color: #1a1915;
+        font-family: Arial, sans-serif;
+      }
+      .copy small { color: #ae792f; font-size: 22px; }
+      h1 { margin: 16px 0 20px; font-size: 68px; line-height: 1.16; }
+      p { margin: 0; color: #625c52; font-size: 26px; line-height: 1.6; }
+      .editor {
+        height: 430px;
+        border: 2px solid #1a1915;
+        background: #fbf5ea;
+        box-shadow: 12px 14px 0 #1a1915;
+      }
+      .bar {
+        display: flex;
+        height: 58px;
+        align-items: center;
+        justify-content: space-between;
+        padding-inline: 22px;
+        border-bottom: 1px solid rgba(26,25,21,.2);
+        color: #71695d;
+        font-size: 16px;
+      }
+      .workspace { padding: 54px 42px 34px; }
+      .sentence { margin: 0; font-size: 36px; font-weight: 700; line-height: 1.7; }
+      del { color: #c94f45; text-decoration-thickness: 2px; }
+      ins { margin-right: 8px; border-bottom: 4px solid #315f55; color: #315f55; text-decoration: none; }
+      .reason {
+        display: grid;
+        grid-template-columns: 120px 1fr;
+        gap: 18px;
+        margin-top: 40px;
+        padding-top: 18px;
+        border-top: 2px solid #c94f45;
+        color: #c94f45;
+        font-size: 17px;
+      }
+      .reason strong { color: #1a1915; }
+      .activity {
+        display: grid;
+        height: 54px;
+        grid-template-columns: repeat(3, 1fr);
+        border-top: 1px solid rgba(26,25,21,.2);
+      }
+      .activity span { display: grid; place-items: center; color: #71695d; font-size: 14px; }
+      .activity span + span { border-right: 1px solid rgba(26,25,21,.2); }
+      .brand { position: absolute; top: 34px; right: 70px; display: flex; align-items: center; gap: 12px; font-size: 24px; font-weight: 700; }
+      .brand svg { width: 34px; height: 34px; }
+    </style>
+  </head>
+  <body>
+    <div class="brand">
+      <svg viewBox="0 0 34 34" aria-hidden>
+        <path d="M3 9.5h28M3 24.5h10M22 24.5h9" fill="none" stroke="#1a1915" stroke-width="1.4" />
+        <path d="m12 25 10-7" fill="none" stroke="#c94f45" stroke-width="2.2" />
+        <path d="M18 5v12" fill="none" stroke="#315f55" stroke-width="2" />
+      </svg>
+      الرواية
+    </div>
+    <section class="copy">
+      <small>لعبة تحقيق اجتماعية · ٤–٦ لاعبين</small>
+      <h1>كل رواية تتغيّر مع كل شهادة.</h1>
+      <p>كل لاعب على جواله. بدون تحميل أو شاشة مشتركة.</p>
+    </section>
+    <section class="editor">
+      <div class="bar"><span>مقارنة نسختين من الرواية</span><span>REV. 06 / 19</span></div>
+      <div class="workspace">
+        <p class="sentence">كنا في المجلس عندما <del>انطفأت الأنوار</del> <ins>وصلت الرسالة</ins>.</p>
+        <div class="reason"><span>سبب التغيير</span><strong>سجل الشبكة وضع جهازًا في المستودع في اللحظة نفسها.</strong></div>
+      </div>
+      <div class="activity"><span>نورة · ثبّتت</span><span>راكان · يراجع</span><span>ليان · تنتظر</span></div>
+    </section>
+  </body>
+</html>

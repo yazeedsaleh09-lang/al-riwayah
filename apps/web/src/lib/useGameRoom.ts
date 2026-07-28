@@ -66,6 +66,11 @@ export function useGameRoom(code: string) {
       setConnectionStage("retrying");
       startUnavailableTimer();
     };
+    const onBrowserOffline = () => onDisconnect();
+    const onBrowserOnline = () => {
+      setConnectionStage("connecting");
+      if (!socket.connected) socket.connect();
+    };
 
     socket.on("view:public", onPublic);
     socket.on("view:private", onPrivate);
@@ -74,6 +79,8 @@ export function useGameRoom(code: string) {
     socket.on("connect", onConnect);
     socket.on("connect_error", onConnectError);
     socket.on("disconnect", onDisconnect);
+    window.addEventListener("offline", onBrowserOffline);
+    window.addEventListener("online", onBrowserOnline);
 
     if (socket.connected) onConnect();
     else startUnavailableTimer();
@@ -86,6 +93,8 @@ export function useGameRoom(code: string) {
       socket.off("connect", onConnect);
       socket.off("connect_error", onConnectError);
       socket.off("disconnect", onDisconnect);
+      window.removeEventListener("offline", onBrowserOffline);
+      window.removeEventListener("online", onBrowserOnline);
       clearUnavailableTimer();
     };
   }, [code]);

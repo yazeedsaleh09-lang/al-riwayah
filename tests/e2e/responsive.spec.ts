@@ -17,7 +17,7 @@ const VIEWPORTS = [
 test("responsive route matrix has no overflow, console errors, or clipped primary controls", async ({
   page,
 }) => {
-  test.setTimeout(180_000);
+  test.setTimeout(600_000);
   const stage = process.env.EVIDENCE_STAGE ?? "after";
   const evidenceDir = path.resolve("artifacts", "final-playtest-pass", stage);
   await mkdir(evidenceDir, { recursive: true });
@@ -69,10 +69,18 @@ test("responsive route matrix has no overflow, console errors, or clipped primar
 
       if (viewport.name === "390x844" || viewport.name === "1440x900") {
         const routeName = route === "/" ? "home" : route.slice(1).replaceAll("/", "-");
-        await page.screenshot({
-          path: path.join(evidenceDir, `${routeName}-${viewport.name}.png`),
-          fullPage: true,
-        });
+        const needsStaticJourney =
+          viewport.width >= 900 && (route === "/" || route === "/how-to-play");
+        if (needsStaticJourney) await page.emulateMedia({ reducedMotion: "reduce" });
+        try {
+          await page.screenshot({
+            path: path.join(evidenceDir, `${routeName}-${viewport.name}.png`),
+            fullPage: true,
+            caret: "initial",
+          });
+        } finally {
+          if (needsStaticJourney) await page.emulateMedia({ reducedMotion: "no-preference" });
+        }
       }
     }
   }

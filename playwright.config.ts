@@ -8,6 +8,7 @@ const PUBLIC_SERVER = process.env.E2E_PUBLIC_SERVER_URL ?? SERVER;
 const PRODUCTION_WEB = process.env.E2E_PRODUCTION === "1";
 const SERVER_BIND_HOST = process.env.E2E_SERVER_BIND_HOST ?? "127.0.0.1";
 const WEB_BIND_HOST = process.env.E2E_WEB_BIND_HOST ?? "127.0.0.1";
+const REUSE_EXISTING_SERVER = process.env.E2E_REUSE_SERVER === "1";
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -26,7 +27,11 @@ export default defineConfig({
     { name: "desktop", use: { ...devices["Desktop Chrome"] } },
     {
       name: "visual",
-      testMatch: ["**/marketing.spec.ts", "**/accessibility.spec.ts"],
+      testMatch: [
+        "**/marketing.spec.ts",
+        "**/accessibility.spec.ts",
+        "**/identity-motion.spec.ts",
+      ],
       use: { ...devices["Desktop Chrome"], viewport: { width: 320, height: 568 } },
     },
   ],
@@ -40,19 +45,20 @@ export default defineConfig({
         HOST: SERVER_BIND_HOST,
         PORT: String(SERVER_PORT),
         PHASE_DURATION_SCALE: process.env.E2E_PHASE_DURATION_SCALE ?? "0.2",
+        E2E_FIXED_SEED: process.env.E2E_FIXED_SEED ?? "visual-1",
       },
-      reuseExistingServer: true,
+      reuseExistingServer: REUSE_EXISTING_SERVER,
       timeout: 60_000,
     },
     {
-      command: `pnpm.cmd --filter @al-riwayah/web exec next ${PRODUCTION_WEB ? "start" : "dev"} -H ${WEB_BIND_HOST} -p ${WEB_PORT}`,
+      command: `node apps/web/node_modules/next/dist/bin/next ${PRODUCTION_WEB ? "start" : "dev"} apps/web -H ${WEB_BIND_HOST} -p ${WEB_PORT}`,
       url: WEB,
       env: {
         ...process.env,
         E2E_DEV: PRODUCTION_WEB ? "0" : "1",
         NEXT_PUBLIC_SERVER_URL: PUBLIC_SERVER,
       },
-      reuseExistingServer: true,
+      reuseExistingServer: REUSE_EXISTING_SERVER,
       timeout: 120_000,
     },
   ],

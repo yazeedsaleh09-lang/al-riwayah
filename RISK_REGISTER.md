@@ -49,3 +49,15 @@
   and does not depend on hosting credentials.
 - `LEG-01` remains owner input and is visibly disclosed; it does not block a private
   friends playtest.
+
+## 2026-07-28 prior hosted baseline
+
+- `DEP-01`: mitigated for the review deployment. Socket.IO create/join and roster
+  propagation passed against the actual Render web and realtime origins.
+- `DEP-02`: mitigated by the explicit server-readiness gate and bounded 90-second
+  E2E allowance. A cold service displayed the honest wake state; the subsequent
+  create/join/refresh/reconnect flow passed without weakening room assertions.
+
+This baseline predates ADR-019. The exact light-editorial release SHA must repeat
+the hosted smoke and production Nudge comparison before the current release is
+approved.

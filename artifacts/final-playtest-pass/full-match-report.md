@@ -1,14 +1,15 @@
-# Automated full-match report — 2026-07-27
+# Automated full-match report — 2026-07-28
 
-| Players | Result | Adversarial/recovery coverage | Evidence |
+| Players | Result | Adversarial/recovery coverage | Primary evidence |
 |---:|---|---|---|
-| 4 | PASS, all 19 phases to results | duplicate answer rejected; representative axe; same-room replay clean | `full-match/4-player-lobby.png`, `full-match/4-player-results.png` |
-| 5 | PASS, all 19 phases to results | browser refresh restores player/locked state; host creates clean new group/code | `full-match/5-player-results.png` |
-| 6 | PASS, all 19 phases to results | one browser disconnects; server deadline supplies missing response; reconnect-safe completion | `full-match/6-player-results.png` |
+| 4 | PASS, all 19 phases and replay | duplicate answer rejection; private selection/lock receipt; real contradiction and patch; representative Axe | `full-match/4-player-question.png`, `4-player-contradiction.png`, `4-player-patch-selection.png`, `4-player-results-full.png` |
+| 5 | PASS, all 19 phases | browser refresh restores the player; host creates a clean room and code | `full-match/5-player-lobby.png`, `5-player-results-full.png` |
+| 6 | PASS, all 19 phases | browser disconnect; immediate offline overlay; server-timed missing answer; reconnect-safe completion | `full-match/6-player-reconnect.png`, `6-player-results-full.png` |
 
-Additional engine/integration runs cover all 4/5/6 assignments, an absent player,
-no phase skip, deadline rejection, stale revisions, host transfer, seventh-player
-rejection, expired rooms, and five replay cycles.
+The captures come from independent Chromium contexts with separate browser storage
+and sockets. They are not an in-memory UI mock.
 
-These are independent Chromium browser contexts with separate storage and sockets,
-not an in-memory UI mock.
+The latest question and patch evidence shows active controls only while calibrated
+time remains. At zero, the client presents an expired waiting receipt and disables
+late controls; it does not advance the phase or accept the action locally. Deadline,
+identity, revision, and allowed-option enforcement remain on the server.

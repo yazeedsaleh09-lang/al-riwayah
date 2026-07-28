@@ -1,19 +1,22 @@
-# Accessibility report — 2026-07-27
+# Accessibility report — 2026-07-28
 
-- axe WCAG 2 A/AA serious and critical findings: **0**.
-- Public routes scanned at 1280px and 320px: `/`, `/how-to-play`, `/cases`,
-  `/join`, `/play`, `/create`, `/privacy`, `/terms`.
-- Representative game phases scanned in the 4-player match: lobby/case, private
+- Public-route Playwright accessibility, keyboard, validation, and preference
+  matrix: **24/24 passed** across desktop and 320px visual projects.
+- Serious or critical Axe findings: **0** on `/`, `/how-to-play`, `/cases`,
+  `/join`, `/play`, `/create`, `/privacy`, and `/terms`.
+- Representative live game Axe checks passed for lobby, case brief, private
   evidence, interrogation, patch, and results.
-- Keyboard: sound and reduced-motion controls focus and toggle via Enter.
-- Persistence: mute and reduced-motion preferences survive reload.
-- Mobile navigation exposes both preferences at 320px.
-- Touch targets: primary navigation, menu, preference controls, and game actions
-  meet the 44px minimum in the responsive assertion.
-- Meaning is not color-only: contradiction releases include both statements and
-  the explicit rule.
-- Text-bearing entry animation avoids opacity fades, preserving contrast while
-  motion is running. Manual/OS reduced-motion paths disable nonessential motion.
+- Mobile menu traps focus, closes on Escape, restores focus, and unlocks body
+  scrolling.
+- Create/join validation identifies invalid fields, associates descriptions, and
+  moves focus to the first error.
+- Revision comparison and ticker pause are keyboard reachable and operable.
+- Mobile keeps the revision gesture instruction visible.
+- All controls pass the automated 44px target check at eight viewport widths.
+- Phase changes and private receipts expose status text; contradictions include the
+  two statements and their explicit rule, so meaning is not color-only.
+- `prefers-reduced-motion` and the product motion preference preserve ordered
+  content while removing nonessential travel.
 
-Known external validation: screen-reader usability on specific iOS/Android assistive
-technology should be observed during the real-device friends session.
+Real-device screen-reader usability on specific iOS/Android assistive technology
+remains an explicit human-device playtest item.

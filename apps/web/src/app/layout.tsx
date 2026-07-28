@@ -1,19 +1,21 @@
 import type { Metadata, Viewport } from "next";
-import { Alexandria, Noto_Sans_Arabic } from "next/font/google";
+import { Alexandria, IBM_Plex_Sans_Arabic } from "next/font/google";
 import "./globals.css";
 import "./marketing.css";
 import { SITE } from "@/lib/site";
 import { HydrationMarker } from "@/components/HydrationMarker";
 
-const display = Alexandria({
+const arabic = IBM_Plex_Sans_Arabic({
+  weight: ["400", "500", "600", "700"],
   subsets: ["arabic", "latin"],
-  variable: "--font-display",
+  variable: "--font-arabic",
   display: "swap",
 });
 
-const body = Noto_Sans_Arabic({
+const display = Alexandria({
+  weight: ["500", "600", "700"],
   subsets: ["arabic", "latin"],
-  variable: "--font-body",
+  variable: "--font-display-arabic",
   display: "swap",
 });
 
@@ -35,11 +37,13 @@ export const metadata: Metadata = {
     title: `${SITE.name} — ${SITE.descriptor}`,
     description: SITE.description,
     url: SITE.url,
+    images: [{ url: "/social-preview.png", width: 1200, height: 630, alt: "الرواية — لعبة تحقيق اجتماعية" }],
   },
   twitter: {
     card: "summary_large_image",
     title: `${SITE.name} — ${SITE.descriptor}`,
     description: SITE.description,
+    images: ["/social-preview.png"],
   },
   robots: { index: true, follow: true },
   manifest: "/manifest.webmanifest",
@@ -55,7 +59,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ar" dir="rtl" data-scroll-behavior="smooth">
-      <body className={`${display.variable} ${body.variable}`}>
+      <body className={`${arabic.variable} ${display.variable}`}>
         <HydrationMarker />
         <a href="#main" className="skip-link">
           تجاوز إلى المحتوى

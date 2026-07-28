@@ -35,7 +35,7 @@ The Blueprint contains only non-secret production configuration.
 | `NODE_ENV`             | `production`                          | Enables production safety checks.                             |
 | `HOST`                 | `0.0.0.0`                             | Required Render bind address.                                 |
 | `PORT`                 | supplied by Render                    | Do not set or hardcode this.                                  |
-| `CORS_ORIGIN`          | `https://al-riwayah-web.onrender.com` | Comma-separated exact origins; `*` is rejected in production. |
+| `CORS_ORIGIN`          | `https://al-riwayah.onrender.com` | Comma-separated exact origins; `*` is rejected in production. |
 | `ROOM_TTL_MS`          | `1800000`                             | Idle room lifetime: 30 minutes.                               |
 | `ROOM_MAX_LIFETIME_MS` | `7200000`                             | Hard room lifetime: 2 hours.                                  |
 | `PHASE_DURATION_SCALE` | `1`                                   | Production deadlines must remain unscaled.                    |
@@ -47,7 +47,7 @@ The Blueprint contains only non-secret production configuration.
 | `NODE_ENV`               | `production`                             | Set by the Blueprint and Render runtime.                          |
 | `PORT`                   | supplied by Render                       | Read by `next start`; do not hardcode this.                       |
 | `NEXT_PUBLIC_SERVER_URL` | `https://al-riwayah-server.onrender.com` | Embedded at build time; HTTPS causes Socket.IO to use secure WSS. |
-| `NEXT_PUBLIC_SITE_URL`   | `https://al-riwayah-web.onrender.com`    | Canonical public site origin.                                     |
+| `NEXT_PUBLIC_SITE_URL`   | `https://al-riwayah.onrender.com`        | Canonical public site origin.                                     |
 
 There are currently no application secrets. If a secret is introduced later,
 add only its key with `sync: false` in `render.yaml`, then enter its value in
@@ -73,7 +73,7 @@ restart. Production builds fail if it is missing, non-HTTPS, or loopback.
 9. Wait for both deploys to become **Live**. Open
    `https://al-riwayah-server.onrender.com/health` and confirm a JSON response
    with `"status":"ok"`.
-10. Open `https://al-riwayah-web.onrender.com`, create a room, and join it from
+10. Open `https://al-riwayah.onrender.com`, create a room, and join it from
     another device or private browser window. Confirm both clients remain
     connected and can recover after refreshing one client.
 
@@ -117,7 +117,7 @@ pnpm.cmd --filter @al-riwayah/content validate
 pnpm.cmd test:integration
 pnpm.cmd test:security
 $env:NEXT_PUBLIC_SERVER_URL = "https://al-riwayah-server.onrender.com"
-$env:NEXT_PUBLIC_SITE_URL = "https://al-riwayah-web.onrender.com"
+$env:NEXT_PUBLIC_SITE_URL = "https://al-riwayah.onrender.com"
 pnpm.cmd build
 pnpm.cmd test:e2e
 ```

@@ -1,0 +1,884 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>اتجاهات هوية الرواية</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Alexandria:wght@500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: "IBM Plex Sans Arabic", system-ui, sans-serif;
+        --display: "Alexandria", system-ui, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-width: 320px;
+        overflow: hidden;
+      }
+
+      button {
+        min-height: 48px;
+        border: 0;
+        font: 700 15px/1 var(--display);
+        cursor: pointer;
+      }
+
+      .direction {
+        display: none;
+        width: 100vw;
+        height: 100vh;
+        min-height: 700px;
+        overflow: hidden;
+      }
+
+      body[data-direction="night"] .night,
+      body[data-direction="seats"] .seats,
+      body[data-direction="call-sheet"] .call-sheet {
+        display: grid;
+      }
+
+      .eyebrow {
+        margin: 0;
+        font: 600 12px/1.5 var(--display);
+        letter-spacing: .02em;
+      }
+
+      .micro {
+        font-size: 12px;
+        line-height: 1.65;
+      }
+
+      .night {
+        position: relative;
+        grid-template-rows: auto 1fr;
+        padding: 24px 32px 30px;
+        color: #f4efe5;
+        background:
+          radial-gradient(circle at 77% 42%, rgba(152, 46, 39, .18), transparent 22rem),
+          radial-gradient(circle at 15% 74%, rgba(203, 160, 91, .08), transparent 18rem),
+          #0c0b0a;
+      }
+
+      .night::before {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        content: "";
+        opacity: .2;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.16'/%3E%3C/svg%3E");
+      }
+
+      .night-nav,
+      .seats-nav,
+      .call-nav {
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid currentColor;
+        padding-bottom: 16px;
+      }
+
+      .night-brand,
+      .seats-brand,
+      .call-brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font: 700 20px/1 var(--display);
+      }
+
+      .night-mark {
+        position: relative;
+        width: 28px;
+        aspect-ratio: 1;
+        border: 1px solid #d3a160;
+        border-radius: 50%;
+      }
+
+      .night-mark::before,
+      .night-mark::after {
+        position: absolute;
+        content: "";
+        background: #d34f43;
+        transform-origin: right center;
+      }
+
+      .night-mark::before {
+        width: 34px;
+        height: 2px;
+        right: 4px;
+        top: 8px;
+        transform: rotate(-33deg);
+      }
+
+      .night-mark::after {
+        width: 22px;
+        height: 2px;
+        right: 10px;
+        bottom: 6px;
+        transform: rotate(36deg);
+      }
+
+      .night-main {
+        z-index: 1;
+        display: grid;
+        grid-template-columns: minmax(320px, .85fr) minmax(620px, 1.4fr);
+        gap: 44px;
+        align-items: center;
+        max-width: 1380px;
+        width: 100%;
+        margin-inline: auto;
+      }
+
+      .night-copy h1 {
+        max-width: 620px;
+        margin: 14px 0 18px;
+        font: 600 clamp(46px, 5.4vw, 76px)/1.18 var(--display);
+        letter-spacing: -.045em;
+      }
+
+      .night-copy h1 span {
+        color: #d65448;
+      }
+
+      .night-copy > p:not(.eyebrow) {
+        max-width: 520px;
+        color: #c8bfb2;
+        font-size: 18px;
+        line-height: 1.8;
+      }
+
+      .night-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 28px;
+      }
+
+      .night-actions button:first-child {
+        padding: 0 26px;
+        color: #100d0b;
+        background: #f1e8da;
+      }
+
+      .night-actions button:last-child {
+        padding: 0 24px;
+        color: #f1e8da;
+        border: 1px solid #4a443d;
+        background: transparent;
+      }
+
+      .night-table {
+        position: relative;
+        display: grid;
+        place-items: center;
+        aspect-ratio: 1.55;
+        max-height: 650px;
+        border: 1px solid #37312c;
+        border-radius: 52% / 38%;
+        background:
+          radial-gradient(ellipse, transparent 30%, rgba(255, 255, 255, .02) 31%, transparent 32%),
+          #14110f;
+        box-shadow: inset 0 0 0 12px #0e0c0b, 0 28px 80px rgba(0, 0, 0, .36);
+      }
+
+      .night-table::before {
+        position: absolute;
+        width: 54%;
+        height: 68%;
+        content: "";
+        border: 1px dashed #473f37;
+        border-radius: 50%;
+      }
+
+      .statement {
+        position: relative;
+        z-index: 4;
+        width: 38%;
+        min-width: 220px;
+        padding: 20px 22px;
+        color: #1b1713;
+        background: #eee4d5;
+        box-shadow: 8px 12px 0 #16110d, 9px 13px 0 #6c5740;
+        transform: rotate(-1deg);
+      }
+
+      .statement strong {
+        display: block;
+        margin-top: 6px;
+        font: 600 21px/1.55 var(--display);
+      }
+
+      .statement small {
+        color: #756a5d;
+      }
+
+      .seat {
+        position: absolute;
+        z-index: 5;
+        min-width: 105px;
+        padding: 8px 12px;
+        border: 1px solid #4d443c;
+        border-radius: 99px;
+        color: #ded5c8;
+        background: #171411;
+        font-size: 12px;
+      }
+
+      .seat::before {
+        display: inline-block;
+        width: 7px;
+        height: 7px;
+        margin-left: 7px;
+        border-radius: 50%;
+        content: "";
+        background: #d2a25e;
+      }
+
+      .s1 { top: 8%; right: 25%; }
+      .s2 { top: 19%; left: 7%; }
+      .s3 { bottom: 17%; left: 7%; }
+      .s4 { bottom: 8%; right: 27%; }
+      .s5 { bottom: 28%; right: 2%; }
+      .s6 { top: 22%; right: 1%; }
+
+      .thread {
+        position: absolute;
+        z-index: 3;
+        height: 2px;
+        background: #d75246;
+        transform-origin: right;
+        box-shadow: 0 0 14px rgba(215, 82, 70, .5);
+      }
+
+      .t1 { width: 31%; top: 30%; right: 21%; transform: rotate(18deg); }
+      .t2 { width: 36%; bottom: 30%; right: 33%; transform: rotate(-18deg); }
+      .t3 { width: 27%; top: 52%; right: 48%; transform: rotate(28deg); }
+
+      .phase-chip {
+        position: absolute;
+        z-index: 6;
+        left: 16%;
+        bottom: 9%;
+        padding: 10px 14px;
+        color: #0c0b0a;
+        background: #d6a15c;
+        font: 700 12px/1 var(--display);
+      }
+
+      .seats {
+        grid-template-rows: auto 1fr;
+        padding: 22px 32px 28px;
+        color: #191713;
+        background: #eee7da;
+      }
+
+      .seats-nav {
+        border-color: #bcb1a0;
+      }
+
+      .seats-brand {
+        color: #28231c;
+      }
+
+      .seats-mark {
+        display: grid;
+        grid-template-columns: repeat(3, 7px);
+        gap: 3px;
+        width: 27px;
+        transform: rotate(30deg);
+      }
+
+      .seats-mark i {
+        display: block;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #bd473b;
+      }
+
+      .seats-mark i:nth-child(2),
+      .seats-mark i:nth-child(5) {
+        background: #1d5b55;
+      }
+
+      .seats-main {
+        display: grid;
+        grid-template-columns: minmax(460px, 1fr) minmax(420px, .8fr);
+        gap: 30px;
+        align-items: center;
+      }
+
+      .orbit {
+        position: relative;
+        width: min(50vw, 670px);
+        aspect-ratio: 1;
+        margin-inline: auto;
+        border: 2px solid #242019;
+        border-radius: 50%;
+        background: #e4dac9;
+        box-shadow: inset 0 0 0 20px #eee7da;
+      }
+
+      .orbit::before,
+      .orbit::after {
+        position: absolute;
+        inset: 22%;
+        content: "";
+        border: 1px solid #9f9381;
+        border-radius: 50%;
+      }
+
+      .orbit::after {
+        inset: 34%;
+        border-style: dashed;
+      }
+
+      .orbit-center {
+        position: absolute;
+        z-index: 3;
+        inset: 36%;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        color: #f8f3ea;
+        background: #1e4e49;
+        font: 600 16px/1.5 var(--display);
+        text-align: center;
+      }
+
+      .orbit-seat {
+        position: absolute;
+        z-index: 4;
+        display: grid;
+        place-items: center;
+        width: 74px;
+        aspect-ratio: 1;
+        border: 2px solid #211e19;
+        border-radius: 50%;
+        background: #f8f1e5;
+        font: 700 12px/1 var(--display);
+        box-shadow: 5px 5px 0 #c9bcaa;
+      }
+
+      .o1 { top: 2%; right: 44%; }
+      .o2 { top: 24%; right: 3%; }
+      .o3 { bottom: 17%; right: 8%; }
+      .o4 { bottom: 3%; right: 44%; }
+      .o5 { bottom: 17%; left: 8%; }
+      .o6 { top: 24%; left: 3%; }
+
+      .orbit-alert {
+        position: absolute;
+        z-index: 6;
+        top: 41%;
+        right: 2%;
+        padding: 9px 12px;
+        color: #fff8ed;
+        background: #bd473b;
+        font: 700 12px/1 var(--display);
+        transform: rotate(-4deg);
+      }
+
+      .seats-copy h1 {
+        margin: 12px 0 14px;
+        font: 600 clamp(46px, 5.3vw, 74px)/1.15 var(--display);
+        letter-spacing: -.045em;
+      }
+
+      .seats-copy h1 span {
+        color: #b74338;
+      }
+
+      .seats-copy > p:not(.eyebrow) {
+        max-width: 510px;
+        color: #574e43;
+        font-size: 18px;
+        line-height: 1.8;
+      }
+
+      .seat-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1px;
+        margin: 26px 0;
+        border: 1px solid #b9ad9b;
+        background: #b9ad9b;
+      }
+
+      .seat-stats div {
+        padding: 13px;
+        background: #eee7da;
+      }
+
+      .seat-stats strong {
+        display: block;
+        font: 700 18px/1.5 var(--display);
+      }
+
+      .seat-stats small {
+        color: #6d6254;
+      }
+
+      .seats-copy button {
+        padding: 0 28px;
+        color: #fffaf1;
+        background: #1d4d48;
+        box-shadow: 5px 5px 0 #b74338;
+      }
+
+      .call-sheet {
+        grid-template-columns: 74px 1fr;
+        color: #16130f;
+        background: #dad0c0;
+      }
+
+      .call-rail {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-left: 1px solid #817565;
+        color: #ede6db;
+        background: #1b1814;
+      }
+
+      .call-rail span {
+        font: 600 12px/1 var(--display);
+        letter-spacing: .1em;
+        writing-mode: vertical-rl;
+        transform: rotate(180deg);
+      }
+
+      .call-canvas {
+        display: grid;
+        grid-template-rows: auto 1fr;
+        padding: 22px 30px 28px;
+        background:
+          linear-gradient(90deg, transparent 95%, rgba(49, 42, 34, .05) 95%),
+          #ece4d7;
+        background-size: 36px 100%;
+      }
+
+      .call-nav {
+        border-color: #9d9180;
+      }
+
+      .call-brand {
+        text-transform: none;
+      }
+
+      .call-mark {
+        display: grid;
+        place-items: center;
+        width: 30px;
+        aspect-ratio: 1;
+        border: 2px solid #bd4539;
+        color: #bd4539;
+        font: 700 12px/1 var(--display);
+        transform: rotate(-8deg);
+      }
+
+      .call-main {
+        display: grid;
+        grid-template-columns: .82fr 1.18fr;
+        gap: 40px;
+        align-items: center;
+      }
+
+      .call-copy h1 {
+        margin: 12px 0 16px;
+        font: 600 clamp(44px, 5vw, 70px)/1.15 var(--display);
+        letter-spacing: -.04em;
+      }
+
+      .call-copy h1 span {
+        display: inline;
+        padding-inline: 6px;
+        color: #f6eee2;
+        background: #201c17;
+      }
+
+      .call-copy > p:not(.eyebrow) {
+        max-width: 500px;
+        color: #564d41;
+        font-size: 18px;
+        line-height: 1.8;
+      }
+
+      .call-copy button {
+        margin-top: 18px;
+        padding: 0 28px;
+        color: #f7efe4;
+        background: #bd4539;
+      }
+
+      .slips {
+        position: relative;
+        height: 610px;
+      }
+
+      .slip {
+        position: absolute;
+        width: 76%;
+        min-height: 145px;
+        padding: 20px 24px;
+        border: 1px solid #827666;
+        background: #f4ecdf;
+        box-shadow: 9px 11px 0 rgba(35, 30, 24, .12);
+      }
+
+      .slip header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+        color: #786e60;
+        font: 600 11px/1 var(--display);
+      }
+
+      .slip strong {
+        display: block;
+        font: 600 20px/1.55 var(--display);
+      }
+
+      .slip p {
+        margin: 9px 0 0;
+        color: #665c50;
+        line-height: 1.65;
+      }
+
+      .slip-one { top: 7%; right: 4%; transform: rotate(2deg); }
+      .slip-two { top: 34%; left: 3%; transform: rotate(-2deg); }
+      .slip-three {
+        bottom: 7%;
+        right: 9%;
+        border-color: #b74439;
+        transform: rotate(1deg);
+      }
+
+      .slip-three::after {
+        position: absolute;
+        left: 22px;
+        bottom: 18px;
+        display: grid;
+        place-items: center;
+        width: 70px;
+        aspect-ratio: 1;
+        border: 2px solid #bd4539;
+        border-radius: 50%;
+        color: #bd4539;
+        content: "تناقض";
+        font: 700 12px/1 var(--display);
+        transform: rotate(-14deg);
+      }
+
+      .slash {
+        color: #bd4539;
+      }
+
+      @media (max-width: 700px) {
+        .direction {
+          min-height: 0;
+        }
+
+        .night,
+        .seats {
+          padding: 18px 18px 22px;
+        }
+
+        .night-nav,
+        .seats-nav,
+        .call-nav {
+          padding-bottom: 12px;
+        }
+
+        .night-nav .micro,
+        .seats-nav .micro,
+        .call-nav .micro {
+          display: none;
+        }
+
+        .night-main {
+          grid-template-columns: 1fr;
+          gap: 18px;
+          align-content: start;
+          padding-top: 28px;
+        }
+
+        .night-copy h1,
+        .seats-copy h1,
+        .call-copy h1 {
+          margin: 10px 0 12px;
+          font-size: 42px;
+          line-height: 1.18;
+        }
+
+        .night-copy > p:not(.eyebrow),
+        .seats-copy > p:not(.eyebrow),
+        .call-copy > p:not(.eyebrow) {
+          margin: 0;
+          font-size: 16px;
+          line-height: 1.7;
+        }
+
+        .night-actions {
+          margin-top: 18px;
+        }
+
+        .night-actions button {
+          flex: 1;
+          padding-inline: 8px !important;
+        }
+
+        .night-table {
+          width: 112%;
+          margin-right: -6%;
+          aspect-ratio: 1.25;
+          border-radius: 50% / 36%;
+        }
+
+        .statement {
+          width: 54%;
+          min-width: 0;
+          padding: 13px;
+        }
+
+        .statement strong {
+          font-size: 15px;
+        }
+
+        .seat {
+          min-width: 82px;
+          padding: 6px 8px;
+          font-size: 10px;
+        }
+
+        .phase-chip {
+          left: 8%;
+          bottom: 4%;
+        }
+
+        .seats-main {
+          display: flex;
+          flex-direction: column-reverse;
+          gap: 8px;
+          align-items: stretch;
+          padding-top: 24px;
+        }
+
+        .seat-stats {
+          margin: 17px 0 18px;
+        }
+
+        .seat-stats div {
+          padding: 8px 5px;
+          text-align: center;
+        }
+
+        .seat-stats strong {
+          font-size: 15px;
+        }
+
+        .seats-copy button {
+          width: 100%;
+        }
+
+        .orbit {
+          width: 310px;
+          margin-top: 6px;
+        }
+
+        .orbit-seat {
+          width: 52px;
+          font-size: 10px;
+          box-shadow: 3px 3px 0 #c9bcaa;
+        }
+
+        .orbit-alert {
+          top: 38%;
+          right: 0;
+        }
+
+        .call-sheet {
+          grid-template-columns: 36px 1fr;
+        }
+
+        .call-rail span {
+          font-size: 10px;
+        }
+
+        .call-canvas {
+          padding: 18px 16px 20px;
+        }
+
+        .call-main {
+          grid-template-columns: 1fr;
+          gap: 13px;
+          align-content: start;
+          padding-top: 26px;
+        }
+
+        .call-copy button {
+          width: 100%;
+          margin-top: 14px;
+        }
+
+        .slips {
+          height: 355px;
+        }
+
+        .slip {
+          width: 88%;
+          min-height: 104px;
+          padding: 12px 14px;
+          box-shadow: 5px 6px 0 rgba(35, 30, 24, .12);
+        }
+
+        .slip header {
+          margin-bottom: 7px;
+        }
+
+        .slip strong {
+          font-size: 14px;
+        }
+
+        .slip p {
+          margin-top: 4px;
+          font-size: 12px;
+        }
+
+        .slip-one { top: 2%; }
+        .slip-two { top: 35%; }
+        .slip-three { bottom: 0; }
+        .slip-three::after {
+          width: 48px;
+          left: 12px;
+          bottom: 9px;
+          font-size: 9px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <article class="direction night" aria-label="اتجاه طاولة الليل">
+      <nav class="night-nav">
+        <div class="night-brand"><span class="night-mark" aria-hidden="true"></span>الرواية</div>
+        <p class="micro">لعبة تحقيق اجتماعية · ٤–٦ لاعبين · هاتف واحد لكل لاعب</p>
+      </nav>
+      <main class="night-main">
+        <section class="night-copy">
+          <p class="eyebrow">طاولة الليل — الاتجاه ٠١</p>
+          <h1>كل رواية تبدو محكمة، <span>حتى تُروى مرتين.</span></h1>
+          <p>اسألوا، قارِنوا، واكشفوا التفصيلة التي لا تثبت. لا تطبيقات إضافية ولا شاشة مشتركة.</p>
+          <div class="night-actions">
+            <button>ابدأ جلسة</button>
+            <button>ادخل بالرمز</button>
+          </div>
+        </section>
+        <section class="night-table" aria-label="نموذج طاولة الأعذار">
+          <div class="statement">
+            <small>الرواية المشتركة · ١١:٤٠ م</small>
+            <strong>«كنا كلنا في المجلس عندما انطفأت الأنوار.»</strong>
+          </div>
+          <span class="seat s1">نورة · جاهزة</span>
+          <span class="seat s2">راكان · أجاب</span>
+          <span class="seat s3">سارة · تفكّر</span>
+          <span class="seat s4">فهد · أجاب</span>
+          <span class="seat s5">ليان · جاهزة</span>
+          <span class="seat s6">أنت · دورك</span>
+          <span class="thread t1"></span>
+          <span class="thread t2"></span>
+          <span class="thread t3"></span>
+          <span class="phase-chip">ظهرت فجوة في الوقت</span>
+        </section>
+      </main>
+    </article>
+
+    <article class="direction seats" aria-label="اتجاه ستة مقاعد">
+      <nav class="seats-nav">
+        <div class="seats-brand">
+          <span class="seats-mark" aria-hidden="true">
+            <i></i><i></i><i></i><i></i><i></i><i></i>
+          </span>
+          الرواية
+        </div>
+        <p class="micro">الكل حول القصة. كل إجابة تغيّر شكلها.</p>
+      </nav>
+      <main class="seats-main">
+        <section class="orbit" aria-label="دائرة اللاعبين">
+          <div class="orbit-center">الرواية<br />المشتركة</div>
+          <div class="orbit-seat o1">نورة</div>
+          <div class="orbit-seat o2">راكان</div>
+          <div class="orbit-seat o3">سارة</div>
+          <div class="orbit-seat o4">فهد</div>
+          <div class="orbit-seat o5">ليان</div>
+          <div class="orbit-seat o6">أنت</div>
+          <div class="orbit-alert">إجابتان لا تتطابقان</div>
+        </section>
+        <section class="seats-copy">
+          <p class="eyebrow">ستة مقاعد — الاتجاه ٠٢</p>
+          <h1>اجمعوا رواية واحدة من <span>ستة أصوات.</span></h1>
+          <p>تجربة اجتماعية مرئية وبسيطة: كل لاعب مقعد، وكل مقعد يترك أثراً في الحكاية.</p>
+          <div class="seat-stats">
+            <div><strong>٤–٦</strong><small>لاعبين</small></div>
+            <div><strong>٢٥</strong><small>دقيقة</small></div>
+            <div><strong>١</strong><small>قضية كاملة</small></div>
+          </div>
+          <button>كوّنوا دائرتكم</button>
+        </section>
+      </main>
+    </article>
+
+    <article class="direction call-sheet" aria-label="اتجاه سجل الجلسة">
+      <aside class="call-rail"><span>ملف الجلسة · ٠١</span></aside>
+      <div class="call-canvas">
+        <nav class="call-nav">
+          <div class="call-brand"><span class="call-mark">ر</span>الرواية</div>
+          <p class="micro">محضر حيّ لأجوبة لا تبقى ثابتة</p>
+        </nav>
+        <main class="call-main">
+          <section class="call-copy">
+            <p class="eyebrow">سجل الجلسة — الاتجاه ٠٣</p>
+            <h1>اكتبوا الرواية. ثم <span>راجعوا الهامش.</span></h1>
+            <p>تتحول كل إجابة إلى بطاقة شهادة. رتّبوها، قارنوها، ثم اختموا التناقض قبل أن ينتهي الوقت.</p>
+            <button>افتح ملف القضية</button>
+          </section>
+          <section class="slips" aria-label="بطاقات الشهادات">
+            <article class="slip slip-one">
+              <header><span>الشهادة ٠٣</span><span>نورة · ١١:٤٢</span></header>
+              <strong>كنت عند الباب عندما سمعنا صوت الزجاج.</strong>
+              <p>المكان: المدخل · الشاهد: راكان</p>
+            </article>
+            <article class="slip slip-two">
+              <header><span>الشهادة ٠٤</span><span>راكان · ١١:٤٤</span></header>
+              <strong>لم يغادر أحد المجلس قبل انطفاء الأنوار.</strong>
+              <p>المكان: المجلس · الشاهد: سارة</p>
+            </article>
+            <article class="slip slip-three">
+              <header><span>مطابقة آلية</span><span class="slash">فجوة زمنية</span></header>
+              <strong>كيف كانت نورة عند الباب وفي المجلس في اللحظة نفسها؟</strong>
+              <p>اختاروا الشهادتين ثم اطلبوا توضيحاً.</p>
+            </article>
+          </section>
+        </main>
+      </div>
+    </article>
+    <script>
+      const direction = new URLSearchParams(location.search).get("direction");
+      document.body.dataset.direction = ["night", "seats", "call-sheet"].includes(direction)
+        ? direction
+        : "night";
+    </script>
+  </body>
+</html>

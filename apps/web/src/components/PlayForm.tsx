@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { Wordmark } from "./Wordmark";
 import { joinRoom } from "@/lib/game-client";
@@ -19,10 +19,10 @@ const ERROR_AR: Record<string, string> = {
 };
 
 const STAGE_AR: Partial<Record<ConnectionStage, string>> = {
-  waking: "نوقّظ خادم اللعبة… أول تشغيل ممكن يأخذ قرابة دقيقة.",
-  connecting: "الخادم جاهز. نثبّت الاتصال الآمن…",
-  retrying: "الخادم ما زال يجهّز نفسه — مستمرين بالمحاولة.",
-  ready: "تم الاتصال. ندخّلك الغرفة الآن…",
+  waking: "نصحّي الخادم…",
+  connecting: "نجهّز الجلسة…",
+  retrying: "الخادم ما رد للحين. نحاول مرة ثانية…",
+  ready: "تم الاتصال.",
 };
 
 export function PlayForm() {
@@ -33,16 +33,24 @@ export function PlayForm() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [stage, setStage] = useState<ConnectionStage>("idle");
+  const codeRef = useRef<HTMLInputElement>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
+  const [invalidField, setInvalidField] = useState<"code" | "name" | null>(null);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setInvalidField(null);
     if (!/^[A-Z0-9]{4,6}$/.test(code.trim())) {
       setError("رمز الغرفة غير صحيح");
+      setInvalidField("code");
+      codeRef.current?.focus();
       return;
     }
     if (name.trim().length < 1) {
       setError("اكتب اسمك");
+      setInvalidField("name");
+      nameRef.current?.focus();
       return;
     }
     setBusy(true);
@@ -58,57 +66,82 @@ export function PlayForm() {
 
   return (
     <main className="form-shell" id="main">
-      <div className="form-card">
-        <div style={{ marginBottom: "var(--space-6)" }}>
+      <div className="form-surface">
+        <header className="form-surface__header">
           <Wordmark />
+          <Link href="/" className="text-link">العودة للرئيسية</Link>
+        </header>
+
+        <div className="form-surface__grid">
+          <section className="form-surface__intro">
+            <p className="section-label">دخول برمز</p>
+            <h1>ارجعوا لنفس الرواية.</h1>
+            <p>اكتب الرمز اللي شاركه معك منشئ الغرفة، ثم الاسم اللي بتعرفك فيه الشلة.</p>
+            <div className="join-fracture" aria-hidden>
+              <span />
+              <span />
+              <span />
+            </div>
+          </section>
+
+          <section className="form-panel">
+            <div className="form-panel__status">
+              <span className={`status-dot ${busy ? "is-busy" : ""}`} aria-hidden />
+              <span>{busy ? STAGE_AR[stage] : "جاهزين نربطك بالغرفة."}</span>
+            </div>
+            <form onSubmit={submit}>
+              {error && <p id="join-error" className="form-error" role="alert">{error}</p>}
+              {busy && stage !== "idle" && (
+                <p className="visually-hidden" role="status" aria-live="polite">
+                  {STAGE_AR[stage]}
+                </p>
+              )}
+              <div className="field">
+                <label htmlFor="code">رمز الغرفة</label>
+                <input
+                  ref={codeRef}
+                  id="code"
+                  name="roomCode"
+                  type="text"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.toUpperCase())}
+                  maxLength={6}
+                  autoComplete="off"
+                  spellCheck={false}
+                  inputMode="text"
+                  className="mono room-code-input"
+                  dir="ltr"
+                  placeholder="ABCD…"
+                  aria-invalid={invalidField === "code"}
+                  aria-describedby={invalidField === "code" ? "join-error code-help" : "code-help"}
+                />
+                <span id="code-help" className="field__help">من ٤ إلى ٦ أحرف أو أرقام.</span>
+              </div>
+              <div className="field">
+                <label htmlFor="pname">اسمك داخل الغرفة</label>
+                <input
+                  ref={nameRef}
+                  id="pname"
+                  name="displayName"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  maxLength={24}
+                  autoComplete="off"
+                  spellCheck={false}
+                  placeholder="مثال: نواف…"
+                  aria-invalid={invalidField === "name"}
+                  aria-describedby={invalidField === "name" ? "join-error" : undefined}
+                />
+              </div>
+              <button className="btn btn--primary btn--full" type="submit" disabled={busy}>
+                {busy ? "نربطك بالغرفة…" : "ادخل الغرفة"}
+              </button>
+              <p className="hint">ما نطلب بيانات شخصية. اسمك يظهر للشلة داخل هذه الجلسة فقط.</p>
+            </form>
+            <Link href="/create" className="form-panel__alternate">ما عندكم غرفة؟ افتحوا واحدة</Link>
+          </section>
         </div>
-        <h1>ادخل برمز</h1>
-        <form onSubmit={submit}>
-          {error && (
-            <p className="form-error" role="alert">
-              {error}
-            </p>
-          )}
-          {busy && stage !== "idle" && (
-            <p className="connection-status" role="status" aria-live="polite">
-              {STAGE_AR[stage]}
-            </p>
-          )}
-          <div className="field">
-            <label htmlFor="code">رمز الغرفة</label>
-            <input
-              id="code"
-              value={code}
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
-              maxLength={6}
-              autoComplete="off"
-              inputMode="text"
-              className="mono"
-              placeholder="ABCD"
-              style={{ letterSpacing: "0.3em", textAlign: "center", fontSize: "1.4rem" }}
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="pname">اسمك</label>
-            <input
-              id="pname"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              maxLength={24}
-              autoComplete="off"
-              placeholder="مثال: نواف"
-            />
-          </div>
-          <button className="btn btn--evidence btn--full" type="submit" disabled={busy}>
-            {busy ? "ندخّلك…" : "ادخل الغرفة"}
-          </button>
-          <p className="hint" style={{ marginTop: "var(--space-4)" }}>
-            ما نطلب أي بيانات شخصية. اسمك يظهر للشلة فقط داخل الغرفة.
-          </p>
-        </form>
-        <p style={{ marginTop: "var(--space-6)", textAlign: "center" }}>
-          <Link href="/create">أو أنشئ غرفة جديدة</Link>
-        </p>
       </div>
     </main>
   );

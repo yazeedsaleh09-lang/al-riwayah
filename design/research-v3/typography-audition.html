@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>اختبار الخط العربي — الرواية</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Noto+Kufi+Arabic:wght@400;500;600;700&family=Readex+Pro:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0b0a09;
+        --surface: #171512;
+        --surface-2: #211e1a;
+        --ink: #f3eee4;
+        --muted: #bbb3a6;
+        --line: #3c3730;
+        --red: #d45245;
+        --amber: #d0a256;
+        --green: #5b9d7d;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: system-ui, sans-serif;
+      }
+
+      header {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 32px clamp(18px, 4vw, 64px);
+        border-bottom: 1px solid var(--line);
+      }
+
+      header h1,
+      header p {
+        margin: 0;
+      }
+
+      header h1 {
+        font-size: clamp(1.8rem, 4vw, 3.6rem);
+        line-height: 1.15;
+      }
+
+      header p {
+        max-width: 54ch;
+        color: var(--muted);
+        font-size: 1rem;
+        line-height: 1.7;
+      }
+
+      main {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      article {
+        min-width: 0;
+        padding: clamp(24px, 4vw, 56px);
+        border-bottom: 1px solid var(--line);
+        border-inline-start: 1px solid var(--line);
+      }
+
+      article:nth-child(odd) {
+        border-inline-start: 0;
+      }
+
+      .ibm {
+        font-family: "IBM Plex Sans Arabic", sans-serif;
+      }
+
+      .readex {
+        font-family: "Readex Pro", sans-serif;
+      }
+
+      .kufi {
+        font-family: "Noto Kufi Arabic", sans-serif;
+      }
+
+      .alexandria {
+        font-family: "Alexandria", sans-serif;
+      }
+
+      .family {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin: 0 0 28px;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      .family b {
+        color: var(--ink);
+        font-size: 1.12rem;
+      }
+
+      .wordmark {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin: 0 0 30px;
+        font-size: 1.5rem;
+        font-weight: 700;
+      }
+
+      .mark {
+        position: relative;
+        width: 38px;
+        height: 24px;
+      }
+
+      .mark::before,
+      .mark::after,
+      .mark span {
+        position: absolute;
+        inset-inline: 0;
+        top: 11px;
+        height: 2px;
+        background: currentColor;
+        content: "";
+        transform-origin: right;
+      }
+
+      .mark::before {
+        transform: rotate(18deg);
+      }
+
+      .mark::after {
+        transform: rotate(-18deg);
+      }
+
+      .mark span {
+        width: 17px;
+      }
+
+      .hero {
+        max-width: 15ch;
+        margin: 0 0 20px;
+        font-size: clamp(2.35rem, 4.7vw, 4.8rem);
+        font-weight: 650;
+        line-height: 1.17;
+        text-wrap: balance;
+      }
+
+      .support {
+        max-width: 45ch;
+        margin: 0 0 30px;
+        color: var(--muted);
+        font-size: 1.05rem;
+        line-height: 1.75;
+      }
+
+      .question {
+        margin: 0 0 18px;
+        padding-top: 24px;
+        border-top: 1px solid var(--line);
+        font-size: clamp(1.45rem, 2.2vw, 2.1rem);
+        font-weight: 600;
+        line-height: 1.45;
+      }
+
+      .option {
+        display: flex;
+        min-height: 54px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 10px;
+        padding: 12px 16px;
+        border: 1px solid var(--line);
+        background: var(--surface);
+        font-size: 1rem;
+      }
+
+      .option[data-selected] {
+        border-color: var(--ink);
+        background: var(--ink);
+        color: var(--bg);
+      }
+
+      .utility {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px 20px;
+        margin: 24px 0;
+        padding: 16px;
+        background: var(--surface-2);
+      }
+
+      .timer,
+      .code {
+        direction: ltr;
+        font-family: ui-monospace, "Cascadia Mono", monospace;
+        font-variant-numeric: tabular-nums;
+        unicode-bidi: isolate;
+      }
+
+      .timer {
+        color: var(--amber);
+        font-size: 1.25rem;
+      }
+
+      .code {
+        font-size: 1.45rem;
+        letter-spacing: 0.12em;
+      }
+
+      .button {
+        display: flex;
+        min-height: 52px;
+        align-items: center;
+        justify-content: center;
+        margin-top: 16px;
+        background: var(--red);
+        color: #fff8f1;
+        font-size: 1.05rem;
+        font-weight: 650;
+      }
+
+      .legal {
+        margin: 26px 0 0;
+        color: var(--muted);
+        font-size: 1rem;
+        line-height: 1.9;
+      }
+
+      .mixed {
+        color: var(--green);
+        font-weight: 600;
+      }
+
+      @media (max-width: 760px) {
+        header {
+          display: block;
+          padding-block: 24px;
+        }
+
+        header p {
+          margin-top: 10px;
+        }
+
+        main {
+          grid-template-columns: 1fr;
+        }
+
+        article,
+        article:nth-child(odd) {
+          border-inline-start: 0;
+        }
+
+        .hero {
+          font-size: clamp(2.25rem, 11vw, 3.25rem);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>اختبار الخط العربي</h1>
+      <p>
+        مقارنة على نصوص المنتج نفسها، لا على عيّنات أبجدية: الهوية، شاشة السؤال،
+        الأرقام، الأزرار، والنص القانوني عند عرضين فعليين.
+      </p>
+    </header>
+    <main>
+      <article class="ibm">
+        <p class="family"><b>IBM Plex Sans Arabic</b><span>إنساني / واضح</span></p>
+        <div class="wordmark"><span class="mark"><span></span></span>الرواية</div>
+        <h2 class="hero">اتفقوا على رواية. ولا تختلفون بالتفاصيل.</h2>
+        <p class="support">كل واحد يجاوب لحاله. أول تناقض يفتح الملف عليكم.</p>
+        <h3 class="question">وين كنت وقت انطفت الكهرباء؟</h3>
+        <div class="option" data-selected>غرفة الاجتماعات <span>مختار</span></div>
+        <div class="option">المستودع <span>تفصيل حساس</span></div>
+        <div class="utility">
+          <span>التحقيق الفردي</span><span class="timer">00:18</span>
+          <span>رمز الغرفة</span><span class="code">ZVXH</span>
+        </div>
+        <div class="button">ثبّت الإجابة</div>
+        <p class="legal">لا نحفظ إجاباتكم بعد انتهاء الغرفة. رمز الاستعادة يبقى في نفس المتصفح لمدة الجلسة فقط. <span class="mixed">٤–٦ لاعبين · 10–15 دقيقة</span></p>
+      </article>
+
+      <article class="readex">
+        <p class="family"><b>Readex Pro</b><span>اجتماعي / مستدير</span></p>
+        <div class="wordmark"><span class="mark"><span></span></span>الرواية</div>
+        <h2 class="hero">اتفقوا على رواية. ولا تختلفون بالتفاصيل.</h2>
+        <p class="support">كل واحد يجاوب لحاله. أول تناقض يفتح الملف عليكم.</p>
+        <h3 class="question">وين كنت وقت انطفت الكهرباء؟</h3>
+        <div class="option" data-selected>غرفة الاجتماعات <span>مختار</span></div>
+        <div class="option">المستودع <span>تفصيل حساس</span></div>
+        <div class="utility">
+          <span>التحقيق الفردي</span><span class="timer">00:18</span>
+          <span>رمز الغرفة</span><span class="code">ZVXH</span>
+        </div>
+        <div class="button">ثبّت الإجابة</div>
+        <p class="legal">لا نحفظ إجاباتكم بعد انتهاء الغرفة. رمز الاستعادة يبقى في نفس المتصفح لمدة الجلسة فقط. <span class="mixed">٤–٦ لاعبين · 10–15 دقيقة</span></p>
+      </article>
+
+      <article class="kufi">
+        <p class="family"><b>Noto Kufi Arabic</b><span>هندسي / مضغوط</span></p>
+        <div class="wordmark"><span class="mark"><span></span></span>الرواية</div>
+        <h2 class="hero">اتفقوا على رواية. ولا تختلفون بالتفاصيل.</h2>
+        <p class="support">كل واحد يجاوب لحاله. أول تناقض يفتح الملف عليكم.</p>
+        <h3 class="question">وين كنت وقت انطفت الكهرباء؟</h3>
+        <div class="option" data-selected>غرفة الاجتماعات <span>مختار</span></div>
+        <div class="option">المستودع <span>تفصيل حساس</span></div>
+        <div class="utility">
+          <span>التحقيق الفردي</span><span class="timer">00:18</span>
+          <span>رمز الغرفة</span><span class="code">ZVXH</span>
+        </div>
+        <div class="button">ثبّت الإجابة</div>
+        <p class="legal">لا نحفظ إجاباتكم بعد انتهاء الغرفة. رمز الاستعادة يبقى في نفس المتصفح لمدة الجلسة فقط. <span class="mixed">٤–٦ لاعبين · 10–15 دقيقة</span></p>
+      </article>
+
+      <article class="alexandria">
+        <p class="family"><b>Alexandria</b><span>معاصر / واثق</span></p>
+        <div class="wordmark"><span class="mark"><span></span></span>الرواية</div>
+        <h2 class="hero">اتفقوا على رواية. ولا تختلفون بالتفاصيل.</h2>
+        <p class="support">كل واحد يجاوب لحاله. أول تناقض يفتح الملف عليكم.</p>
+        <h3 class="question">وين كنت وقت انطفت الكهرباء؟</h3>
+        <div class="option" data-selected>غرفة الاجتماعات <span>مختار</span></div>
+        <div class="option">المستودع <span>تفصيل حساس</span></div>
+        <div class="utility">
+          <span>التحقيق الفردي</span><span class="timer">00:18</span>
+          <span>رمز الغرفة</span><span class="code">ZVXH</span>
+        </div>
+        <div class="button">ثبّت الإجابة</div>
+        <p class="legal">لا نحفظ إجاباتكم بعد انتهاء الغرفة. رمز الاستعادة يبقى في نفس المتصفح لمدة الجلسة فقط. <span class="mixed">٤–٦ لاعبين · 10–15 دقيقة</span></p>
+      </article>
+    </main>
+  </body>
+</html>

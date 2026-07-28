@@ -4,9 +4,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getCase } from "@al-riwayah/content";
-import type { GameCase } from "@al-riwayah/game-engine";
+import { PHASE_SEQUENCE, phaseIndex, type GameCase } from "@al-riwayah/game-engine";
 import { useGameRoom } from "@/lib/useGameRoom";
-import { DeadlineRing } from "./DeadlineRing";
+import { DeadlineRing, useDeadlineExpired } from "./DeadlineRing";
 import { PreferenceControls } from "../PreferenceControls";
 import { playCue, type Cue } from "@/lib/sound";
 
@@ -33,6 +33,12 @@ export function RoomShell({ code }: { code: string }) {
   const { pub, priv, connected, connectionStage, fatal, actions } = useGameRoom(code);
   const [busy, setBusy] = useState(false);
   const [shareStatus, setShareStatus] = useState("");
+  const [showAnswerReceipt, setShowAnswerReceipt] = useState(false);
+  const [selectedPatchLabel, setSelectedPatchLabel] = useState<string | null>(null);
+  const { expired: deadlineExpired } = useDeadlineExpired(
+    pub?.deadlineAt ?? null,
+    pub?.serverTime ?? 0,
+  );
   const gameCase = useMemo<GameCase | undefined>(
     () => (pub ? getCase(pub.caseId) : undefined),
     [pub],
@@ -47,6 +53,17 @@ export function RoomShell({ code }: { code: string }) {
     }
     lastPhase.current = pub.phase;
   }, [pub]);
+
+  useEffect(() => {
+    setShowAnswerReceipt(false);
+    if (!priv?.answerLocked) return;
+    const id = setTimeout(() => setShowAnswerReceipt(true), 650);
+    return () => clearTimeout(id);
+  }, [priv?.answerLocked, pub?.phaseRevision]);
+
+  useEffect(() => {
+    setSelectedPatchLabel(null);
+  }, [pub?.phaseRevision]);
 
   if (fatal === "NO_SESSION") {
     return (
@@ -107,6 +124,9 @@ export function RoomShell({ code }: { code: string }) {
 
   const me = pub.players.find((p) => p.id === priv.playerId);
   const phase = pub.phase;
+  const submittedOptionLabel = priv.currentQuestion?.options.find(
+    (option) => option.id === priv.submittedOptionId,
+  )?.label.ar;
   const run = async (fn: () => Promise<unknown>) => {
     setBusy(true);
     try {
@@ -154,6 +174,9 @@ export function RoomShell({ code }: { code: string }) {
 
   return (
     <main className="game" id="main" data-phase={phase}>
+      <p className="visually-hidden" role="status" aria-live="polite" aria-atomic="true">
+        المرحلة الحالية: {phaseTitle(phase)}
+      </p>
       {!connected && (
         <div className="reconnect-overlay" role="alert">
           <div>
@@ -164,7 +187,12 @@ export function RoomShell({ code }: { code: string }) {
       )}
 
       <div className="game__top">
-        <span className="game__phase">{phaseTitle(phase)}</span>
+        <div className="game__phase">
+          <span>{phaseTitle(phase)}</span>
+          <bdi className="mono">
+            {String(phaseIndex(phase) + 1).padStart(2, "0")} / {PHASE_SEQUENCE.length}
+          </bdi>
+        </div>
         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
           <PreferenceControls compact />
           <DeadlineRing deadlineAt={pub.deadlineAt} serverTime={pub.serverTime} />
@@ -177,7 +205,7 @@ export function RoomShell({ code }: { code: string }) {
         </p>
       )}
 
-      <div className="game__body">
+      <div className="game__body" key={phase}>
         {/* LOBBY */}
         {phase === "LOBBY" && (
           <>
@@ -195,9 +223,13 @@ export function RoomShell({ code }: { code: string }) {
                 <li key={p.id}>
                   <span
                     className={`dot ${p.connected ? "is-on" : ""} ${p.ready ? "is-ready" : ""}`}
+                    aria-hidden
                   />
                   {p.name}
-                  {p.isHost ? " ★" : ""}
+                  {p.isHost ? <span className="roster__host">منشئ الغرفة</span> : null}
+                  <span className="roster__state">
+                    {!p.connected ? "غير متصل" : p.ready ? "جاهز" : "بانتظار الجاهزية"}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -352,12 +384,30 @@ export function RoomShell({ code }: { code: string }) {
         {INTERROGATION.has(phase) && (
           <>
             {priv.currentQuestion ? (
-              <>
+              !priv.answerLocked && deadlineExpired ? (
+                <ExpiredDeadlineReceipt />
+              ) : priv.answerLocked && showAnswerReceipt ? (
+                <section className="answer-receipt" aria-live="polite">
+                  <span className="answer-receipt__label">إجابة مقفلة · لك فقط</span>
+                  <h1>{submittedOptionLabel ?? "تم تثبيت الإجابة"}</h1>
+                  <p>
+                    ما نعرض اختيارك لبقية الشلة. ننتظر اكتمال الإجابات قبل كشف النسخة
+                    التالية من الرواية.
+                  </p>
+                  <div className="answer-receipt__wait" aria-hidden="true">
+                    <span />
+                  </div>
+                  <strong>بانتظار بقية الشلة</strong>
+                </section>
+              ) : (
+                <>
                 <h1 className="game__prompt">{priv.currentQuestion.prompt.ar}</h1>
-                <div className="game__actions">
+                <div className="game__actions" role="radiogroup" aria-label="اختر إجابة واحدة">
                   {priv.currentQuestion.options.map((o) => (
                     <button
                       key={o.id}
+                      role="radio"
+                      aria-checked={priv.submittedOptionId === o.id}
                       className={`option-btn ${priv.submittedOptionId === o.id ? "is-selected" : ""}`}
                       disabled={priv.answerLocked || busy}
                       onClick={() =>
@@ -379,7 +429,8 @@ export function RoomShell({ code }: { code: string }) {
                     تم تثبيت إجابتك — ارفع نظرك وانتظر البقية
                   </p>
                 )}
-              </>
+                </>
+              )
             ) : (
               <p>بانتظار السؤال…</p>
             )}
@@ -412,7 +463,19 @@ export function RoomShell({ code }: { code: string }) {
                 <p className="demo__rule">{pub.releasedContradiction.rule.ar}</p>
               </>
             ) : (
-              <p>ما فيه تناقض واضح — رواية متماسكة حتى الآن.</p>
+              <section className="phase-proof phase-proof--clear" aria-label="نتيجة فحص التناقض">
+                <span className="phase-proof__index mono">فحص ٠١</span>
+                <h1 className="game__prompt">إلى الآن، ما انكسر شيء.</h1>
+                <p>
+                  ما ظهر تناقض واضح بين الشهادات الحالية. الرواية ما زالت متماسكة،
+                  والتحقيق ينتقل إلى النقطة التالية.
+                </p>
+                <div className="phase-proof__status" aria-hidden="true">
+                  <span />
+                  <span />
+                  <span className="is-current" />
+                </div>
+              </section>
             )}
           </>
         )}
@@ -420,22 +483,57 @@ export function RoomShell({ code }: { code: string }) {
         {/* PATCH */}
         {(phase === "PATCH_1" || phase === "PATCH_2") && (
           <>
-            <h1 className="game__prompt">رقّعوا الرواية</h1>
-            <p style={{ color: "var(--muted)" }}>كل حل بيفتح عليكم سؤال جديد.</p>
-            <div className="game__actions">
-              {(pub.patchOptions ?? []).map((p) => (
-                <button
-                  key={p.id}
-                  className="option-btn"
-                  disabled={busy}
-                  onClick={() => run(() => actions.patchVote(p.id))}
-                >
-                  <strong>{p.label.ar}</strong>
-                  <br />
-                  <span style={{ color: "var(--muted)", fontWeight: 400 }}>{p.description.ar}</span>
-                </button>
-              ))}
-            </div>
+            <h1 className="game__prompt">
+              {pub.patchOptions?.length ? "رقّعوا الرواية" : "النسخة الحالية ثابتة."}
+            </h1>
+            <p style={{ color: "var(--muted)" }}>
+              {pub.patchOptions?.length
+                ? "كل حل بيفتح عليكم سؤال جديد."
+                : "ما فيه تعديل يحتاج تصويتًا في هذه الجولة."}
+            </p>
+            {pub.patchOptions?.length ? (
+              deadlineExpired && selectedPatchLabel === null ? (
+                <ExpiredDeadlineReceipt />
+              ) : (
+              <div className="game__actions">
+                {pub.patchOptions.map((p) => (
+                  <button
+                    key={p.id}
+                    className="option-btn"
+                    disabled={busy || selectedPatchLabel !== null || deadlineExpired}
+                    onClick={() =>
+                      run(async () => {
+                        await actions.patchVote(p.id);
+                        setSelectedPatchLabel(p.label.ar);
+                      })
+                    }
+                  >
+                    <strong>{p.label.ar}</strong>
+                    <br />
+                    <span style={{ color: "var(--muted)", fontWeight: 400 }}>{p.description.ar}</span>
+                  </button>
+                ))}
+                {selectedPatchLabel && (
+                  <div className="patch-choice-receipt" role="status">
+                    <span>الترقيعة المختارة</span>
+                    <strong>{selectedPatchLabel}</strong>
+                    <p>صارت التزامًا جديدًا على الرواية، وبيُبنى عليها السؤال القادم.</p>
+                  </div>
+                )}
+              </div>
+              )
+            ) : (
+              <section className="phase-proof phase-proof--pending" aria-live="polite">
+                <span className="phase-proof__index mono">مراجعة الشهادات</span>
+                <p>
+                  ما فيه تناقض يحتاج تصويتًا الآن. نثبّت النسخة الحالية ونجهّز السؤال
+                  التالي.
+                </p>
+                <div className="phase-proof__track" aria-hidden="true">
+                  <span />
+                </div>
+              </section>
+            )}
           </>
         )}
 
@@ -460,12 +558,7 @@ export function RoomShell({ code }: { code: string }) {
             <p className="verdict-band">{pub.result.band}</p>
             <h1 className="game__prompt">{pub.result.label.ar}</h1>
             <p>{pub.result.summary.ar}</p>
-            <div className="axes">
-              <ScoreAxis label="تماسك الرواية" v={pub.result.scores.consistency} />
-              <ScoreAxis label="معقولية الرواية" v={pub.result.scores.plausibility} />
-              <ScoreAxis label="الثبات" v={pub.result.scores.stability} />
-              <ScoreAxis label="التهرّب" v={pub.result.scores.evasion} evasion />
-            </div>
+            <h2 className="result-section-title">كيف وصلت الرواية إلى الحكم؟</h2>
             <div className="result-story" aria-label="ملخص التحقيق">
               {pub.result.firstFracture && (
                 <div>
@@ -479,12 +572,13 @@ export function RoomShell({ code }: { code: string }) {
                   <p>{pub.result.strongestPatch.ar}</p>
                 </div>
               )}
-              {pub.result.costliestPatch && (
+              {pub.result.costliestPatch &&
+                pub.result.costliestPatch.ar !== pub.result.strongestPatch?.ar && (
                 <div>
                   <span className="eyebrow">أغلى ترقيعة</span>
                   <p>{pub.result.costliestPatch.ar}</p>
                 </div>
-              )}
+                )}
               {pub.result.mostConsistentPlayerName && (
                 <div>
                   <span className="eyebrow">أقوى شاهد</span>
@@ -497,6 +591,13 @@ export function RoomShell({ code }: { code: string }) {
                   <p>{pub.result.primarySuspectPlayerName}</p>
                 </div>
               )}
+            </div>
+            <h2 className="result-section-title">أثر التفاصيل على الرواية</h2>
+            <div className="axes">
+              <ScoreAxis label="تماسك الرواية" v={pub.result.scores.consistency} />
+              <ScoreAxis label="معقولية الرواية" v={pub.result.scores.plausibility} />
+              <ScoreAxis label="الثبات" v={pub.result.scores.stability} />
+              <ScoreAxis label="التهرّب" v={pub.result.scores.evasion} evasion />
             </div>
             {pub.result.decisiveFactors.length > 0 && (
               <ul className="features">
@@ -536,6 +637,23 @@ export function RoomShell({ code }: { code: string }) {
   );
 }
 
+function ExpiredDeadlineReceipt() {
+  return (
+    <section className="answer-receipt answer-receipt--expired" role="status" aria-live="polite">
+      <span className="answer-receipt__label">انتهى وقت هذه الخطوة</span>
+      <h1>بانتظار انتقال المرحلة</h1>
+      <p>
+        أُغلقت الاختيارات على هذا الجهاز. الخادم يراجع ما وصل من الشلة وينقل الجميع
+        للخطوة التالية.
+      </p>
+      <div className="answer-receipt__wait" aria-hidden="true">
+        <span />
+      </div>
+      <strong>لا تحتاج تسوي شيء الآن</strong>
+    </section>
+  );
+}
+
 function AckBar({
   priv,
   busy,
@@ -570,10 +688,12 @@ function PlanPicker({
   return (
     <>
       <h1 className="game__prompt">{title}</h1>
-      <div className="game__actions">
+      <div className="game__actions" role="radiogroup" aria-label={title}>
         {options.map((o) => (
           <button
             key={o.id}
+            role="radio"
+            aria-checked={picked === o.id}
             className={`option-btn ${picked === o.id ? "is-selected" : ""}`}
             disabled={busy}
             onClick={() => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { Wordmark } from "./Wordmark";
 import { createRoom } from "@/lib/game-client";
@@ -15,10 +15,10 @@ const ERROR_AR: Record<string, string> = {
 };
 
 const STAGE_AR: Partial<Record<ConnectionStage, string>> = {
-  waking: "نوقّظ خادم اللعبة… أول تشغيل ممكن يأخذ قرابة دقيقة.",
-  connecting: "الخادم جاهز. نثبّت الاتصال الآمن…",
-  retrying: "الخادم ما زال يجهّز نفسه — مستمرين بالمحاولة.",
-  ready: "تم الاتصال. ننشئ الغرفة الآن…",
+  waking: "نصحّي الخادم…",
+  connecting: "نجهّز الجلسة…",
+  retrying: "الخادم ما رد للحين. نحاول مرة ثانية…",
+  ready: "تم الاتصال.",
 };
 
 export function CreateForm() {
@@ -28,13 +28,18 @@ export function CreateForm() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [stage, setStage] = useState<ConnectionStage>("idle");
+  const nameRef = useRef<HTMLInputElement>(null);
+  const [nameInvalid, setNameInvalid] = useState(false);
   const firstCase = publicCaseSummaries()[0];
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setNameInvalid(false);
     if (name.trim().length < 1) {
       setError("اكتب اسمك أول");
+      setNameInvalid(true);
+      nameRef.current?.focus();
       return;
     }
     setBusy(true);
@@ -53,63 +58,79 @@ export function CreateForm() {
 
   return (
     <main className="form-shell" id="main">
-      <div className="form-card">
-        <div style={{ marginBottom: "var(--space-6)" }}>
+      <div className="form-surface">
+        <header className="form-surface__header">
           <Wordmark />
+          <Link href="/" className="text-link">العودة للرئيسية</Link>
+        </header>
+
+        <div className="form-surface__grid">
+          <section className="form-surface__intro">
+            <p className="section-label">غرفة جديدة</p>
+            <h1>افتحوا ملف الرواية.</h1>
+            <p>أنت لاعب مثل الكل. بعد الإنشاء نعطيك رمزًا قصيرًا تشاركه مع الشلة.</p>
+            {firstCase && (
+              <div className="form-case">
+                <span className="mono">CASE / 001</span>
+                <div>
+                  <small>القضية</small>
+                  <strong>{firstCase.title.ar}</strong>
+                </div>
+                <span>{firstCase.playerCounts[0]}–{firstCase.playerCounts.at(-1)} لاعبين</span>
+              </div>
+            )}
+          </section>
+
+          <section className="form-panel">
+            <div className="form-panel__status">
+              <span className={`status-dot ${busy ? "is-busy" : ""}`} aria-hidden />
+              <span>{busy ? STAGE_AR[stage] : "جاهزين نبدأ."}</span>
+            </div>
+            <form onSubmit={submit}>
+              {error && <p id="create-error" className="form-error" role="alert">{error}</p>}
+              {busy && stage !== "idle" && (
+                <p className="visually-hidden" role="status" aria-live="polite">
+                  {STAGE_AR[stage]}
+                </p>
+              )}
+              <div className="field">
+                <label htmlFor="name">اسمك داخل الغرفة</label>
+                <input
+                  ref={nameRef}
+                  id="name"
+                  name="displayName"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  maxLength={24}
+                  autoComplete="off"
+                  spellCheck={false}
+                  placeholder="مثال: نواف…"
+                  aria-invalid={nameInvalid}
+                  aria-describedby={nameInvalid ? "create-error name-help" : "name-help"}
+                />
+                <span id="name-help" className="field__help">هذا الاسم يظهر للشلة في هذه الجلسة فقط.</span>
+              </div>
+              <div className="field field--check">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={extended}
+                    onChange={(e) => setExtended(e.target.checked)}
+                  />
+                  <span>
+                    <strong>تخطيط ممتد</strong>
+                    <small>وقت أطول للاتفاق قبل التحقيق</small>
+                  </span>
+                </label>
+              </div>
+              <button className="btn btn--primary btn--full" type="submit" disabled={busy}>
+                {busy ? "نجهّز الجلسة…" : "أنشئ الغرفة"}
+              </button>
+            </form>
+            <Link href="/play" className="form-panel__alternate">عندك رمز؟ ادخل غرفة موجودة</Link>
+          </section>
         </div>
-        <h1>أنشئ غرفة</h1>
-        <p style={{ color: "var(--muted)" }}>أنت لاعب مثل الكل. بعد الإنشاء شارك الرمز مع الشلة.</p>
-
-        {firstCase && (
-          <div className="card" style={{ marginBottom: "var(--space-4)" }}>
-            <span className="stamp">القضية</span>
-            <p style={{ margin: "var(--space-3) 0 0", fontWeight: 700 }}>{firstCase.title.ar}</p>
-            <p className="mono" style={{ color: "var(--muted)", fontSize: "0.85rem" }}>
-              {firstCase.playerCounts[0]}–{firstCase.playerCounts.at(-1)} لاعبين
-            </p>
-          </div>
-        )}
-
-        <form onSubmit={submit}>
-          {error && (
-            <p className="form-error" role="alert">
-              {error}
-            </p>
-          )}
-          {busy && stage !== "idle" && (
-            <p className="connection-status" role="status" aria-live="polite">
-              {STAGE_AR[stage]}
-            </p>
-          )}
-          <div className="field">
-            <label htmlFor="name">اسمك</label>
-            <input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              maxLength={24}
-              autoComplete="off"
-              placeholder="مثال: نواف"
-            />
-          </div>
-          <div className="field">
-            <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
-              <input
-                type="checkbox"
-                checked={extended}
-                onChange={(e) => setExtended(e.target.checked)}
-                style={{ width: 22, height: 22 }}
-              />
-              تخطيط ممتد (وقت أطول للتخطيط)
-            </label>
-          </div>
-          <button className="btn btn--evidence btn--full" type="submit" disabled={busy}>
-            {busy ? "لحظة، نجهّزها…" : "أنشئ الغرفة"}
-          </button>
-        </form>
-        <p style={{ marginTop: "var(--space-6)", textAlign: "center" }}>
-          <Link href="/play">عندك رمز؟ ادخل هنا</Link>
-        </p>
       </div>
     </main>
   );

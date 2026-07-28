@@ -36,5 +36,4 @@ does not carry the composition.
 - reduced motion preserves the full information order without spatial travel.
 
 The strict reviewer score is recorded in `nudge-comparison.md`. All 12 categories
-pass at 9.0 or above. Production evidence remains pending until the approved commit
-is live on Render.
+pass at 9.0 or above against the final Render production captures.

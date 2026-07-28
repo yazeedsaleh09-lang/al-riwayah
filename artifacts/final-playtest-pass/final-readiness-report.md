@@ -2,7 +2,7 @@
 
 Date: 2026-07-28
 Branch: `main`
-Status: **local quality gate passed; production deployment verification pending**
+Status: **production quality gate passed**
 
 ## Approved direction
 
@@ -35,12 +35,12 @@ authoritative multiplayer behavior and public/private view boundaries remain int
 | responsive route matrix | pass at 320, 360, 390, 430, 768, 1280, 1440, and 1920 |
 | Nudge side-by-side reviewer gate | pass; all 12 categories at 9.0 or above |
 
-Production metrics from `performance-report.json`:
+Final Render production metrics from `performance-report.json`:
 
-- LCP: **372ms**
-- CLS: **0**
-- script transfer: **196,877 bytes**
-- longest main-thread task: **138ms**
+- LCP: **936ms**
+- CLS: **0.015**
+- script transfer: **196,882 bytes**
+- longest main-thread task: **119ms**
 - security headers: CSP, `X-Frame-Options: DENY`, and
   `X-Content-Type-Options: nosniff` present
 
@@ -49,19 +49,25 @@ Production metrics from `performance-report.json`:
 - Nudge comparison: `artifacts/final-playtest-pass/nudge-comparison.md`
 - Reference and AL RIWAYAH captures:
   `artifacts/publishable-design-v3/nudge-benchmark/` and
-  `artifacts/publishable-design-v3/after/`
+  `artifacts/publishable-design-v3/production/`
 - Public route matrix: `artifacts/final-playtest-pass/after/`
 - 4/5/6-player states: `artifacts/final-playtest-pass/full-match/`
 - Active-game responsive matrix: `artifacts/final-playtest-pass/responsive-game/`
 - Homepage and gameplay motion: `artifacts/final-playtest-pass/motion/`
 - Performance: `artifacts/final-playtest-pass/performance-report.json`
 
-## Remaining release work
+## Production verification
 
-This record does **not** claim that the current redesign is live. After commit and
-push, the exact remote SHA must be verified, Render must finish, and the production
-site must repeat the functional smoke, production performance check, four-viewport
-Nudge comparison, and reviewer challenge.
+- `origin/main` matched the deployed code SHA before the final evidence-only record;
+- Render served the new CSS fingerprint with the low-contrast entry keyframe absent;
+- the live production matrix passed **58/58** checks across public routes,
+  accessibility, keyboard operation, identity/motion, responsive layouts, and a
+  two-browser create/join lobby;
+- final Render performance and security-header budgets passed;
+- the production homepage was recaptured and interacted with at 390×844,
+  768×1024, 1440×900, and 1920×1080;
+- the strict ECC reviewer repeated the Nudge scorecard against those production
+  captures and kept every category at 9.0 or above.
 
 Human fun, social tension, and fairness findings remain post-handoff activities in
 `PLAYTEST_PLAN.md`; automation cannot fabricate them.

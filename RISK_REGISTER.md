@@ -61,3 +61,15 @@
 This baseline predates ADR-019. The exact light-editorial release SHA must repeat
 the hosted smoke and production Nudge comparison before the current release is
 approved.
+
+## 2026-07-28 ADR-019 production verification
+
+- Render served the final light-editorial CSS fingerprint and both public origins
+  returned healthy responses.
+- The live 58-test route/accessibility/identity/responsive matrix and two-browser
+  create/join lobby passed.
+- Production performance and security headers passed.
+- The four-viewport Nudge comparison and strict reviewer challenge passed with all
+  12 categories at 9.0 or above.
+- `DEP-01`, `DEP-02`, `TECH-05`, `UX-01`, `WEB-01`, and `WEB-02` are mitigated for
+  this release; subjective game-design risks remain for real-group playtesting.

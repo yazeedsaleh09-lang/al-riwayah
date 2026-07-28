@@ -2,10 +2,10 @@
 
 ## Current state
 
-- Current phase: Phase 8 release — local gate passed, production deployment verification pending
+- Current phase: Phase 8 release — production gate passed
 - Last update: 2026-07-28
 - Branch: `main`
-- Implementation status: light editorial redesign + one-case authoritative realtime game, verified locally through Nudge comparison, responsive, accessibility, reduced-motion, and 4/5/6-player browser runs
+- Implementation status: light editorial redesign + one-case authoritative realtime game, verified locally and on Render through Nudge comparison, responsive, accessibility, reduced-motion, and real multi-client browser runs
 - Product specification: Complete initial version
 - Human playtests completed: 0
 
@@ -82,7 +82,7 @@
 | 6–8 | Browser matrix | `pnpm test:e2e` | 62 passed, 1 production-only skip | 2026-07-28 local final |
 | 6–8 | Production performance/headers | `E2E_PRODUCTION=1 … performance.spec.ts` | 1 passed | `artifacts/final-playtest-pass/performance-report.json` |
 | 8 | Nudge visual benchmark | live interaction + 4 paired viewports + strict ECC reviewer | 12/12 categories ≥9.0 | `artifacts/final-playtest-pass/nudge-comparison.md` |
-| 8 | Production origins | Render web + realtime server | pending exact-SHA deploy and rerun | not yet claimed |
+| 8 | Production origins | Render web + realtime server | 58/58 public/a11y/responsive/identity checks + two-client lobby; production performance pass | 2026-07-28 final |
 
 Test IDs covered so far: ENG-001..010 (detection, patch, follow-up-break, determinism,
 ledger, verdict boundary), evidence assignment (4/5/6), full 4/5/6 sessions, NO_RESPONSE
@@ -95,9 +95,8 @@ fallback, SEC-001..004 redaction (view projection level).
 
 ## Readiness evidence
 
-The authoritative local command output and artifact inventory live in
-`artifacts/final-playtest-pass/final-readiness-report.md`. Production approval is
-recorded only after the exact pushed SHA is live and the production gate is rerun.
+The authoritative local and production command output and artifact inventory live
+in `artifacts/final-playtest-pass/final-readiness-report.md`.
 
 ## Update rule
 

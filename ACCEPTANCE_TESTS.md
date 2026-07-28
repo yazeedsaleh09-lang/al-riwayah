@@ -204,8 +204,9 @@ tests, 11 security tests, the complete accessibility/keyboard matrix, and the
 production performance case passed. The Playwright aggregate passed all 62
 executed tests; its production-only performance case was intentionally skipped
 there and passed separately. The 4/5/6-player UI matches and the strict four-size
-Nudge comparison passed. Production Render verification for this exact redesign
-remains pending. See `artifacts/final-playtest-pass/final-readiness-report.md`.
+Nudge comparison passed. The final Render matrix then passed 58/58, including
+two-client create/join, and the production Nudge comparison passed again. See
+`artifacts/final-playtest-pass/final-readiness-report.md`.
 
 Automatable release requires:
 

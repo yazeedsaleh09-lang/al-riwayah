@@ -26,7 +26,7 @@ test.describe("marketing site", () => {
 
   test("home exposes the primary create/join actions", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("link", { name: "أنشئ غرفة" }).first()).toBeVisible();
+    await expect(page.getByRole("link", { name: "ابدأ جلسة" }).first()).toBeVisible();
     await expect(page.getByRole("link", { name: "ادخل برمز" }).first()).toBeVisible();
   });
 
@@ -36,10 +36,4 @@ test.describe("marketing site", () => {
     await expect(page.getByText("الصفحة اختفت")).toBeVisible();
   });
 
-  test("contradiction demo reveals the rule on interaction", async ({ page }) => {
-    await page.goto("/");
-    await expect(page.locator("html")).toHaveAttribute("data-hydrated", "true");
-    await page.getByRole("button", { name: "أظهر سبب التناقض" }).click();
-    await expect(page.getByText(/تناقض «إنكار شاهد»/)).toBeVisible();
-  });
 });

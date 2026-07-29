@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Alexandria, IBM_Plex_Sans_Arabic } from "next/font/google";
+import { Alexandria, IBM_Plex_Sans_Arabic, Noto_Sans_Arabic } from "next/font/google";
 import "./globals.css";
 import "./marketing.css";
 import { SITE } from "@/lib/site";
@@ -16,6 +16,13 @@ const display = Alexandria({
   weight: ["500", "600", "700"],
   subsets: ["arabic", "latin"],
   variable: "--font-display-arabic",
+  display: "swap",
+});
+
+const approvedArabic = Noto_Sans_Arabic({
+  weight: ["400", "700", "800", "900"],
+  subsets: ["arabic", "latin"],
+  variable: "--font-approved-arabic",
   display: "swap",
 });
 
@@ -59,7 +66,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ar" dir="rtl" data-scroll-behavior="smooth">
-      <body className={`${arabic.variable} ${display.variable}`}>
+      <body className={`${arabic.variable} ${display.variable} ${approvedArabic.variable}`}>
         <HydrationMarker />
         <a href="#main" className="skip-link">
           تجاوز إلى المحتوى

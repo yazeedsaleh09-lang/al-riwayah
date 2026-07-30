@@ -842,7 +842,7 @@ export const missingPayrollEnvelopeV1: GameCase = {
   ),
   complexity: ar("مبتدئ", "Beginner"),
   playerCounts: [4, 5, 6],
-  durationMinutes: [10, 15],
+  durationMinutes: [13, 18],
   immutableEvidence: [
     {
       id: "ev.power_failure",

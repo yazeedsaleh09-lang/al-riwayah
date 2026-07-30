@@ -92,11 +92,11 @@ export default function CasesPage() {
         <section className="case-index" aria-labelledby="case-boundary-title">
           <div className="container">
             <header>
-              <p className="section-label">نسخة المراجعة</p>
+              <p className="section-label">القضية المتاحة</p>
               <h2 id="case-boundary-title">قضية مكتملة، من البداية إلى التقرير.</h2>
             </header>
             <p className="case-index__note">
-              ما نعرض أسماء أو مواعيد لقضايا غير جاهزة. النسخة الحالية تركّز على جودة قضية
+              ما نعرض أسماء أو مواعيد لقضايا غير جاهزة. الإصدار الحالي يركّز على جودة قضية
               «ظرف الرواتب المفقود» وتدفقها الكامل لأربع أو خمس أو ستة لاعبين.
             </p>
             <Link className="btn btn--primary" href="/create">ابدأوا القضية المتاحة</Link>

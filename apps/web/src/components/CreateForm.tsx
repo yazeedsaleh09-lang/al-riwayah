@@ -128,7 +128,7 @@ export function CreateForm() {
                 {busy ? "نجهّز الجلسة…" : "أنشئ الغرفة"}
               </button>
             </form>
-            <Link href="/play" className="form-panel__alternate">عندك رمز؟ ادخل غرفة موجودة</Link>
+            <Link href="/join" className="form-panel__alternate">عندك رمز؟ ادخل غرفة موجودة</Link>
           </section>
         </div>
       </div>

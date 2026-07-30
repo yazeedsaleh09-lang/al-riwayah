@@ -6,7 +6,7 @@ import { Wordmark } from "./Wordmark";
 import { PreferenceControls } from "./PreferenceControls";
 import { NAV_LINKS } from "@/lib/site";
 
-export function SiteNav() {
+export function SiteNav({ variant = "default" }: { variant?: "default" | "golden" }) {
   const [open, setOpen] = useState(false);
   const toggleRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLElement>(null);
@@ -51,6 +51,62 @@ export function SiteNav() {
     toggleRef.current?.focus();
   };
 
+  if (variant === "golden") {
+    return (
+      <header className="site-nav site-nav--golden" id="top">
+        <div className="container site-nav__row">
+          <Wordmark variant="golden" />
+          <nav aria-label="التنقل الرئيسي" className="site-nav__desktop">
+            <Link href="/how-to-play">كيف تلعب</Link>
+            <Link href="/cases">القضية</Link>
+            <Link href="/about">عن اللعبة</Link>
+            <Link className="btn btn--evidence site-nav__cta" href="/create">
+              ابدأ جلسة
+            </Link>
+            <Link className="btn btn--ghost site-nav__code" href="/join">
+              عندي رمز
+            </Link>
+          </nav>
+          <button
+            ref={toggleRef}
+            className="site-nav__toggle"
+            aria-expanded={open}
+            aria-controls="mobile-menu"
+            aria-label={open ? "أغلق القائمة" : "افتح القائمة"}
+            onClick={() => setOpen((value) => !value)}
+          >
+            <span className="visually-hidden">القائمة</span>
+            <svg aria-hidden viewBox="0 0 24 24" width="22" height="22" fill="none">
+              <path d="M4 8h16M4 16h16" stroke="currentColor" strokeWidth="1.8" />
+            </svg>
+          </button>
+        </div>
+        {open && (
+          <nav
+            ref={menuRef}
+            id="mobile-menu"
+            aria-label="قائمة الجوال"
+            className="site-nav__mobile"
+          >
+            <Link href="/how-to-play" onClick={closeMenu}>
+              كيف تلعب
+            </Link>
+            <Link href="/cases" onClick={closeMenu}>
+              القضية
+            </Link>
+            <Link href="/about" onClick={closeMenu}>
+              عن اللعبة
+            </Link>
+            <PreferenceControls />
+            <Link className="btn btn--evidence btn--full" href="/create" onClick={closeMenu}>
+              ابدأ جلسة
+            </Link>
+          </nav>
+        )}
+      </header>
+    );
+  }
+
   return (
     <header className="site-nav" id="top">
       <div className="container site-nav__row">
@@ -64,6 +120,9 @@ export function SiteNav() {
           <PreferenceControls />
           <Link className="btn btn--evidence site-nav__cta" href="/create">
             أنشئ غرفة
+          </Link>
+          <Link className="btn btn--ghost site-nav__code" href="/join">
+            عندي رمز
           </Link>
         </nav>
         <button
@@ -104,7 +163,10 @@ export function SiteNav() {
             </Link>
           ))}
           <PreferenceControls />
-          <Link className="btn btn--evidence btn--full" href="/play" onClick={closeMenu}>
+          <Link className="btn btn--evidence btn--full" href="/create" onClick={closeMenu}>
+            أنشئ غرفة
+          </Link>
+          <Link className="btn btn--ghost btn--full" href="/join" onClick={closeMenu}>
             ادخل برمز
           </Link>
         </nav>

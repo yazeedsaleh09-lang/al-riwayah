@@ -19,6 +19,7 @@
     "format:check": "prettier --check .",
     "typecheck": "pnpm -r typecheck",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "test:integration": "vitest run --project integration",
     "test:security": "vitest run --project security",

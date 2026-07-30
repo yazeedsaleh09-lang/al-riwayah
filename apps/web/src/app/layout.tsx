@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Alexandria, IBM_Plex_Sans_Arabic, Noto_Sans_Arabic } from "next/font/google";
 import "./globals.css";
 import "./marketing.css";
+import "./golden-master.css";
 import { SITE } from "@/lib/site";
 import { HydrationMarker } from "@/components/HydrationMarker";
 

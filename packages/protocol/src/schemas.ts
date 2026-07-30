@@ -58,6 +58,17 @@ export function envelope<T extends z.ZodTypeAny>(payload: T) {
   });
 }
 
+/** Gameplay intents always target one exact authoritative phase revision. */
+export function gameplayEnvelope<T extends z.ZodTypeAny>(payload: T) {
+  return z.object({
+    protocolVersion: z.literal(PROTOCOL_VERSION),
+    requestId: requestIdSchema,
+    roomCode: roomCodeSchema.optional(),
+    phaseRevision: z.number().int().nonnegative(),
+    payload,
+  });
+}
+
 // --- Per-event payloads ---
 
 export const createPayloadSchema = z.object({
@@ -108,11 +119,11 @@ export const CLIENT_EVENT_SCHEMAS = {
   "room:restore": envelope(restorePayloadSchema),
   "player:setReady": envelope(setReadyPayloadSchema),
   "match:start": envelope(startPayloadSchema),
-  "phase:acknowledge": envelope(acknowledgePayloadSchema),
-  "story:propose": envelope(proposePayloadSchema),
-  "story:confirm": envelope(confirmPayloadSchema),
-  "answer:submit": envelope(answerPayloadSchema),
-  "patch:vote": envelope(patchVotePayloadSchema),
+  "phase:acknowledge": gameplayEnvelope(acknowledgePayloadSchema),
+  "story:propose": gameplayEnvelope(proposePayloadSchema),
+  "story:confirm": gameplayEnvelope(confirmPayloadSchema),
+  "answer:submit": gameplayEnvelope(answerPayloadSchema),
+  "patch:vote": gameplayEnvelope(patchVotePayloadSchema),
   "result:replay": envelope(emptyPayloadSchema),
   "room:newGroup": envelope(emptyPayloadSchema),
   "player:leave": envelope(emptyPayloadSchema),

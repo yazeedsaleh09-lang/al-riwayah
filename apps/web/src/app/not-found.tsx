@@ -14,7 +14,7 @@ export default function NotFound() {
         <p style={{ color: "var(--muted)" }}>ما لقينا هالصفحة. تقدر ترجع تنشئ غرفة أو تدخل برمز.</p>
         <div className="hero__actions" style={{ justifyContent: "center", marginTop: "var(--space-6)" }}>
           <Link className="btn btn--evidence" href="/create">أنشئ غرفة</Link>
-          <Link className="btn btn--ghost" href="/play">ادخل برمز</Link>
+          <Link className="btn btn--ghost" href="/join">ادخل برمز</Link>
         </div>
       </main>
       <SiteFooter />

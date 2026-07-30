@@ -50,6 +50,11 @@ Use the canonical 19 phase identifiers from `PROJECT_SPEC.md`. Protocol rejects 
 | `room:newGroup` | RESULTS | requestId | host | new room | private then public |
 | `player:leave` | any | none | session | ack | public connection change |
 
+If `room:restore` arrives on the socket that is already bound to that exact
+player and room, it is treated as an idempotent view sync rather than a recovery:
+the server re-emits the current views without rotating the token. A restore on a
+new socket rotates the bearer token before views are released.
+
 ## Server-to-client events
 
 | Event | Recipient | Content | Forbidden content |

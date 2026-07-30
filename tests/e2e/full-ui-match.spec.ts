@@ -90,6 +90,15 @@ async function waitForPhase(page: Page, phase: string, timeout = 15_000): Promis
 
 async function clickFirstAvailable(page: Page): Promise<void> {
   const phase = await page.locator(".game").getAttribute("data-phase");
+  if (phase && INTERROGATION.has(phase)) {
+    const option = page.locator(".option-btn:not([disabled])").first();
+    if (!(await option.isVisible().catch(() => false))) return;
+    await option.click();
+    const confirm = page.locator(".gm-question__confirm");
+    await expect(confirm).toBeEnabled();
+    await confirm.click();
+    return;
+  }
   const button = page
     .locator(".game__actions button:not([disabled]), .option-btn:not([disabled])")
     .first();
@@ -222,18 +231,48 @@ async function driveToResults(
       }
       if (options.duplicateAnswer && !duplicated && phase === "INTERROGATION_FOUNDATION") {
         duplicated = true;
-        await pages[0]!
-          .locator(".option-btn:not([disabled])")
-          .first()
-          .evaluate((button) => {
-            (button as HTMLButtonElement).click();
-            (button as HTMLButtonElement).click();
-          });
+        const option = pages[0]!.locator(".option-btn:not([disabled])").first();
+        const confirm = pages[0]!.locator(".gm-question__confirm");
+        await expect(confirm).toBeDisabled();
+        await option.click();
+        await expect(option).toBeFocused();
+        await expect(option).toHaveAttribute("aria-checked", "true");
+        await expect(host.locator(".option-btn.is-selected")).toHaveCount(1);
+        await expect(confirm).toBeEnabled();
+        await expect(pages[0]!.locator(".answer-receipt")).toHaveCount(0);
+        if (options.evidence) await saveEvidence(host, "4-player-selection");
+
+        const fixedActionMetrics = await pages[0]!.evaluate(() => {
+          const action = document.querySelector<HTMLElement>(".gm-question__confirm");
+          const lastOption = Array.from(document.querySelectorAll<HTMLElement>(".option-btn")).at(
+            -1,
+          );
+          if (!action || !lastOption) return null;
+          const actionRect = action.getBoundingClientRect();
+          const optionRect = lastOption.getBoundingClientRect();
+          return {
+            position: getComputedStyle(action).position,
+            actionHeight: actionRect.height,
+            actionTop: actionRect.top,
+            optionBottom: optionRect.bottom,
+          };
+        });
+        expect(fixedActionMetrics).not.toBeNull();
+        expect(fixedActionMetrics!.position).toBe("fixed");
+        expect(fixedActionMetrics!.actionHeight).toBeGreaterThanOrEqual(44);
+        expect(
+          fixedActionMetrics!.optionBottom,
+          "the fixed confirmation CTA must not cover the final option",
+        ).toBeLessThanOrEqual(fixedActionMetrics!.actionTop);
+
+        await confirm.evaluate((button) => {
+          (button as HTMLButtonElement).click();
+          (button as HTMLButtonElement).click();
+        });
+        await expect(pages[0]!.locator(".answer-receipt")).toHaveCount(1);
         if (options.evidence) {
           await expect(host.locator('.game[data-phase="INTERROGATION_FOUNDATION"]')).toBeVisible();
-          await expect(host.locator(".option-btn.is-selected")).toHaveCount(1);
-          await saveEvidence(host, "4-player-selection");
-          await expect(host.locator(".answer-receipt")).toBeVisible();
+          await expect(host.locator(".answer-receipt")).toHaveAttribute("aria-live", "polite");
           await saveEvidence(host, "4-player-waiting");
         }
         await Promise.all(pages.slice(1).map((page) => clickFirstAvailable(page)));
@@ -323,7 +362,8 @@ test.describe("real multi-client UI matches", () => {
       await driveToResults(clients, { duplicateAnswer: true, axe: true, evidence: true });
       const host = clients.pages[0]!;
       await expect(host.locator(".verdict-band")).toBeVisible();
-      await expect(host.locator(".axis")).toHaveCount(4);
+      await expect(host.locator(".gm-metric-card")).toHaveCount(3);
+      await expect(host.locator(".gm-metric-card").first()).toBeVisible();
       await expect(host.locator(".result-story")).toBeVisible();
       await expect(host.locator(".result-story")).not.toContainText("{{");
       const resultsAxe = await new AxeBuilder({ page: host })

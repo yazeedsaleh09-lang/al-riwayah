@@ -50,6 +50,22 @@ export function emitRoomView(io: Server, manager: RoomManager, code: string): vo
   }
 }
 
+function emitPlayerView(
+  socket: Socket,
+  manager: RoomManager,
+  code: string,
+  playerId: string,
+): void {
+  const pub = manager.publicView(code);
+  const priv = manager.privateView(code, playerId);
+  if (pub) socket.emit("view:public", pub);
+  if (priv) socket.emit("view:private", priv);
+}
+
+function publicViewFingerprint(view: ReturnType<RoomManager["publicView"]>): string {
+  return JSON.stringify(view ? { ...view, serverTime: 0 } : null);
+}
+
 export function registerGateway(io: Server, manager: RoomManager, log: Logger): void {
   const emitRoom = (code: string): void => emitRoomView(io, manager, code);
 
@@ -144,6 +160,23 @@ export function registerGateway(io: Server, manager: RoomManager, log: Logger): 
       const g = guard("room:restore", raw, ack);
       if (!g.ok) return;
       const { requestId, payload } = g.value;
+      if (!manager.allowRestoreAttempt(clientIp(socket))) {
+        ack?.({ ok: false, requestId, error: safeError("RATE_LIMITED") });
+        return;
+      }
+      if (state.code) {
+        const identified = manager.identifyRecoveryToken(payload.recoveryToken);
+        if (
+          identified?.roomCode === state.code &&
+          identified.playerId === state.playerId
+        ) {
+          emitPlayerView(socket, manager, state.code, state.playerId!);
+          ack?.({ ok: true, requestId, data: { synced: true } });
+          return;
+        }
+        ack?.({ ok: false, requestId, error: safeError("ACTION_NOT_ALLOWED") });
+        return;
+      }
       const result = manager.restore({ recoveryToken: payload.recoveryToken });
       if (!result.ok) {
         ack?.({ ok: false, requestId, error: result.error });
@@ -195,9 +228,18 @@ export function registerGateway(io: Server, manager: RoomManager, log: Logger): 
       const { requestId, payload } = g.value as { requestId: string; payload: unknown };
       const s = requireSession(requestId, ack);
       if (!s) return;
+      const beforePublic = manager.publicView(s.code!);
+      const beforePrivate = manager.privateView(s.code!, s.playerId!);
       const outcome = run({ code: s.code!, playerId: s.playerId! }, payload, requestId);
       if (outcome) ack?.(outcome);
-      emitRoom(s.code!);
+      if (!outcome?.ok) return;
+      const afterPublic = manager.publicView(s.code!);
+      const afterPrivate = manager.privateView(s.code!, s.playerId!);
+      if (publicViewFingerprint(beforePublic) !== publicViewFingerprint(afterPublic)) {
+        emitRoom(s.code!);
+      } else if (JSON.stringify(beforePrivate) !== JSON.stringify(afterPrivate)) {
+        emitPlayerView(socket, manager, s.code!, s.playerId!);
+      }
     };
 
     socket.on("player:setReady", (raw: unknown, ack?: AckFn) =>
@@ -222,9 +264,11 @@ export function registerGateway(io: Server, manager: RoomManager, log: Logger): 
     ): void => {
       const g = guard(event, raw, ack);
       if (!g.ok) return;
-      const env = g.value as { requestId: string; phaseRevision?: number; payload: unknown };
+      const env = g.value as { requestId: string; phaseRevision: number; payload: unknown };
       const s = requireSession(env.requestId, ack);
       if (!s) return;
+      const beforePublic = manager.publicView(s.code!);
+      const beforePrivate = manager.privateView(s.code!, s.playerId!);
       const outcome = manager.gameIntent({
         code: s.code!,
         playerId: s.playerId!,
@@ -233,7 +277,14 @@ export function registerGateway(io: Server, manager: RoomManager, log: Logger): 
         intent: toIntent(s.playerId!, env.payload),
       });
       ack?.(outcome);
-      emitRoom(s.code!);
+      if (!outcome.ok) return;
+      const afterPublic = manager.publicView(s.code!);
+      const afterPrivate = manager.privateView(s.code!, s.playerId!);
+      if (publicViewFingerprint(beforePublic) !== publicViewFingerprint(afterPublic)) {
+        emitRoom(s.code!);
+      } else if (JSON.stringify(beforePrivate) !== JSON.stringify(afterPrivate)) {
+        emitPlayerView(socket, manager, s.code!, s.playerId!);
+      }
     };
 
     socket.on("phase:acknowledge", (raw: unknown, ack?: AckFn) =>

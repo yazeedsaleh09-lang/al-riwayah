@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ApprovedMobileNav } from "./ApprovedMobileNav";
 import styles from "./ApprovedHome.module.css";
 
 function classes(...names: Array<string | undefined>) {
@@ -8,7 +9,7 @@ function classes(...names: Array<string | undefined>) {
 export function ApprovedHome() {
   return (
     <div className={classes("approved-home-source", styles.page)}>
-      <header className={classes("nav", styles.nav)}>
+      <header className={classes("nav", styles.nav)} id="top">
         <Link className={styles.brand} href="/" aria-label="الرواية — الصفحة الرئيسية">
           <span className={styles.mark} aria-hidden="true" />
           <span>الرواية</span>
@@ -17,21 +18,22 @@ export function ApprovedHome() {
         <nav className={styles.navlinks} aria-label="التنقل الرئيسي">
           <Link href="/how-to-play">كيف تلعب</Link>
           <Link href="/cases">القضية</Link>
-          <Link href="/#about">عن اللعبة</Link>
+          <Link href="/about">عن اللعبة</Link>
         </nav>
 
         <div className={styles.navcta}>
           <Link className={classes(styles.btn, styles.primary)} href="/create">
             ابدأ جلسة
           </Link>
-          <Link className={styles.btn} href="/play">
+          <Link className={styles.btn} href="/join">
             عندي رمز
           </Link>
         </div>
+        <ApprovedMobileNav />
       </header>
 
       <main className={styles.hero} id="main">
-        <section className={styles.copy} id="about">
+        <section className={styles.copy}>
           <div className={classes("reveal", styles.eyebrow, styles.reveal)}>
             لعبة جماعية لـ٤–٦ أشخاص
           </div>
@@ -47,7 +49,7 @@ export function ApprovedHome() {
             <Link className={classes(styles.btn, styles.primary)} href="/create">
               ابدأ جلسة
             </Link>
-            <Link className={styles.btn} href="/play">
+            <Link className={styles.btn} href="/join">
               ادخل برمز
             </Link>
           </div>

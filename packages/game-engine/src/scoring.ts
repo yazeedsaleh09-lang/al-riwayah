@@ -6,6 +6,7 @@ import { SCORE_AXES } from "./case-types";
 import type { GameCase, ScoreAxis } from "./case-types";
 import type { MatchState, ScoreLedgerEntry, VerdictResult } from "./match-types";
 import { buildDetectionContext } from "./context";
+import { contradictionKey } from "./contradictions";
 
 /** Axis total = initial value + sum of all ledger deltas for that axis. */
 export function axisTotals(
@@ -82,8 +83,9 @@ export function finalizeVerdict(
 
   // Recap: most consistent = fewest contradictions involved + least evasion.
   const contradictionsByPlayer = new Map<string, number>();
+  const releasedContradictionIds = new Set(state.releasedContradictionIds);
   for (const c of state.detectedContradictions) {
-    if (!state.releasedContradictionIds.length) break;
+    if (!releasedContradictionIds.has(contradictionKey(c))) continue;
     for (const pid of c.involvedPlayers) {
       contradictionsByPlayer.set(pid, (contradictionsByPlayer.get(pid) ?? 0) + 1);
     }

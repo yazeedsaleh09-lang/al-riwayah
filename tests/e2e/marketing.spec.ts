@@ -1,6 +1,16 @@
 import { test, expect } from "@playwright/test";
 
-const ROUTES = ["/", "/how-to-play", "/cases", "/join", "/play", "/create", "/privacy", "/terms"];
+const ROUTES = [
+  "/",
+  "/about",
+  "/how-to-play",
+  "/cases",
+  "/join",
+  "/play",
+  "/create",
+  "/privacy",
+  "/terms",
+];
 
 test.describe("marketing site", () => {
   for (const path of ROUTES) {

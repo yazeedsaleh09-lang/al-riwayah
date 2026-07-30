@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { PHASE_SEQUENCE } from "@al-riwayah/game-engine";
 import { RoomManager } from "@al-riwayah/server";
 import { createRoomWithPlayers, makeClock, playToResults, readyAndStart } from "./driver";
 
@@ -33,10 +34,12 @@ describe("full match through the server authority (GAME-*)", () => {
     const { code, players } = createRoomWithPlayers(mgr, 4);
     readyAndStart(mgr, code, players);
 
+    const phases: string[] = [];
     const revisions: number[] = [];
     let guard = 0;
     while (guard < 80) {
       const pub = mgr.publicView(code)!;
+      phases.push(pub.phase);
       revisions.push(pub.phaseRevision);
       if (pub.phase === "RESULTS") break;
       // advance one phase by forcing the deadline
@@ -44,9 +47,9 @@ describe("full match through the server authority (GAME-*)", () => {
       mgr.tick();
       guard++;
     }
-    // Revisions are strictly monotonic with no gaps > 1 within a forced run.
+    expect(phases).toEqual(PHASE_SEQUENCE.slice(1));
     for (let i = 1; i < revisions.length; i++) {
-      expect(revisions[i]! - revisions[i - 1]!).toBeGreaterThanOrEqual(0);
+      expect(revisions[i]! - revisions[i - 1]!).toBe(1);
     }
     expect(mgr.publicView(code)!.phase).toBe("RESULTS");
   });

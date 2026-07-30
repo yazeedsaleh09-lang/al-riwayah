@@ -5,7 +5,7 @@ Internal identifier: `al-riwayah`
 Product type: mobile-first local multiplayer party game + complete marketing website  
 Gameplay devices: **players' phones only; no television required**  
 Supported players: **4–6**  
-Target session: **10–15 minutes**  
+Target session: **13–18 minutes**
 Primary language: **Arabic, RTL, Saudi-friendly conversational copy**  
 Secondary language readiness: English architecture, optional later localization
 
@@ -191,21 +191,20 @@ Measured on production build, representative mid-tier mobile profile:
 - Eight target widths across all public routes: `tests/e2e/responsive.spec.ts`.
 - Production budgets and security headers: `tests/e2e/performance.spec.ts`.
 - Motion evidence: `tests/e2e/motion-evidence.spec.ts`.
-- Light editorial identity, non-circular Versioned Testimony hero, direct
-  pointer/keyboard revision scrub, explicit contradiction reveal, and static
-  reduced-motion journey:
+- Approved evidence-board Golden Master, complete homepage continuation,
+  responsive mobile journey, keyboard navigation, and static reduced-motion path:
   `tests/e2e/identity-motion.spec.ts`.
 
 Fresh outcomes and artifacts are recorded in
 `artifacts/final-playtest-pass/final-readiness-report.md`.
 
-Local release-candidate outcome (2026-07-28): 93 workspace tests, 26 integration
-tests, 11 security tests, the complete accessibility/keyboard matrix, and the
-production performance case passed. The Playwright aggregate passed all 62
-executed tests; its production-only performance case was intentionally skipped
-there and passed separately. The 4/5/6-player UI matches and the strict four-size
-Nudge comparison passed. The final Render matrix then passed 58/58, including
-two-client create/join, and the production Nudge comparison passed again. See
+Local release-candidate outcome (2026-07-30): 141 workspace tests, 41 integration
+tests, 14 security tests, enforced 80% coverage on every metric, the complete
+accessibility/keyboard and responsive matrices, and the production performance
+case passed. The Playwright aggregate passed 85 executed tests with its
+production-only performance case skipped there and passed separately. The
+4/5/6-player UI matches passed. Same-service Render verification is recorded
+separately after deployment; see
 `artifacts/final-playtest-pass/final-readiness-report.md`.
 
 Automatable release requires:

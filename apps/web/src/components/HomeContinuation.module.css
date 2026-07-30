@@ -1,0 +1,359 @@
+.root {
+  --paper: #eee3d1;
+  --paper-hi: #fbf5eb;
+  --ink: #171612;
+  --muted: #665e54;
+  --red: #bd3d32;
+  --green: #345f55;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-approved-arabic), "Noto Sans Arabic", Tahoma, Arial, sans-serif;
+}
+
+.container {
+  width: min(100% - 36px, 1320px);
+  margin-inline: auto;
+}
+
+.intro,
+.preview,
+.caseSection,
+.finalCta {
+  padding-block: clamp(80px, 10vw, 152px);
+  border-top: 1px solid rgba(23, 22, 18, 0.2);
+}
+
+.label {
+  margin: 0 0 24px;
+  color: var(--green);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.introGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.72fr);
+  gap: clamp(32px, 8vw, 120px);
+  align-items: end;
+}
+
+.introGrid h2,
+.previewHeading h2,
+.caseCard h2,
+.finalCta h2 {
+  margin: 0;
+  font-size: clamp(42px, 6vw, 78px);
+  font-weight: 950;
+  letter-spacing: -1.8px;
+  line-height: 1.15;
+}
+
+.introGrid > p,
+.previewHeading > p,
+.caseCard > div > p:last-child,
+.finalCta > .container > p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1.9;
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  padding: 0;
+  margin: clamp(56px, 8vw, 108px) 0 0;
+  border-top: 1px solid rgba(23, 22, 18, 0.26);
+  list-style: none;
+}
+
+.steps li {
+  min-height: 245px;
+  padding: 26px 28px 32px;
+  border-inline-start: 1px solid rgba(23, 22, 18, 0.18);
+}
+
+.steps li:last-child {
+  border-inline-start: 0;
+}
+
+.steps span,
+.phoneTop,
+.caseCard dt {
+  color: var(--muted);
+  font-family: "IBM Plex Mono", Consolas, monospace;
+  font-size: 12px;
+}
+
+.steps h3 {
+  margin: 54px 0 10px;
+  font-size: 29px;
+}
+
+.steps p {
+  max-width: 26ch;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.8;
+}
+
+.preview {
+  overflow: hidden;
+  background: var(--ink);
+  color: var(--paper-hi);
+}
+
+.preview .label {
+  color: #8db2a8;
+}
+
+.previewHeading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.55fr);
+  gap: 20px clamp(32px, 9vw, 140px);
+}
+
+.previewHeading .label {
+  grid-column: 1 / -1;
+}
+
+.previewHeading > p {
+  color: #c8c1b8;
+}
+
+.phonePair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(280px, 390px));
+  justify-content: center;
+  gap: clamp(28px, 7vw, 100px);
+  margin-top: clamp(60px, 9vw, 120px);
+  direction: rtl;
+}
+
+.phone {
+  position: relative;
+  min-height: 650px;
+  padding: 34px 26px 30px;
+  border: 8px solid #0b0b0a;
+  border-radius: 38px;
+  background: var(--paper-hi);
+  box-shadow: 0 38px 90px rgba(0, 0, 0, 0.35);
+  color: var(--ink);
+}
+
+.phone::before {
+  display: block;
+  width: 78px;
+  height: 7px;
+  margin: -17px auto 29px;
+  border-radius: 8px;
+  background: #0b0b0a;
+  content: "";
+}
+
+.phoneTop {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+}
+
+.privateFlag {
+  margin: 42px 0 12px;
+  color: var(--red);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.phone h3 {
+  margin: 0 0 28px;
+  font-size: 29px;
+  line-height: 1.45;
+}
+
+.options {
+  display: grid;
+  gap: 10px;
+}
+
+.options span {
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  padding-inline: 16px;
+  border: 1px solid rgba(23, 22, 18, 0.3);
+  font-weight: 800;
+}
+
+.options .selected {
+  border: 2px solid var(--red);
+  background: rgba(189, 61, 50, 0.08);
+}
+
+.confirm {
+  position: absolute;
+  right: 26px;
+  bottom: 30px;
+  left: 26px;
+  display: grid;
+  min-height: 55px;
+  place-items: center;
+  background: var(--ink);
+  color: var(--paper-hi);
+  font-weight: 900;
+}
+
+.result {
+  margin-top: 76px;
+  transform: rotate(2deg);
+}
+
+.result > p:not(.privateFlag) {
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1.9;
+}
+
+.result strong {
+  position: absolute;
+  right: 26px;
+  bottom: 44px;
+  left: 26px;
+  font-size: 18px;
+  line-height: 1.7;
+}
+
+.thread {
+  position: absolute;
+  right: -60px;
+  bottom: 180px;
+  width: 220px;
+  border-top: 3px solid var(--red);
+  transform: rotate(-18deg);
+}
+
+.caseSection {
+  background:
+    repeating-linear-gradient(0deg, transparent 0 5px, rgba(23, 22, 18, 0.025) 5px 6px),
+    var(--paper);
+}
+
+.caseCard {
+  display: grid;
+  grid-template-columns: 1fr 0.62fr;
+  gap: 52px;
+  padding: clamp(28px, 6vw, 76px);
+  border: 1px solid rgba(23, 22, 18, 0.28);
+  background: var(--paper-hi);
+  box-shadow: 18px 22px 0 rgba(23, 22, 18, 0.07);
+}
+
+.caseCard > div {
+  grid-row: span 2;
+}
+
+.caseCard h2 {
+  margin-bottom: 20px;
+  font-size: clamp(38px, 5vw, 66px);
+}
+
+.caseCard dl {
+  margin: 0;
+}
+
+.caseCard dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding-block: 14px;
+  border-bottom: 1px solid rgba(23, 22, 18, 0.18);
+}
+
+.caseCard dd {
+  margin: 0;
+  font-weight: 900;
+}
+
+.caseCard > a {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  justify-self: start;
+  border-bottom: 2px solid var(--ink);
+  font-weight: 900;
+}
+
+.finalCta {
+  text-align: center;
+}
+
+.finalCta .label,
+.finalCta > .container > p {
+  margin-inline: auto;
+}
+
+.finalCta > .container > p {
+  max-width: 48ch;
+  margin-top: 22px;
+}
+
+.actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 36px;
+}
+
+.actions a {
+  display: inline-flex;
+  min-width: 140px;
+  min-height: 52px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--ink);
+  font-weight: 900;
+}
+
+.actions a:first-child {
+  background: var(--ink);
+  color: var(--paper-hi);
+}
+
+@media (max-width: 760px) {
+  .introGrid,
+  .previewHeading,
+  .caseCard {
+    grid-template-columns: 1fr;
+  }
+
+  .steps {
+    grid-template-columns: 1fr;
+  }
+
+  .steps li {
+    min-height: 0;
+    padding-inline: 0;
+    border-inline-start: 0;
+    border-bottom: 1px solid rgba(23, 22, 18, 0.18);
+  }
+
+  .steps h3 {
+    margin-top: 24px;
+  }
+
+  .phonePair {
+    grid-template-columns: minmax(0, 390px);
+  }
+
+  .phone {
+    min-height: 610px;
+  }
+
+  .result {
+    margin-top: 0;
+    transform: none;
+  }
+
+  .caseCard > div {
+    grid-row: auto;
+  }
+}

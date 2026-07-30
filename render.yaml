@@ -7,7 +7,7 @@ services:
     plan: starter
     region: frankfurt
     numInstances: 1
-    autoDeployTrigger: commit
+    autoDeployTrigger: checksPass
     buildCommand: pnpm install --frozen-lockfile && pnpm --filter @al-riwayah/server... build
     startCommand: pnpm --filter @al-riwayah/server start
     healthCheckPath: /health
@@ -34,7 +34,7 @@ services:
     plan: starter
     region: frankfurt
     numInstances: 1
-    autoDeployTrigger: commit
+    autoDeployTrigger: checksPass
     buildCommand: pnpm install --frozen-lockfile && pnpm --filter @al-riwayah/web... build
     startCommand: pnpm --filter @al-riwayah/web start
     healthCheckPath: /

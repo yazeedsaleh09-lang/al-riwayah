@@ -1,6 +1,9 @@
 import Link from "next/link";
 
-const BUILD = process.env.NEXT_PUBLIC_BUILD_ID ?? "review-build";
+const BUILD =
+  process.env.NEXT_PUBLIC_BUILD_ID ??
+  process.env.RENDER_GIT_COMMIT?.slice(0, 7) ??
+  "local";
 
 export function SiteFooter() {
   return (
@@ -12,12 +15,13 @@ export function SiteFooter() {
               الرواية
             </p>
             <p style={{ color: "var(--muted)", maxWidth: 320 }}>
-              اتفقوا على كذبة. لا تخربونها. لعبة جماعية على الجوالات، بدون تلفزيون وبدون تحميل.
+              اتفقوا على رواية. ولا تختلفون. لعبة جماعية على الجوالات، بدون تلفزيون وبدون تحميل.
             </p>
           </div>
           <nav aria-label="روابط سفلية" className="site-footer__links">
             <Link href="/how-to-play">كيف تُلعب</Link>
             <Link href="/cases">القضايا</Link>
+            <Link href="/about">عن اللعبة</Link>
             <Link href="/create">أنشئ غرفة</Link>
             <Link href="/join">ادخل برمز</Link>
             <Link href="/privacy">الخصوصية</Link>

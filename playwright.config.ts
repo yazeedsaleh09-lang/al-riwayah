@@ -9,6 +9,7 @@ const PRODUCTION_WEB = process.env.E2E_PRODUCTION === "1";
 const SERVER_BIND_HOST = process.env.E2E_SERVER_BIND_HOST ?? "127.0.0.1";
 const WEB_BIND_HOST = process.env.E2E_WEB_BIND_HOST ?? "127.0.0.1";
 const REUSE_EXISTING_SERVER = process.env.E2E_REUSE_SERVER === "1";
+const PNPM = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -38,7 +39,7 @@ export default defineConfig({
   // Reuses the running dev servers if present; otherwise starts them.
   webServer: [
     {
-      command: "pnpm.cmd --filter @al-riwayah/server start",
+      command: `${PNPM} --filter @al-riwayah/server start`,
       url: `${SERVER}/health`,
       env: {
         ...process.env,
@@ -56,7 +57,9 @@ export default defineConfig({
       env: {
         ...process.env,
         E2E_DEV: PRODUCTION_WEB ? "0" : "1",
-        NEXT_PUBLIC_SERVER_URL: PUBLIC_SERVER,
+        NEXT_PUBLIC_SERVER_URL: PRODUCTION_WEB
+          ? process.env.NEXT_PUBLIC_SERVER_URL
+          : PUBLIC_SERVER,
       },
       reuseExistingServer: REUSE_EXISTING_SERVER,
       timeout: 120_000,

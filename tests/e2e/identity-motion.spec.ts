@@ -1,119 +1,110 @@
 import { expect, test } from "@playwright/test";
 
-test.describe("final identity and motion system", () => {
-  test("uses the light editorial palette and non-circular Versioned Testimony hero", async ({
+test.describe("approved identity and motion system", () => {
+  test("uses the locked paper, ink, evidence-red, and layered-board identity", async ({
     page,
   }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/");
-    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
 
     const identity = await page.evaluate(() => {
-      const root = getComputedStyle(document.documentElement);
-      const body = getComputedStyle(document.body);
-      const spans = Array.from(document.querySelectorAll<HTMLElement>(".hero__title span"));
+      const root = document.querySelector<HTMLElement>(".approved-home-source")!;
+      const title = root.querySelector<HTMLElement>("h1")!;
+      const scene = root.querySelector<HTMLElement>(".scene-wrap")!;
+      const mark = root.querySelector<HTMLElement>('[aria-label*="الرئيسية"] span')!;
       return {
-        voidColor: root.getPropertyValue("--void").trim(),
-        statementColor: root.getPropertyValue("--statement").trim(),
-        verdictColor: root.getPropertyValue("--verdict").trim(),
-        bodyFont: body.fontFamily,
-        hasEditor: Boolean(document.querySelector(".testimony-editor")),
-        hasRejectedTable: Boolean(document.querySelector(".alibi-table")),
-        circularBrandMarks: document.querySelectorAll(".wordmark__mark circle").length,
-        lines: spans.map((span) => {
-          const rect = span.getBoundingClientRect();
-          return {
-            left: rect.left,
-            right: rect.right,
-            viewport: document.documentElement.clientWidth,
-            whiteSpace: getComputedStyle(span).whiteSpace,
-          };
-        }),
+        background: getComputedStyle(root).backgroundColor,
+        ink: getComputedStyle(root).color,
+        title: title.getBoundingClientRect().toJSON(),
+        scene: scene.getBoundingClientRect().toJSON(),
+        markRadius: getComputedStyle(mark).borderRadius,
+        evidenceThreads: root.querySelectorAll(".threads path").length,
+        circularBrandMarks: root.querySelectorAll('[aria-label*="الرئيسية"] circle').length,
       };
     });
 
-    expect(identity.voidColor).toBe("#f3ecdf");
-    expect(identity.statementColor).toBe("#1a1915");
-    expect(identity.verdictColor).toBe("#a43f38");
-    expect(identity.bodyFont).toContain("IBM Plex Sans Arabic");
-    expect(identity.hasEditor).toBe(true);
-    expect(identity.hasRejectedTable).toBe(false);
+    expect(identity.background).toBe("rgb(238, 227, 209)");
+    expect(identity.ink).toBe("rgb(23, 22, 18)");
+    expect(identity.title.left).toBeGreaterThanOrEqual(0);
+    expect(identity.title.right).toBeLessThanOrEqual(1440);
+    expect(identity.scene.width).toBe(714);
+    expect(identity.scene.height).toBe(670);
+    expect(identity.markRadius).toBe("0px");
+    expect(identity.evidenceThreads).toBe(3);
     expect(identity.circularBrandMarks).toBe(0);
-    expect(identity.lines).toHaveLength(2);
-    for (const line of identity.lines) {
-      expect(line.whiteSpace).toBe("nowrap");
-      expect(line.left).toBeGreaterThanOrEqual(-1);
-      expect(line.right).toBeLessThanOrEqual(line.viewport + 1);
-    }
   });
 
-  test("gallery rail advances from one scroll progress source", async ({ page }) => {
+  test("the evidence board preserves its explicit, static stacking hierarchy", async ({ page }) => {
     await page.goto("/");
-    const viewport = page.viewportSize();
-    if (!viewport || viewport.width < 900) {
-      await expect(page.locator(".gallery-rail__mobile-preview:visible")).toHaveCount(6);
-      return;
-    }
-
-    const rail = page.locator(".gallery-rail");
-    const scrollTarget = await rail.evaluate((element) => {
-      const top = element.getBoundingClientRect().top + window.scrollY;
-      const travel = Math.max(1, element.clientHeight - window.innerHeight);
-      return top + travel * 0.98;
+    const hierarchy = await page.evaluate(() => {
+      const style = (selector: string) =>
+        getComputedStyle(document.querySelector<HTMLElement>(selector)!);
+      return {
+        threadZ: Number(style(".approved-home-source .threads").zIndex),
+        sharedZ: Number(style(".approved-home-source .layer-shared").zIndex),
+        firstZ: Number(style(".approved-home-source .layer-one").zIndex),
+        secondZ: Number(style(".approved-home-source .layer-two").zIndex),
+        pointerEvents: style(".approved-home-source .threads").pointerEvents,
+        animationNames: [
+          style(".approved-home-source .reveal").animationName,
+          style(".approved-home-source .layer").animationName,
+          style(".approved-home-source .threads path").animationName,
+        ],
+      };
     });
-    await page.evaluate((top) => window.scrollTo(0, top), scrollTarget);
-    await expect(page.locator(".gallery-rail__index li[data-active='true'] strong")).toHaveText(
-      "واجهوا التقرير",
-    );
+
+    expect(hierarchy.threadZ).toBeLessThan(hierarchy.sharedZ);
+    expect(hierarchy.sharedZ).toBeLessThan(hierarchy.firstZ);
+    expect(hierarchy.firstZ).toBeLessThan(hierarchy.secondZ);
+    expect(hierarchy.pointerEvents).toBe("none");
+    expect(hierarchy.animationNames).toEqual(["none", "none", "none"]);
   });
 
-  test("reduced motion exposes ordered static content", async ({ page }) => {
+  test("reduced motion keeps every mobile content block available in source order", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");
-    await expect(page.locator(".gallery-rail__mobile-preview:visible")).toHaveCount(6);
-    await expect(page.locator(".ticker__duplicate")).toBeHidden();
-    await expect(page.locator(".testimony-editor del")).toBeVisible();
-    await expect(page.locator(".testimony-editor ins")).toBeVisible();
-    await expect(page.getByLabel("قارن النسخة الأصلية بالنسخة المعدلة")).toBeVisible();
-    await expect(page.locator(".testimony-editor")).toHaveCSS("animation-name", "none");
+
+    await expect(page.locator(".approved-home-source .scene-wrap")).toBeHidden();
+    await expect(page.getByRole("heading", { name: "رواية واحدة تحت ضغط الأسئلة." })).toBeVisible();
+    await expect(page.locator("ol li")).toHaveCount(3);
+    await expect(page.getByLabel("مثال سؤال على الجوال")).toBeVisible();
+    await expect(page.getByLabel("مثال نتيجة على الجوال")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "جاهزين تثبّتون روايتكم؟" })).toBeVisible();
   });
 
-  test("revision scrubber responds directly to pointer and keyboard input", async ({ page }) => {
+  test("long-page progression reaches the phone preview and available case without overflow", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/");
-    const editor = page.locator(".testimony-editor");
-    const scrubber = page.locator(".testimony-editor__scrubber");
-    const range = page.getByLabel("قارن النسخة الأصلية بالنسخة المعدلة");
-    await scrubber.scrollIntoViewIfNeeded();
-    const box = await scrubber.boundingBox();
-    expect(box).not.toBeNull();
-
-    await scrubber.hover({ position: { x: box!.width * 0.2, y: box!.height / 2 } });
-    await expect.poll(() => editor.evaluate((node) => node.style.getPropertyValue("--revision-ratio")))
-      .toBe("0.8");
-
-    await range.focus();
-    await range.press("Home");
-    await expect(range).toHaveAttribute("aria-valuetext", "قبل التعديل");
-    await range.press("End");
-    await expect(range).toHaveAttribute("aria-valuetext", "بعد التعديل");
+    const questionPreview = page.getByLabel("مثال سؤال على الجوال");
+    await questionPreview.scrollIntoViewIfNeeded();
+    await expect(questionPreview).toBeVisible();
+    await page.getByRole("heading", { name: "ظرف الرواتب المفقود" }).scrollIntoViewIfNeeded();
+    await expect(page.getByRole("link", { name: "شوفوا ملف القضية" })).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+      ),
+    ).toBe(true);
   });
 
-  test("contradiction surface responds to pointer and explicit reveal", async ({ page }) => {
+  test("mobile navigation responds to keyboard input and restores focus on Escape", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/");
     await expect(page.locator("html")).toHaveAttribute("data-hydrated", "true");
-    const surface = page.locator(".reveal-surface");
-    await surface.scrollIntoViewIfNeeded();
-    const box = await surface.boundingBox();
-    expect(box).not.toBeNull();
-    await surface.hover({
-      position: {
-        x: box!.width * 0.72,
-        y: box!.height * 0.45,
-      },
-    });
-    await expect
-      .poll(() => surface.getAttribute("style"))
-      .toContain("--reveal-x");
-    await page.getByRole("button", { name: "أظهر سبب التناقض" }).click();
-    await expect(page.getByText(/تناقض «إنكار شاهد»/)).toBeVisible();
+    const toggle = page.getByRole("button", { name: "افتح القائمة" });
+    await toggle.focus();
+    await toggle.press("Enter");
+    await expect(page.locator("#mobile-menu")).toBeVisible();
+    await expect(page.locator("#mobile-menu a").first()).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(page.locator("#mobile-menu")).toHaveCount(0);
+    await expect(toggle).toBeFocused();
   });
 });

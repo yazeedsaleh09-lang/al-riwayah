@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 const ETIQUETTE = [
   ["وقت التخطيط", "الكلام مسموح ومطلوب. اتفقوا على الرواية بصوت عالٍ."],
   ["وقت التحقيق", "لا كلام، ولا تورّي شاشتك. كل واحد يجاوب لحاله."],
-  ["وقت التناقض", "ارفعوا أصواتكم. ناقشوا الشرخ واختاروا ترقيعة واحدة."],
+  ["وقت التناقض", "ارفعوا أصواتكم. ناقشوا التناقض واختاروا ترقيعة واحدة."],
   ["السؤال الأخير", "صمت تام. آخر إجابة تُقفل الرواية."],
 ] as const;
 
@@ -34,9 +34,9 @@ export default function HowToPlay() {
             <div className="page-hero__summary">
               <p>
                 اتفقوا على اللي صار. بعدها ينفصل كل لاعب بجواله ويجاوب بدون مساعدة. كل تعارض واضح
-                يصير شرخًا لازم تصلحونه قبل التقرير.
+                يصير تناقضًا لازم تصلحونه قبل التقرير.
               </p>
-              <span className="mono">06 مراحل / 10–15 دقيقة</span>
+              <span className="mono">06 مراحل / 13–18 دقيقة</span>
             </div>
           </div>
         </header>
@@ -72,7 +72,7 @@ export default function HowToPlay() {
             <header className="contradiction-section__heading">
               <p className="section-label">مثال كامل</p>
               <h2 id="worked-title">
-                الشرخ واضح.
+                التناقض واضح.
                 <br />
                 ترقيعه أصعب.
               </h2>
@@ -106,7 +106,7 @@ export default function HowToPlay() {
               <Link className="btn btn--primary" href="/create">
                 افتحوا غرفة
               </Link>
-              <Link className="btn btn--ghost" href="/play">
+              <Link className="btn btn--ghost" href="/join">
                 عندي رمز
               </Link>
             </div>

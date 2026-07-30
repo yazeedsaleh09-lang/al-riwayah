@@ -159,9 +159,9 @@ function majority(n: number): number {
  * are timer-only and always return false here.
  */
 export function isPhaseComplete(state: MatchState, gameCase: GameCase): boolean {
-  const connected = state.players.filter((p) => p.connected);
-  const connectedIds = new Set(connected.map((p) => p.id));
-  const n = connected.length;
+  const activePlayers = state.players;
+  const activePlayerIds = new Set(activePlayers.map((p) => p.id));
+  const n = activePlayers.length;
   if (n === 0) return false;
 
   switch (state.phase) {
@@ -169,14 +169,14 @@ export function isPhaseComplete(state: MatchState, gameCase: GameCase): boolean 
     case "PRIVATE_EVIDENCE":
     case "PLAN_REVIEW":
     case "SURPRISE_EVIDENCE":
-      return connected.every((p) => state.acknowledgedThisPhase.includes(p.id));
+      return activePlayers.every((p) => state.acknowledgedThisPhase.includes(p.id));
 
     case "PLAN_REASON":
-      return (state.confirmations["reason"]?.filter((id) => connectedIds.has(id)).length ?? 0) >=
+      return (state.confirmations["reason"]?.filter((id) => activePlayerIds.has(id)).length ?? 0) >=
         majority(n);
 
     case "PLAN_LOCATIONS":
-      return connected.every((p) =>
+      return activePlayers.every((p) =>
         (state.confirmations[`location.${p.id}`] ?? []).includes(p.id),
       );
 
@@ -190,12 +190,12 @@ export function isPhaseComplete(state: MatchState, gameCase: GameCase): boolean 
     case "INTERROGATION_NO_GOOD_ANSWER":
     case "INTERROGATION_FOLLOWUP":
     case "FINAL_QUESTION":
-      return connected.every((p) => state.answeredThisPhase.includes(p.id));
+      return activePlayers.every((p) => state.answeredThisPhase.includes(p.id));
 
     case "PATCH_1":
     case "PATCH_2": {
       const votes = state.patchVotes[state.phase] ?? {};
-      return connected.every((p) => votes[p.id] !== undefined);
+      return activePlayers.every((p) => votes[p.id] !== undefined);
 
     }
     default:

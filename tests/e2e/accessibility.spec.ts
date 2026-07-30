@@ -3,6 +3,7 @@ import AxeBuilder from "@axe-core/playwright";
 
 const PUBLIC_ROUTES = [
   "/",
+  "/about",
   "/how-to-play",
   "/cases",
   "/join",
@@ -39,6 +40,7 @@ test.describe("accessibility smoke (axe)", () => {
   test("mute and reduced-motion preferences persist and remain keyboard reachable", async ({
     page,
   }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/");
     await expect(page.locator("html")).toHaveAttribute("data-hydrated", "true");
     await page.evaluate(() => localStorage.clear());
@@ -126,23 +128,22 @@ test.describe("accessibility smoke (axe)", () => {
     await expect(roomCode).toHaveAttribute("aria-describedby", /join-error/);
   });
 
-  test("ticker and revision comparison remain keyboard operable", async ({ page }) => {
+  test("homepage primary actions remain keyboard operable", async ({ page }) => {
     await page.goto("/");
     await expect(page.locator("html")).toHaveAttribute("data-hydrated", "true", {
       timeout: 30_000,
     });
-    const tickerControl = page.locator(".ticker__control");
-    await tickerControl.focus();
-    await tickerControl.press("Enter");
-    await expect(tickerControl).toHaveAttribute("aria-pressed", "true");
-    await expect(tickerControl).toHaveText("شغّل الشريط");
-    await expect(page.locator(".ticker__track")).toHaveCSS("animation-play-state", "paused");
+    const join = page.locator("#main").getByRole("link", { name: "ادخل برمز" });
+    await join.focus();
+    await expect(join).toBeFocused();
+    await join.press("Enter");
+    await expect(page).toHaveURL(/\/join$/);
 
-    const range = page.getByLabel("قارن النسخة الأصلية بالنسخة المعدلة");
-    await range.focus();
-    await range.press("Home");
-    await expect(range).toHaveAttribute("aria-valuetext", "قبل التعديل");
-    await range.press("End");
-    await expect(range).toHaveAttribute("aria-valuetext", "بعد التعديل");
+    await page.goBack();
+    const create = page.locator("#main").getByRole("link", { name: "ابدأ جلسة" });
+    await create.focus();
+    await expect(create).toBeFocused();
+    await create.press("Enter");
+    await expect(page).toHaveURL(/\/create$/);
   });
 });

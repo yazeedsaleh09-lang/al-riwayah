@@ -23,10 +23,15 @@ export async function buildServer(env: Env): Promise<BuiltServer> {
   if (isProduction(env) && env.CORS_ORIGIN === "*") {
     throw new Error("Production requires an explicit CORS_ORIGIN allowlist");
   }
+  if (isProduction(env) && env.E2E_FIXED_SEED) {
+    throw new Error("E2E_FIXED_SEED is forbidden in production");
+  }
   const log = createLogger(isProduction(env) ? "info" : "debug");
   const app = Fastify({ logger: false });
 
-  const origins = env.CORS_ORIGIN === "*" ? true : env.CORS_ORIGIN.split(",").map((s) => s.trim());
+  const allowedOrigins =
+    env.CORS_ORIGIN === "*" ? [] : env.CORS_ORIGIN.split(",").map((s) => s.trim());
+  const origins = env.CORS_ORIGIN === "*" ? true : allowedOrigins;
   await app.register(cors, { origin: origins });
 
   const manager = new RoomManager({
@@ -34,10 +39,15 @@ export async function buildServer(env: Env): Promise<BuiltServer> {
     maxLifetimeMs: env.ROOM_MAX_LIFETIME_MS,
     logger: log,
     phaseDurationScale: env.PHASE_DURATION_SCALE,
+    disableRateLimits: !isProduction(env) && Boolean(env.E2E_FIXED_SEED),
     ...(env.E2E_FIXED_SEED ? { seedFactory: () => env.E2E_FIXED_SEED! } : {}),
   });
 
-  app.get("/health", async () => ({ status: "ok", time: Date.now() }));
+  app.get("/health", async () => ({
+    status: "ok",
+    time: Date.now(),
+    version: env.RENDER_GIT_COMMIT?.slice(0, 7) ?? "local",
+  }));
   app.get("/readyz", async () => ({ status: "ready", rooms: manager.roomCount() }));
 
   // Debug routes are never mounted in production (SEC-010).
@@ -47,6 +57,14 @@ export async function buildServer(env: Env): Promise<BuiltServer> {
 
   const io = new IOServer(app.server, {
     cors: { origin: origins },
+    allowRequest: (request, callback) => {
+      const origin = request.headers.origin;
+      const allowed =
+        !isProduction(env) ||
+        origin === undefined ||
+        allowedOrigins.includes(origin);
+      callback(null, allowed);
+    },
     maxHttpBufferSize: 8 * 1024,
     transports: ["websocket", "polling"],
     // Socket.IO ping/pong heartbeat. Render can replace instances or interrupt

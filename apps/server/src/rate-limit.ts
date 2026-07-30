@@ -1,6 +1,6 @@
 /**
  * Sliding-window rate limiter (in-memory). Keyed by bucket+identity. Used for
- * room creation, join attempts, and per-session gameplay bursts (SEC-002,
+ * room creation, join/restore attempts, and per-session gameplay bursts (SEC-002,
  * SEC-007, REALTIME_PROTOCOL rate limits).
  */
 export interface RateRule {
@@ -11,6 +11,7 @@ export interface RateRule {
 export const RATE_RULES = {
   create: { limit: 5, windowMs: 10 * 60 * 1000 },
   join: { limit: 20, windowMs: 5 * 60 * 1000 },
+  restore: { limit: 30, windowMs: 5 * 60 * 1000 },
   intent: { limit: 20, windowMs: 1000 },
 } as const satisfies Record<string, RateRule>;
 

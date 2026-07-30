@@ -2,10 +2,10 @@
 
 ## Current state
 
-- Current phase: Phase 8 release — production gate passed
-- Last update: 2026-07-28
+- Current phase: Phase 8 release — local gate passed, same-service deployment pending
+- Last update: 2026-07-30
 - Branch: `main`
-- Implementation status: light editorial redesign + one-case authoritative realtime game, verified locally and on Render through Nudge comparison, responsive, accessibility, reduced-motion, and real multi-client browser runs
+- Implementation status: approved Golden Master product completion + one-case authoritative realtime game, verified locally through coverage, responsive, accessibility, reduced-motion, production performance, and real 4/5/6-client browser runs
 - Product specification: Complete initial version
 - Human playtests completed: 0
 
@@ -47,14 +47,15 @@
 
 ## Completed in final readiness pass
 
-- Rejected and removed the Alibi Table / circular player-seat hero without
-  resetting unrelated local work or changing authoritative multiplayer boundaries.
-- Compared three non-circular hero concepts and selected the Versioned Testimony
-  editor as the strongest product-specific direction.
-- Rebuilt the homepage, task forms, lobby, investigation, contradiction, patch,
-  and result presentation around the light editorial system.
-- Completed a live Nudge side-by-side and strict reviewer challenge at 390×844,
-  768×1024, 1440×900, and 1920×1080; all 12 categories score 9.0 or above.
+- Preserved the approved Golden Master evidence-board hero and phone game
+  compositions without resetting unrelated work or changing authoritative
+  multiplayer boundaries.
+- Completed the existing homepage below the locked hero with grounded product
+  explanation, mobile interaction previews, the available case, and final actions.
+- Reconciled task forms, lobby, selected-answer, contradiction, patch, and result
+  behavior with the approved visual system and accessibility requirements.
+- Completed visual review at 320×568, 390×844, 768×1024, 1440×900, and
+  1920×1080 with captured evidence.
 - Added the canonical `/join` route while preserving `/play`, clean session replacement,
   expired-room handling, new-group flow, and production-safe server start.
 - Completed public/private contradiction explanations and the final report narrative.
@@ -81,8 +82,8 @@
 | 6–8 | Security | `pnpm test:security` | 11 passed | 2026-07-28 final |
 | 6–8 | Browser matrix | `pnpm test:e2e` | 62 passed, 1 production-only skip | 2026-07-28 local final |
 | 6–8 | Production performance/headers | `E2E_PRODUCTION=1 … performance.spec.ts` | 1 passed | `artifacts/final-playtest-pass/performance-report.json` |
-| 8 | Nudge visual benchmark | live interaction + 4 paired viewports + strict ECC reviewer | 12/12 categories ≥9.0 | `artifacts/final-playtest-pass/nudge-comparison.md` |
-| 8 | Production origins | Render web + realtime server | 58/58 public/a11y/responsive/identity checks + two-client lobby; production performance pass | 2026-07-28 final |
+| 8 | Golden Master visual gate | desktop hero + phone lobby/question/result + responsive captures | pass | `artifacts/golden-master-pass/` and `artifacts/final-playtest-pass/` |
+| 8 | Production origins | existing Render web + realtime server | pending current revision deployment | 2026-07-30 |
 
 Test IDs covered so far: ENG-001..010 (detection, patch, follow-up-break, determinism,
 ledger, verdict boundary), evidence assignment (4/5/6), full 4/5/6 sessions, NO_RESPONSE

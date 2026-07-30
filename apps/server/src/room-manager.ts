@@ -90,6 +90,8 @@ export interface RoomManagerOptions {
   phaseDurationScale?: number;
   /** Test-only injection for reproducible authored assignments. */
   seedFactory?: () => string;
+  /** Test-only isolation: avoids cross-test pollution in one long-lived E2E server. */
+  disableRateLimits?: boolean;
 }
 
 export class RoomManager {
@@ -103,6 +105,7 @@ export class RoomManager {
   private log: Logger;
   private phaseDurationScale: number;
   private seedFactory: () => string;
+  private rateLimitsEnabled: boolean;
 
   constructor(opts: RoomManagerOptions = {}) {
     this.now = opts.now ?? Date.now;
@@ -112,6 +115,7 @@ export class RoomManager {
     this.log = opts.logger ?? createLogger();
     this.phaseDurationScale = opts.phaseDurationScale ?? 1;
     this.seedFactory = opts.seedFactory ?? (() => randomId("seed"));
+    this.rateLimitsEnabled = opts.disableRateLimits !== true;
   }
 
   // --- helpers ---
@@ -198,7 +202,9 @@ export class RoomManager {
     settings?: Partial<RoomSettings>;
     ip: string;
   }): ManagerResult<CreateResult> {
-    if (!this.limiter.check("create", params.ip)) return this.err("RATE_LIMITED");
+    if (this.rateLimitsEnabled && !this.limiter.check("create", params.ip)) {
+      return this.err("RATE_LIMITED");
+    }
     const caseId = params.caseId ?? DEFAULT_CASE_ID;
     if (!this.resolveCase(caseId)) return this.err("ACTION_NOT_ALLOWED", "unknown case");
 
@@ -224,7 +230,9 @@ export class RoomManager {
   }
 
   joinRoom(params: { code: string; name: string; ip: string }): ManagerResult<CreateResult> {
-    if (!this.limiter.check("join", params.ip)) return this.err("RATE_LIMITED");
+    if (this.rateLimitsEnabled && !this.limiter.check("join", params.ip)) {
+      return this.err("RATE_LIMITED");
+    }
     const room = this.getRoom(params.code);
     if (!room) {
       const tombstoneUntil = this.expiredCodes.get(params.code.toUpperCase());
@@ -310,10 +318,40 @@ export class RoomManager {
     return this.err("SESSION_INVALID");
   }
 
+  allowRestoreAttempt(identity: string): boolean {
+    return !this.rateLimitsEnabled || this.limiter.check("restore", identity);
+  }
+
+  identifyRecoveryToken(recoveryToken: string): { roomCode: string; playerId: string } | null {
+    for (const room of this.rooms.values()) {
+      if (room.status === "expired") continue;
+      for (const player of room.players) {
+        if (verifyToken(recoveryToken, player.sessionHash)) {
+          return { roomCode: room.code, playerId: player.id };
+        }
+      }
+    }
+    return null;
+  }
+
   bindSocket(code: string, playerId: string, socketId: string): string | null {
     const room = this.getRoom(code);
     const player = room?.players.find((p) => p.id === playerId);
     if (room && player) {
+      for (const candidateRoom of this.rooms.values()) {
+        for (const candidatePlayer of candidateRoom.players) {
+          if (
+            candidatePlayer.socketId !== socketId ||
+            (candidateRoom.code === room.code && candidatePlayer.id === player.id)
+          ) {
+            continue;
+          }
+          candidatePlayer.socketId = null;
+          candidatePlayer.connected = false;
+          if (candidatePlayer.isHost) this.transferHost(candidateRoom, candidatePlayer.id);
+          this.syncMatchPlayers(candidateRoom);
+        }
+      }
       const previousSocketId = player.socketId;
       player.socketId = socketId;
       player.connected = true;
@@ -399,10 +437,15 @@ export class RoomManager {
       return fail(safeError("INVALID_PAYLOAD"));
     }
 
-    if (!this.limiter.check("intent", player.id)) return fail(safeError("RATE_LIMITED"));
+    if (this.rateLimitsEnabled && !this.limiter.check("intent", player.id)) {
+      return fail(safeError("RATE_LIMITED"));
+    }
     if (!room.match) return fail(safeError("INVALID_PHASE"));
 
-    if (params.phaseRevision !== undefined && params.phaseRevision !== room.match.phaseRevision) {
+    if (
+      params.phaseRevision === undefined ||
+      params.phaseRevision !== room.match.phaseRevision
+    ) {
       return fail(safeError("STALE_REVISION"));
     }
     const now = this.now();

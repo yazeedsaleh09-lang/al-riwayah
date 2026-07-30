@@ -3,7 +3,7 @@
 export const SITE = {
   name: "الرواية",
   nameLatin: "AL RIWAYAH",
-  descriptor: "اتفقوا على كذبة. لا تخربونها.",
+  descriptor: "اتفقوا على رواية. ولا تختلفون.",
   descriptorLatin: "Keep the story straight.",
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://al-riwayah.example",
   locale: "ar_SA",
@@ -15,7 +15,7 @@ export const SITE = {
 export const NAV_LINKS = [
   { href: "/how-to-play", label: "كيف تُلعب" },
   { href: "/cases", label: "القضايا" },
-  { href: "/create", label: "أنشئ غرفة" },
+  { href: "/about", label: "عن اللعبة" },
 ] as const;
 
 /** Server origin for the realtime game (client-side). */

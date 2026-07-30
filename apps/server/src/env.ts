@@ -15,6 +15,8 @@ const envSchema = z.object({
   PHASE_DURATION_SCALE: z.coerce.number().min(0.01).max(1).default(1),
   /** Reproducible authored assignments for browser evidence; forbidden in production. */
   E2E_FIXED_SEED: z.string().min(1).optional(),
+  /** Render-provided source revision, used for release identification only. */
+  RENDER_GIT_COMMIT: z.string().regex(/^[0-9a-f]{7,40}$/i).optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

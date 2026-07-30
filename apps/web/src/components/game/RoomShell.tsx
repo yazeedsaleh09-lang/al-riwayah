@@ -7,6 +7,7 @@ import { getCase } from "@al-riwayah/content";
 import { PHASE_SEQUENCE, phaseIndex, type GameCase } from "@al-riwayah/game-engine";
 import { useGameRoom } from "@/lib/useGameRoom";
 import { DeadlineRing, useDeadlineExpired } from "./DeadlineRing";
+import { GameHeader } from "./GameHeader";
 import { PreferenceControls } from "../PreferenceControls";
 import { playCue, type Cue } from "@/lib/sound";
 
@@ -34,7 +35,9 @@ export function RoomShell({ code }: { code: string }) {
   const [busy, setBusy] = useState(false);
   const [shareStatus, setShareStatus] = useState("");
   const [showAnswerReceipt, setShowAnswerReceipt] = useState(false);
+  const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
   const [selectedPatchLabel, setSelectedPatchLabel] = useState<string | null>(null);
+  const [actionError, setActionError] = useState("");
   const { expired: deadlineExpired } = useDeadlineExpired(
     pub?.deadlineAt ?? null,
     pub?.serverTime ?? 0,
@@ -63,19 +66,21 @@ export function RoomShell({ code }: { code: string }) {
 
   useEffect(() => {
     setSelectedPatchLabel(null);
+    setSelectedOptionId(null);
+    setActionError("");
   }, [pub?.phaseRevision]);
 
   if (fatal === "NO_SESSION") {
     return (
-      <div className="game">
+      <main className="game" id="main">
         <div className="game__body">
           <h1>ما دخلت الغرفة بعد</h1>
           <p style={{ color: "var(--muted)" }}>تحتاج تدخل باسمك ورمز الغرفة أول.</p>
-          <Link className="btn btn--evidence" href={`/play?code=${encodeURIComponent(code)}`}>
+          <Link className="btn btn--evidence" href={`/join?code=${encodeURIComponent(code)}`}>
             ادخل برمز {code}
           </Link>
         </div>
-      </div>
+      </main>
     );
   }
 
@@ -108,7 +113,7 @@ export function RoomShell({ code }: { code: string }) {
 
   if (!pub || !priv) {
     return (
-      <div className="game">
+      <main className="game" id="main">
         <div className="game__body" aria-busy="true">
           <p className="eyebrow">اتصال مشفّر</p>
           <h1 className="game__prompt">نرجّع جلستك.</h1>
@@ -118,7 +123,7 @@ export function RoomShell({ code }: { code: string }) {
               : "نثبّت الاتصال ونستعيد آخر حالة آمنة…"}
           </p>
         </div>
-      </div>
+      </main>
     );
   }
 
@@ -129,17 +134,23 @@ export function RoomShell({ code }: { code: string }) {
   )?.label.ar;
   const run = async (fn: () => Promise<unknown>) => {
     setBusy(true);
+    setActionError("");
     try {
       await fn();
+    } catch {
+      setActionError("ما ثبت القرار. حدّثنا حالة الغرفة؛ راجع اختيارك وحاول مرة ثانية.");
     } finally {
       setBusy(false);
     }
   };
   const goToNewGroup = async () => {
     setBusy(true);
+    setActionError("");
     try {
       const session = await actions.newGroup();
       router.push(`/room/${session.roomCode}`);
+    } catch {
+      setActionError("تعذّر فتح مجموعة جديدة. حاول مرة ثانية.");
     } finally {
       setBusy(false);
     }
@@ -171,9 +182,17 @@ export function RoomShell({ code }: { code: string }) {
     gameCase?.planning.locations.find((l) => l.id === id)?.label.ar ?? id;
   const roleLabel = (id: string) =>
     gameCase?.planning.roles.find((r) => r.id === id)?.label.ar ?? id;
+  const isQuestion = INTERROGATION.has(phase);
+  const isResult = phase === "VERDICT" || phase === "RESULTS";
 
   return (
-    <main className="game" id="main" data-phase={phase}>
+    <main
+      className={`game ${phase === "LOBBY" ? "gm-lobby" : ""} ${
+        isQuestion ? "gm-question" : ""
+      } ${isResult ? "gm-result" : ""}`}
+      id="main"
+      data-phase={phase}
+    >
       <p className="visually-hidden" role="status" aria-live="polite" aria-atomic="true">
         المرحلة الحالية: {phaseTitle(phase)}
       </p>
@@ -186,49 +205,88 @@ export function RoomShell({ code }: { code: string }) {
         </div>
       )}
 
-      <div className="game__top">
-        <div className="game__phase">
-          <span>{phaseTitle(phase)}</span>
-          <bdi className="mono">
-            {String(phaseIndex(phase) + 1).padStart(2, "0")} / {PHASE_SEQUENCE.length}
-          </bdi>
+      {phase === "LOBBY" ? (
+        <GameHeader variant="lobby" connected={connected} />
+      ) : isQuestion ? (
+        <GameHeader
+          variant="question"
+          connected={connected}
+          caseTitle={gameCase?.title.ar}
+          questionNumber={questionNumber(phase)}
+          deadlineAt={pub.deadlineAt}
+          serverTime={pub.serverTime}
+        />
+      ) : isResult ? (
+        <GameHeader variant="result" connected={connected} />
+      ) : (
+        <div className="game__top">
+          <div className="game__phase">
+            <span>{phaseTitle(phase)}</span>
+            <bdi className="mono">
+              {String(phaseIndex(phase) + 1).padStart(2, "0")} / {PHASE_SEQUENCE.length}
+            </bdi>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+            <PreferenceControls compact />
+            <DeadlineRing deadlineAt={pub.deadlineAt} serverTime={pub.serverTime} />
+          </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
-          <PreferenceControls compact />
-          <DeadlineRing deadlineAt={pub.deadlineAt} serverTime={pub.serverTime} />
-        </div>
-      </div>
+      )}
 
-      {INTERROGATION.has(phase) && (
+      {isQuestion && (
         <p className="game__banner" aria-live="polite">
           من هنا كل واحد لحاله — لا تتكلمون
         </p>
       )}
 
       <div className="game__body" key={phase}>
+        {actionError && (
+          <p className="action-error" role="alert">
+            {actionError}
+          </p>
+        )}
         {/* LOBBY */}
         {phase === "LOBBY" && (
           <>
-            <p className="eyebrow">رمز الغرفة</p>
-            <p className="room-code">{pub.roomCode}</p>
-            <p style={{ color: "var(--muted)" }}>شارك الرمز مع الشلة</p>
-            <button className="btn btn--ghost" type="button" onClick={() => void shareRoom()}>
-              شارك رابط الدخول
-            </button>
+            <section className="gm-lobby__intro">
+              <p>الجلسة جاهزة</p>
+              <h1>جمّعوا الشلة.</h1>
+              <div>
+                شارك الرمز، وخليكم جاهزين. تبدأ اللعبة لما يدخل ٤ لاعبين على
+                <br />
+                الأقل.
+              </div>
+            </section>
+            <section className="gm-room-card" aria-label="رمز الغرفة">
+              <div>
+                <span>رمز الغرفة</span>
+                <bdi className="room-code">{pub.roomCode}</bdi>
+              </div>
+              <button type="button" onClick={() => void shareRoom()} aria-label="شارك رابط الدخول">
+                ↗
+              </button>
+            </section>
             <p className="share-status" aria-live="polite">
               {shareStatus}
             </p>
             <ul className="roster">
               {pub.players.map((p) => (
                 <li key={p.id}>
+                  <span className="gm-player-avatar" aria-hidden>
+                    {p.name.trim().charAt(0)}
+                  </span>
+                  <span className="gm-player-identity">
+                    <strong>{p.name}</strong>
+                    <small>
+                      {!p.connected ? "غير متصل" : p.isHost ? "منشئ الغرفة" : "دخل قبل شوي"}
+                    </small>
+                  </span>
                   <span
-                    className={`dot ${p.connected ? "is-on" : ""} ${p.ready ? "is-ready" : ""}`}
-                    aria-hidden
-                  />
-                  {p.name}
-                  {p.isHost ? <span className="roster__host">منشئ الغرفة</span> : null}
-                  <span className="roster__state">
-                    {!p.connected ? "غير متصل" : p.ready ? "جاهز" : "بانتظار الجاهزية"}
+                    className={`gm-player-badge ${
+                      p.ready ? "gm-player-badge--ready" : "gm-player-badge--waiting"
+                    }`}
+                  >
+                    {p.ready ? "جاهز" : "ينتظر"}
                   </span>
                 </li>
               ))}
@@ -402,27 +460,78 @@ export function RoomShell({ code }: { code: string }) {
               ) : (
                 <>
                 <h1 className="game__prompt">{priv.currentQuestion.prompt.ar}</h1>
+                <p className="gm-question__helper">
+                  اختر اللي تتذكره أنه جزء من الرواية. ما تقدر ترجع بعد التثبيت.
+                </p>
+                <aside className="gm-private-info">
+                  <span>المعلومة الخاصة بك:</span>{" "}
+                  {priv.privateEvidence?.detail.ar ??
+                    "الدليل اللي وصلك قبل التحقيق يخص إجابتك وحدك."}
+                </aside>
                 <div className="game__actions" role="radiogroup" aria-label="اختر إجابة واحدة">
                   {priv.currentQuestion.options.map((o) => (
                     <button
                       key={o.id}
                       role="radio"
-                      aria-checked={priv.submittedOptionId === o.id}
-                      className={`option-btn ${priv.submittedOptionId === o.id ? "is-selected" : ""}`}
-                      disabled={priv.answerLocked || busy}
-                      onClick={() =>
-                        run(async () => {
-                          await actions.answer(priv.currentQuestion!.instanceId, o.id);
-                          playCue("lock");
-                        })
+                      aria-checked={
+                        (priv.submittedOptionId ?? selectedOptionId) === o.id
                       }
+                      className={`option-btn ${
+                        (priv.submittedOptionId ?? selectedOptionId) === o.id
+                          ? "is-selected"
+                          : ""
+                      }`}
+                      disabled={priv.answerLocked || busy}
+                      onClick={(event) => {
+                        setSelectedOptionId(o.id);
+                        event.currentTarget.focus();
+                      }}
+                      onKeyDown={(event) => {
+                        if (!["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight"].includes(event.key)) {
+                          return;
+                        }
+                        event.preventDefault();
+                        const options = priv.currentQuestion!.options;
+                        const currentIndex = options.findIndex((option) => option.id === o.id);
+                        const direction =
+                          event.key === "ArrowDown" || event.key === "ArrowLeft" ? 1 : -1;
+                        const nextIndex = (currentIndex + direction + options.length) % options.length;
+                        const nextOption = options[nextIndex]!;
+                        setSelectedOptionId(nextOption.id);
+                        const buttons =
+                          event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>(
+                            '[role="radio"]',
+                          );
+                        buttons?.[nextIndex]?.focus();
+                      }}
                     >
-                      {o.label.ar}
+                      <span>{o.label.ar}</span>
+                      <span className="gm-option-radio" aria-hidden>
+                        <i />
+                      </span>
                     </button>
                   ))}
                 </div>
+                <button
+                  className="gm-question__confirm"
+                  type="button"
+                  disabled={
+                    priv.answerLocked || busy || deadlineExpired || selectedOptionId === null
+                  }
+                  aria-label="ثبّت الإجابة"
+                  onClick={() => {
+                    if (!selectedOptionId || !priv.currentQuestion) return;
+                    void run(async () => {
+                      await actions.answer(priv.currentQuestion!.instanceId, selectedOptionId);
+                      playCue("lock");
+                    });
+                  }}
+                >
+                  ثبّت الإجابة
+                </button>
                 {priv.answerLocked && (
                   <p
+                    className="gm-question__locked"
                     aria-live="polite"
                     style={{ textAlign: "center", color: "var(--success-600)", fontWeight: 700 }}
                   >
@@ -554,28 +663,53 @@ export function RoomShell({ code }: { code: string }) {
         {/* VERDICT / RESULTS */}
         {(phase === "VERDICT" || phase === "RESULTS") && pub.result && (
           <>
-            <p className="eyebrow">الحكم</p>
-            <p className="verdict-band">{pub.result.band}</p>
-            <h1 className="game__prompt">{pub.result.label.ar}</h1>
-            <p>{pub.result.summary.ar}</p>
-            <h2 className="result-section-title">كيف وصلت الرواية إلى الحكم؟</h2>
+            <section className="gm-verdict-panel">
+              <div className="gm-verdict-copy">
+                <span>الحكم النهائي</span>
+                <h1>
+                  روايتكم
+                  <br />
+                  <em>{pub.result.label.ar}</em>
+                </h1>
+              </div>
+              <div className="gm-score-orbit" aria-label={`النتيجة ${pub.result.composite} من 100`}>
+                <strong className="verdict-band">{pub.result.composite}</strong>
+                <span>من 100</span>
+              </div>
+            </section>
+            <section className="gm-metrics" aria-label="مقاييس النتيجة">
+              <MetricCard label="الاتساق" value={pub.result.scores.consistency} />
+              <MetricCard label="المعقولية" value={pub.result.scores.plausibility} />
+              <MetricCard label="الثبات" value={pub.result.scores.stability} />
+            </section>
             <div className="result-story" aria-label="ملخص التحقيق">
               {pub.result.firstFracture && (
-                <div>
-                  <span className="eyebrow">أول شرخ</span>
+                <div className="gm-recap gm-recap--danger">
+                  <header>
+                    <span>أسوأ تناقض</span>
+                    {pub.result.primarySuspectPlayerName && (
+                      <b>{pub.result.primarySuspectPlayerName}</b>
+                    )}
+                  </header>
                   <p>{pub.result.firstFracture.ar}</p>
+                  <small>هذا الجواب رفع الشك وفتح سؤالين إضافيين على المجموعة.</small>
                 </div>
               )}
               {pub.result.strongestPatch && (
-                <div>
-                  <span className="eyebrow">أقوى ترقيعة</span>
+                <div className="gm-recap gm-recap--success">
+                  <header>
+                    <span>أفضل ترقيعة</span>
+                    {pub.result.mostConsistentPlayerName && (
+                      <b>{pub.result.mostConsistentPlayerName}</b>
+                    )}
+                  </header>
                   <p>{pub.result.strongestPatch.ar}</p>
                 </div>
               )}
               {pub.result.costliestPatch &&
                 pub.result.costliestPatch.ar !== pub.result.strongestPatch?.ar && (
-                <div>
-                  <span className="eyebrow">أغلى ترقيعة</span>
+                <div className="gm-recap">
+                  <span className="eyebrow">ترقيعة مكلفة</span>
                   <p>{pub.result.costliestPatch.ar}</p>
                 </div>
                 )}
@@ -592,8 +726,7 @@ export function RoomShell({ code }: { code: string }) {
                 </div>
               )}
             </div>
-            <h2 className="result-section-title">أثر التفاصيل على الرواية</h2>
-            <div className="axes">
+            <div className="axes gm-result__legacy-axes" aria-hidden="true">
               <ScoreAxis label="تماسك الرواية" v={pub.result.scores.consistency} />
               <ScoreAxis label="معقولية الرواية" v={pub.result.scores.plausibility} />
               <ScoreAxis label="الثبات" v={pub.result.scores.stability} />
@@ -759,6 +892,15 @@ function ScoreAxis({ label, v, evasion }: { label: string; v: number; evasion?: 
   );
 }
 
+function MetricCard({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="gm-metric-card">
+      <strong>{value}</strong>
+      <span>{label}</span>
+    </div>
+  );
+}
+
 function phaseTitle(phase: string): string {
   const map: Record<string, string> = {
     LOBBY: "الغرفة",
@@ -782,4 +924,15 @@ function phaseTitle(phase: string): string {
     RESULTS: "النتيجة",
   };
   return map[phase] ?? phase;
+}
+
+function questionNumber(phase: string): number {
+  const map: Record<string, number> = {
+    INTERROGATION_FOUNDATION: 1,
+    INTERROGATION_GAPS: 2,
+    INTERROGATION_NO_GOOD_ANSWER: 3,
+    INTERROGATION_FOLLOWUP: 4,
+    FINAL_QUESTION: 5,
+  };
+  return map[phase] ?? 1;
 }

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PublicRoomView, PrivatePlayerView } from "@al-riwayah/game-engine";
 import { createNewGroup, emitIntent, getSocket, loadSession, updateToken } from "./game-client";
-import type { ConnectionStage } from "./game-client";
+import type { ConnectionStage, SessionInfo } from "./game-client";
 
 export interface RoomState {
   publicView: PublicRoomView | null;
@@ -11,6 +11,16 @@ export interface RoomState {
   connected: boolean;
   fatal: string | null;
   playerId: string | null;
+}
+
+async function checkedIntent<T = unknown>(
+  event: string,
+  payload: unknown,
+  extra: Record<string, unknown> = {},
+): Promise<T> {
+  const ack = await emitIntent<T>(event, payload, extra);
+  if (!ack.ok) throw new Error(ack.error.code);
+  return ack.data;
 }
 
 export function useGameRoom(code: string) {
@@ -52,14 +62,28 @@ export function useGameRoom(code: string) {
       setConnectionStage("retrying");
       startUnavailableTimer();
     };
+    const restoreSession = async () => {
+      const current = loadSession(code);
+      if (!current) {
+        setFatal("NO_SESSION");
+        return;
+      }
+      const ack = await emitIntent<Partial<SessionInfo> & { synced?: boolean }>("room:restore", {
+        recoveryToken: current.recoveryToken,
+      });
+      if (ack.ok) {
+        if (ack.data.recoveryToken) updateToken(code, ack.data.recoveryToken);
+        return;
+      }
+      setFatal(ack.error.code === "SESSION_INVALID" ? "NO_SESSION" : "SERVER_UNAVAILABLE");
+    };
     const onConnect = () => {
       clearUnavailableTimer();
       setConnected(true);
       setConnectionStage("ready");
       setFatal(null);
       // (Re)bind this socket to the player via the recovery token.
-      const s = loadSession(code);
-      if (s) void emitIntent("room:restore", { recoveryToken: s.recoveryToken });
+      void restoreSession();
     };
     const onDisconnect = () => {
       setConnected(false);
@@ -101,20 +125,20 @@ export function useGameRoom(code: string) {
 
   const withRev = useCallback(
     (event: string, payload: unknown) =>
-      emitIntent(event, payload, { phaseRevision: revisionRef.current }),
+      checkedIntent(event, payload, { phaseRevision: revisionRef.current }),
     [],
   );
 
   const actions = {
-    setReady: (ready: boolean) => emitIntent("player:setReady", { ready }),
-    start: () => emitIntent("match:start", {}),
+    setReady: (ready: boolean) => checkedIntent("player:setReady", { ready }),
+    start: () => checkedIntent("match:start", {}),
     acknowledge: () => withRev("phase:acknowledge", {}),
     propose: (fieldId: string, value: string) => withRev("story:propose", { fieldId, value }),
     confirm: (fieldId: string) => withRev("story:confirm", { fieldId }),
     answer: (questionInstanceId: string, optionId: string) =>
       withRev("answer:submit", { questionInstanceId, optionId }),
     patchVote: (patchId: string) => withRev("patch:vote", { patchId }),
-    replay: () => emitIntent("result:replay", {}),
+    replay: () => checkedIntent("result:replay", {}),
     newGroup: () => createNewGroup(code),
   };
 

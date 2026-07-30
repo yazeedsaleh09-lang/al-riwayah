@@ -6,8 +6,9 @@ Updated: 2026-07-27
 ## Brand position
 
 AL RIWAYAH is a social interrogation game about one shared statement fracturing under
-pressure. The interface is forensic, social, and uncompromising. It is not parchment,
-nostalgic editorial, horror, cyberpunk, or a SaaS dashboard.
+pressure. The approved interface is a warm editorial dossier: paper, ink, restrained
+evidence red, muted green, thin rules, stamps, timestamps, and red evidence threads.
+It is forensic and social without becoming horror, cyberpunk, or a SaaS dashboard.
 
 ## Three-layer tokens
 
@@ -15,17 +16,15 @@ nostalgic editorial, horror, cyberpunk, or a SaaS dashboard.
 
 | Token          | Value     |
 | -------------- | --------- |
-| `--black-1000` | `#050505` |
-| `--black-900`  | `#111214` |
-| `--white-0`    | `#FFFFFF` |
-| `--white-50`   | `#F7F7F5` |
-| `--gray-400`   | `#9A9CA1` |
-| `--gray-200`   | `#D7D8DA` |
-| `--gray-800`   | `#2B2D31` |
-| `--blue-600`   | `#2855FF` |
-| `--blue-700`   | `#173BE0` |
-| `--green-600`  | `#0A7A52` |
-| `--amber-600`  | `#9B5B00` |
+| `--paper`      | `#EEE3D1` |
+| `--paper-hi`   | `#FBF5EB` |
+| `--paper-mid`  | `#E3D5C1` |
+| `--ink`        | `#171612` |
+| `--muted`      | `#665E54` |
+| `--red`        | `#BD3D32` |
+| `--red-dark`   | `#922A24` |
+| `--green`      | `#345F55` |
+| `--yellow`     | `#E4BB52` |
 
 Spacing: 4, 8, 12, 16, 24, 32, 48, 72, 96, 144px.
 Radius: 0, 8, 16px and full pill for compact status only.
@@ -47,10 +46,10 @@ Radius: 0, 8, 16px and full pill for compact status only.
 
 ### Component
 
-- Buttons: 48px minimum, 8px radius, exact-property transitions, 0.98 active scale.
-- Inputs: 56px minimum, visible label, neutral border, cobalt focus ring.
-- Navigation: fixed compact rail; mobile menu is a full-height controlled sheet.
-- Evidence frame: inverse surface plus one cobalt relation line, no generic card shadow.
+- Buttons: 44px minimum, square dossier geometry, exact-property transitions, 0.98 active scale.
+- Inputs: 56px minimum, visible label, neutral border, high-contrast ink focus ring.
+- Navigation: compact ruled header; mobile menu is controlled and keyboard reachable.
+- Evidence frame: layered paper surface plus restrained red relation lines.
 - Game option: 56px minimum; selected state uses border, text, and status mark.
 - Legal sections: numbered/indexed rail plus 44–68ch reading column.
 - Loading: fracture-line progress with honest connection-stage text and retry.
@@ -81,8 +80,8 @@ changes while keeping immediate opacity/color feedback and all explanatory conte
 
 ## Route composition
 
-- Home: statement-fracture hero → testimony ticker → sticky core loop → contradiction
-  proof → patch cost → playable case → report → room FAQ → decisive CTA.
+- Home: approved evidence-board hero → three-step core loop → private phone preview →
+  playable case → decisive CTA.
 - Create/join: split task surface with connection preparation and one primary action.
 - How to play: 60-second opening, three acts, worked contradiction, room etiquette.
 - Cases: one dominant playable case, future concepts as restrained index entries.
@@ -93,7 +92,7 @@ changes while keeping immediate opacity/color feedback and all explanatory conte
 
 ## Absolute prohibitions
 
-- Beige, parchment, paper grain, evidence red, police tape, fingerprints.
+- Cobalt/neon dashboards, police tape, fingerprints, and generic crime photography.
 - Repeated icon-heading-text card grids.
 - Gradient text, decorative glass, ambient blobs, generic crime imagery.
 - Centered legal paragraphs.

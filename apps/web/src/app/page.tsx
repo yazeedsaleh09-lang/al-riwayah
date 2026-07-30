@@ -1,4 +1,6 @@
 import { ApprovedHome } from "@/components/ApprovedHome";
+import { HomeContinuation } from "@/components/HomeContinuation";
+import { SiteFooter } from "@/components/SiteFooter";
 import { SITE } from "@/lib/site";
 
 const jsonLd = {
@@ -20,6 +22,8 @@ export default function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <ApprovedHome />
+      <HomeContinuation />
+      <SiteFooter />
     </>
   );
 }

@@ -1,19 +1,21 @@
-# AL RIWAYAH local release-candidate readiness
+# AL RIWAYAH release-candidate readiness
 
-Date: 2026-07-28
+Date: 2026-07-30
 Branch: `main`
-Status: **production quality gate passed**
+Status: **local production gate passed; same-service deployment verification pending**
 
-## Approved direction
+## Baseline and approved direction
 
-The release uses the light editorial direction. Its signature is the non-circular
-Versioned Testimony editor: one shared statement can be scrubbed between authored
-revisions, then the product journey carries that cause-and-effect language through
-the lobby, private answers, contradiction, patch, and result.
+This release completes the existing repository and preserves the approved Golden
+Master evidence-board hero, phone lobby, selected-answer question, and verdict
+composition. It does not introduce a replacement application, parallel frontend,
+new repository, or alternate deployment target.
 
-The Alibi Table / circular player-seat concept is removed. No active hero, lobby,
-or gameplay surface depends on a circular or radial player composition. Existing
-authoritative multiplayer behavior and public/private view boundaries remain intact.
+The homepage now continues below the locked hero with the missing product
+explanation, three-step loop, phone interaction preview, available-case record,
+and final create/join action. On small screens the large desktop evidence board is
+not squeezed into the viewport; the continuation carries the story with native
+mobile layouts.
 
 ## Fresh local verification
 
@@ -22,52 +24,62 @@ authoritative multiplayer behavior and public/private view boundaries remain int
 | `pnpm.cmd install --frozen-lockfile` | pass; lockfile current |
 | `pnpm.cmd lint` | pass |
 | `pnpm.cmd typecheck` | pass across 6 workspace projects |
-| `pnpm.cmd test` | 93 passed in 13 files |
+| `pnpm.cmd test` | 141 passed in 19 files |
+| `pnpm.cmd test:coverage` | pass; statements 89%+, branches 81%+, functions 93%+, lines 93%+ |
 | `pnpm.cmd --filter @al-riwayah/content validate` | pass; authored case valid |
-| `pnpm.cmd test:integration` | 26 passed in 3 files |
-| `pnpm.cmd test:security` | 11 passed |
-| production `pnpm.cmd build` with documented HTTPS origins | pass; 14 Next routes |
-| `pnpm.cmd test:e2e` | 62 passed; production-only performance case intentionally skipped |
+| `pnpm.cmd test:integration` | 41 passed in 5 files |
+| `pnpm.cmd test:security` | 14 passed in 2 files |
+| production `pnpm.cmd build` with the existing Render HTTPS origins | pass; 15 Next routes |
+| `pnpm.cmd test:e2e` | 85 passed; production-only performance case intentionally skipped |
 | production performance case | pass |
-| 4-player browser match | pass; duplicate rejection, private receipt, contradiction, patch, result, replay |
+| 4-player browser match | pass; select/confirm, duplicate rejection, contradiction, patch, result, replay |
 | 5-player browser match | pass; refresh/recovery and clean new group |
-| 6-player browser match | pass; disconnect, server-timed missing answer, reconnect-safe result |
-| responsive route matrix | pass at 320, 360, 390, 430, 768, 1280, 1440, and 1920 |
-| Nudge side-by-side reviewer gate | pass; all 12 categories at 9.0 or above |
+| 6-player browser match | pass; disconnect, server-timed missing answer, recovery, result |
+| responsive matrix | pass from 320×568 through 1920×1080 |
+| accessibility | no serious/critical axe findings on public routes and representative game phases |
 
-Final Render production metrics from `performance-report.json`:
+The last production-bundle performance capture in `performance-report.json`:
 
-- LCP: **936ms**
-- CLS: **0.015**
-- script transfer: **196,882 bytes**
-- longest main-thread task: **119ms**
-- security headers: CSP, `X-Frame-Options: DENY`, and
-  `X-Content-Type-Options: nosniff` present
+- LCP: **768ms**
+- CLS: **0**
+- script transfer: **193,458 bytes**
+- longest main-thread task: **153ms**
+- CSP, `X-Frame-Options: DENY`, and `X-Content-Type-Options: nosniff` present
+
+## Authority and security evidence
+
+- Every gameplay intent requires `phaseRevision` at schema and manager boundaries.
+- The server remains authoritative for deadlines, completion, contradictions,
+  private assignment, scoring, and results.
+- Public DTOs are recursively checked for private questions, evidence, answers,
+  tokens, and unreleased contradictions.
+- Invalid, cached, stale, or future-revision intents do not rebroadcast room views.
+- A socket cannot bind to multiple players or rooms; an already-bound exact-session
+  restore is an idempotent view sync.
+- A genuine restore on a new socket rotates the bearer token.
+- Restore scans, create/join attempts, and gameplay bursts remain rate-limited in
+  production. The reproducible E2E server uses an explicit test-only bypass that is
+  rejected in production.
+- Disconnected active players remain part of phase completion until the server
+  deadline applies fallback behavior.
 
 ## Evidence
 
-- Nudge comparison: `artifacts/final-playtest-pass/nudge-comparison.md`
-- Reference and AL RIWAYAH captures:
-  `artifacts/publishable-design-v3/nudge-benchmark/` and
-  `artifacts/publishable-design-v3/production/`
-- Public route matrix: `artifacts/final-playtest-pass/after/`
+- Public route captures: `artifacts/final-playtest-pass/after/`
+- Golden Master captures: `artifacts/golden-master-pass/`
 - 4/5/6-player states: `artifacts/final-playtest-pass/full-match/`
 - Active-game responsive matrix: `artifacts/final-playtest-pass/responsive-game/`
 - Homepage and gameplay motion: `artifacts/final-playtest-pass/motion/`
 - Performance: `artifacts/final-playtest-pass/performance-report.json`
+- Route inventory: `artifacts/final-playtest-pass/route-inventory.md`
 
-## Production verification
+## Production verification required after push
 
-- `origin/main` matched the deployed code SHA before the final evidence-only record;
-- Render served the new CSS fingerprint with the low-contrast entry keyframe absent;
-- the live production matrix passed **58/58** checks across public routes,
-  accessibility, keyboard operation, identity/motion, responsive layouts, and a
-  two-browser create/join lobby;
-- final Render performance and security-header budgets passed;
-- the production homepage was recaptured and interacted with at 390×844,
-  768×1024, 1440×900, and 1920×1080;
-- the strict ECC reviewer repeated the Nudge scorecard against those production
-  captures and kept every category at 9.0 or above.
+The release must update the existing `al-riwayah-web` and `al-riwayah-server`
+Render services. Completion requires both services to report the pushed revision,
+the two existing URLs to pass health/public smoke checks, and a live create/join/
+reconnect flow. This section must be updated with the deployed revision after that
+verification; prior production evidence does not prove this release.
 
 Human fun, social tension, and fairness findings remain post-handoff activities in
 `PLAYTEST_PLAN.md`; automation cannot fabricate them.

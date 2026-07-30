@@ -5,7 +5,7 @@ Internal identifier: `al-riwayah`
 Product type: mobile-first local multiplayer party game + complete marketing website  
 Gameplay devices: **players' phones only; no television required**  
 Supported players: **4–6**  
-Target session: **10–15 minutes**  
+Target session: **13–18 minutes**
 Primary language: **Arabic, RTL, Saudi-friendly conversational copy**  
 Secondary language readiness: English architecture, optional later localization
 

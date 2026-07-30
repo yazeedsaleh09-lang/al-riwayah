@@ -2,10 +2,10 @@
 
 ## Current state
 
-- Current phase: Phase 8 release — local gate passed, same-service deployment pending
+- Current phase: Phase 8 release — deployed and verified on the existing Render services
 - Last update: 2026-07-30
 - Branch: `main`
-- Implementation status: approved Golden Master product completion + one-case authoritative realtime game, verified locally through coverage, responsive, accessibility, reduced-motion, production performance, and real 4/5/6-client browser runs
+- Implementation status: approved Golden Master product completion + one-case authoritative realtime game, verified locally and in production through coverage, responsive, accessibility, reduced-motion, production performance, real 4/5/6-client browser runs, and a live four-client Render smoke match
 - Product specification: Complete initial version
 - Human playtests completed: 0
 
@@ -83,7 +83,7 @@
 | 6–8 | Browser matrix | `pnpm test:e2e` | 62 passed, 1 production-only skip | 2026-07-28 local final |
 | 6–8 | Production performance/headers | `E2E_PRODUCTION=1 … performance.spec.ts` | 1 passed | `artifacts/final-playtest-pass/performance-report.json` |
 | 8 | Golden Master visual gate | desktop hero + phone lobby/question/result + responsive captures | pass | `artifacts/golden-master-pass/` and `artifacts/final-playtest-pass/` |
-| 8 | Production origins | existing Render web + realtime server | pending current revision deployment | 2026-07-30 |
+| 8 | Production origins | existing Render web + realtime server | pass; product commit `dd00b83`, HTTP 200, health version match, live four-client match to results + replay | 2026-07-30 |
 
 Test IDs covered so far: ENG-001..010 (detection, patch, follow-up-break, determinism,
 ledger, verdict boundary), evidence assignment (4/5/6), full 4/5/6 sessions, NO_RESPONSE

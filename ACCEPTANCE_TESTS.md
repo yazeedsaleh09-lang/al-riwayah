@@ -203,9 +203,11 @@ tests, 14 security tests, enforced 80% coverage on every metric, the complete
 accessibility/keyboard and responsive matrices, and the production performance
 case passed. The Playwright aggregate passed 85 executed tests with its
 production-only performance case skipped there and passed separately. The
-4/5/6-player UI matches passed. Same-service Render verification is recorded
-separately after deployment; see
-`artifacts/final-playtest-pass/final-readiness-report.md`.
+4/5/6-player UI matches passed. Same-service Render verification also passed for
+product commit `dd00b83`: GitHub Actions succeeded, the existing web and
+realtime URLs returned HTTP 200, the server reported the deployed revision, and
+a live four-client production room reached results and replayed with private
+answers cleared. See `artifacts/final-playtest-pass/final-readiness-report.md`.
 
 Automatable release requires:
 

@@ -2,7 +2,7 @@
 
 Date: 2026-07-30
 Branch: `main`
-Status: **local production gate passed; same-service deployment verification pending**
+Status: **released and verified on the existing production services**
 
 ## Baseline and approved direction
 
@@ -37,6 +37,8 @@ mobile layouts.
 | 6-player browser match | pass; disconnect, server-timed missing answer, recovery, result |
 | responsive matrix | pass from 320×568 through 1920×1080 |
 | accessibility | no serious/critical axe findings on public routes and representative game phases |
+| pre-push release gate | pass; lint, typecheck, 141 tests, and production build |
+| GitHub Actions `Quality #1` | pass for commit `dd00b8311654c8b175dc8f94b578318e5a8cfc3b` |
 
 The last production-bundle performance capture in `performance-report.json`:
 
@@ -73,13 +75,24 @@ The last production-bundle performance capture in `performance-report.json`:
 - Performance: `artifacts/final-playtest-pass/performance-report.json`
 - Route inventory: `artifacts/final-playtest-pass/route-inventory.md`
 
-## Production verification required after push
+## Production verification
 
-The release must update the existing `al-riwayah-web` and `al-riwayah-server`
-Render services. Completion requires both services to report the pushed revision,
-the two existing URLs to pass health/public smoke checks, and a live create/join/
-reconnect flow. This section must be updated with the deployed revision after that
-verification; prior production evidence does not prove this release.
+- Product commit: `dd00b8311654c8b175dc8f94b578318e5a8cfc3b`
+- GitHub Actions: `Quality #1` completed successfully.
+- Existing web service: `https://al-riwayah.onrender.com`
+- Existing realtime service: `https://al-riwayah-server.onrender.com`
+- Server health returned HTTP 200 and `version: "dd00b83"`.
+- `/`, `/about`, and `/join` returned HTTP 200 from the existing web service.
+- The deployed homepage footer reported `نسخة: dd00b83`.
+- A live production browser check at 1440×900 and 390×844 confirmed the approved
+  hero, mobile navigation, keyboard Escape behavior, hydration, and no console
+  warnings or errors.
+- Four real production Socket.IO clients created and joined one room, held four
+  distinct private player projections, traversed the authoritative sequence to
+  `RESULTS` at revision 18, received a released verdict, and replayed to
+  `CASE_BRIEF` with prior private answers cleared.
+- Final Git parity after deployment: `HEAD == origin/main` at the product commit
+  before this evidence-only documentation update.
 
 Human fun, social tension, and fairness findings remain post-handoff activities in
 `PLAYTEST_PLAN.md`; automation cannot fabricate them.

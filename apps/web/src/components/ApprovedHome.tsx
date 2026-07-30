@@ -37,10 +37,18 @@ export function ApprovedHome() {
           <div className={classes("reveal", styles.eyebrow, styles.reveal)}>
             لعبة جماعية لـ٤–٦ أشخاص
           </div>
-          <h1 className={classes("reveal", styles.reveal)}>
-            اتفقوا على رواية.
-            <br />
-            <em>ولا تختلفون.</em>
+          <h1
+            className={classes("reveal", styles.reveal)}
+            aria-label="اتفقوا على الرواية. ولا تختلفون."
+          >
+            <span data-hero-line="1" aria-hidden="true">اتفقوا على</span>
+            <span data-hero-line="2" aria-hidden="true">
+              <span>الرواية. </span>
+              <em>ولا</em>
+            </span>
+            <span data-hero-line="3" aria-hidden="true">
+              <em>تختلفون.</em>
+            </span>
           </h1>
           <p className={classes("reveal", styles.lede, styles.reveal)}>
             كل واحد يجاوب لحاله. أول تفصيلة ما تركب تفتح الملف عليكم وتجرّكم لأسئلة أصعب.
@@ -61,7 +69,6 @@ export function ApprovedHome() {
             <span>١٣–١٨ دقيقة</span>
             <span>بدون تحميل</span>
           </div>
-          <div className={styles.handNote}>مين كان عند الباب؟</div>
         </section>
 
         <section

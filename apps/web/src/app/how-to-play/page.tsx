@@ -1,115 +1,79 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { SiteNav } from "@/components/SiteNav";
 import { SiteFooter } from "@/components/SiteFooter";
-import { GalleryRail } from "@/components/GalleryRail";
-import { ContradictionDemo } from "@/components/ContradictionDemo";
+import { SiteNav } from "@/components/SiteNav";
+import {
+  ActionGroup,
+  SectionHeader,
+  SimpleCard,
+  SimplePageHero,
+  StepCard,
+} from "@/components/SimpleUI";
 
 export const metadata: Metadata = {
   title: "كيف تُلعب",
-  description: "شرح كامل لطريقة لعب الرواية: من الاتفاق إلى التحقيق إلى التقرير.",
+  description: "طريقة لعب الرواية في أقل من دقيقة.",
   alternates: { canonical: "/how-to-play" },
 };
 
-const ETIQUETTE = [
-  ["وقت التخطيط", "الكلام مسموح ومطلوب. اتفقوا على الرواية بصوت عالٍ."],
-  ["وقت التحقيق", "لا كلام، ولا تورّي شاشتك. كل واحد يجاوب لحاله."],
-  ["وقت التناقض", "ارفعوا أصواتكم. ناقشوا التناقض واختاروا ترقيعة واحدة."],
-  ["السؤال الأخير", "صمت تام. آخر إجابة تُقفل الرواية."],
+const FLOW = [
+  "تجهيز الغرفة",
+  "السؤال السري",
+  "انتظار اللاعبين",
+  "كشف التناقض",
+  "السؤال الأصعب",
+  "النتيجة",
 ] as const;
 
 export default function HowToPlay() {
   return (
     <>
       <SiteNav />
-      <main id="main" className="guide-page">
-        <header className="page-hero page-hero--guide">
-          <div className="container">
-            <p className="section-label">الشرح في أقل من دقيقة</p>
-            <h1>
-              رواية واحدة.
-              <br />
-              ستة شهود سيئين.
-            </h1>
-            <div className="page-hero__summary">
-              <p>
-                اتفقوا على اللي صار. بعدها ينفصل كل لاعب بجواله ويجاوب بدون مساعدة. كل تعارض واضح
-                يصير تناقضًا لازم تصلحونه قبل التقرير.
-              </p>
-              <span className="mono">06 مراحل / 13–18 دقيقة</span>
+      <main id="main" className="simple-page">
+        <SimplePageHero
+          label="كيف تلعب"
+          title="من رواية واحدة إلى نتيجة تكشف كل شيء."
+          copy="اتفقوا على اللي صار، وبعدها كل واحد يجاوب لحاله. التناقضات ترجعكم للنقاش قبل التقرير النهائي."
+        />
+
+        <section className="simple-section" aria-labelledby="steps-title">
+          <div className="simple-container">
+            <SectionHeader label="ثلاث خطوات" title="اللعبة واضحة من أول دقيقة." id="steps-title" />
+            <div className="simple-grid">
+              <StepCard number="١" title="اتفقوا على الرواية">حددوا السبب والمكان والأدوار مع بعض.</StepCard>
+              <StepCard number="٢" title="كل واحد يجاوب لحاله">كل سؤال خاص بصاحب الجوال، وبدون مساعدة.</StepCard>
+              <StepCard number="٣" title="واجهوا التناقضات والنتيجة">ناقشوا الاختلاف، اختاروا ترقيعة، وشوفوا التقرير.</StepCard>
             </div>
           </div>
-        </header>
+        </section>
 
-        <GalleryRail />
-
-        <section className="etiquette" aria-labelledby="etiquette-title">
-          <div className="container etiquette__grid">
-            <header>
-              <p className="section-label">قواعد الغرفة</p>
-              <h2 id="etiquette-title">
-                متى تتكلمون.
-                <br />
-                ومتى تسكتون.
-              </h2>
-            </header>
-            <ol>
-              {ETIQUETTE.map(([title, copy], index) => (
-                <li key={title}>
-                  <span className="mono">{String(index + 1).padStart(2, "0")}</span>
-                  <div>
-                    <h3>{title}</h3>
-                    <p>{copy}</p>
-                  </div>
-                </li>
+        <section className="simple-section simple-section--alternate" aria-labelledby="flow-title">
+          <div className="simple-container">
+            <SectionHeader label="مسار الجلسة" title="ست محطات قصيرة." id="flow-title" />
+            <ol className="simple-flow">
+              {FLOW.map((item, index) => (
+                <li key={item}><span className="step-card__number">{index + 1}</span><strong>{item}</strong></li>
               ))}
             </ol>
           </div>
         </section>
 
-        <section className="contradiction-section contradiction-section--guide" aria-labelledby="worked-title">
-          <div className="container">
-            <header className="contradiction-section__heading">
-              <p className="section-label">مثال كامل</p>
-              <h2 id="worked-title">
-                التناقض واضح.
-                <br />
-                ترقيعه أصعب.
-              </h2>
-              <p>
-                الشهادة الأولى تربط لاعبين في مكان واحد. الثانية تنكر العلاقة والمكان. الحل ممكن،
-                لكنه يخلق سؤالًا جديدًا عن الوقت.
-              </p>
-            </header>
-            <ContradictionDemo />
-          </div>
-        </section>
-
-        <section className="reconnect-note" aria-labelledby="reconnect-title">
-          <div className="container reconnect-note__grid">
-            <p className="mono">RECOVER / 01</p>
-            <div>
-              <h2 id="reconnect-title">لو انقطع اتصالك، ما تطلع من الرواية.</h2>
-              <p>
-                نوقف التفاعل عندك، نحاول نرجّع الجلسة، ونستعيد شاشتك الخاصة فقط. الوقت والمرحلة
-                يظلون عند الخادم، مو عند جوالك.
-              </p>
+        <section className="simple-section" aria-labelledby="rules-title">
+          <div className="simple-container">
+            <SectionHeader label="قواعد الغرفة" title="الكلام له وقته." id="rules-title" />
+            <div className="simple-grid simple-grid--two">
+              <SimpleCard><h3>متى تتكلمون</h3><p>وقت التخطيط ووقت مناقشة التناقض.</p></SimpleCard>
+              <SimpleCard><h3>متى تسكتون</h3><p>وقت الأسئلة الخاصة والسؤال الأخير.</p></SimpleCard>
+              <SimpleCard><h3>لا تعرض شاشتك</h3><p>السؤال والدليل الخاص لك أنت فقط.</p></SimpleCard>
+              <SimpleCard><h3>وش يصير إذا انقطع الاتصال</h3><p>نحاول نرجع جلستك ونكمل من نفس المرحلة.</p></SimpleCard>
             </div>
           </div>
         </section>
 
-        <section className="closing-cta closing-cta--light" aria-labelledby="guide-cta-title">
-          <div className="container">
-            <p className="section-label">فهمتوها؟</p>
-            <h2 id="guide-cta-title">اختبروا ذاكرتكم.</h2>
-            <div className="hero__actions">
-              <Link className="btn btn--primary" href="/create">
-                افتحوا غرفة
-              </Link>
-              <Link className="btn btn--ghost" href="/join">
-                عندي رمز
-              </Link>
-            </div>
+        <section className="simple-section simple-section--alternate">
+          <div className="simple-container simple-page-hero">
+            <h2>جاهزين تثبتون روايتكم؟</h2>
+            <p>افتحوا غرفة وشاركوا الرمز مع الشلة.</p>
+            <ActionGroup />
           </div>
         </section>
       </main>

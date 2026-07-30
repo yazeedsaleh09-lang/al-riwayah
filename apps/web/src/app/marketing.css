@@ -2287,30 +2287,6 @@
     transform var(--duration-select) var(--ease-out);
 }
 
-.join-fracture {
-  position: relative;
-  height: 140px;
-  max-width: 640px;
-  margin-block-start: var(--space-8);
-}
-
-.join-fracture span {
-  position: absolute;
-  inset: 50% 0 auto;
-  height: 1px;
-  background: var(--statement);
-}
-
-.join-fracture span:nth-child(2) {
-  clip-path: polygon(46% 0, 100% 0, 100% 100%, 46% 100%);
-  transform: translateY(-22px);
-}
-
-.join-fracture span:nth-child(3) {
-  clip-path: polygon(46% 0, 100% 0, 100% 100%, 46% 100%);
-  transform: translateY(22px);
-}
-
 .form-card {
   width: min(100%, 720px);
   margin: auto;
@@ -2391,9 +2367,6 @@
     grid-column: 2;
   }
 
-  .join-fracture {
-    display: none;
-  }
 }
 
 .legal-page {
@@ -3390,6 +3363,81 @@
   }
 }
 
+/* Calm centered form-card treatment for create/join. */
+.form-shell {
+  min-height: 100svh;
+  padding: 24px;
+  background: var(--simple-paper);
+  color: var(--simple-ink);
+}
+
+.form-surface {
+  width: min(100%, 1040px);
+  margin-inline: auto;
+}
+
+.form-surface__grid {
+  align-items: center;
+  gap: clamp(28px, 6vw, 72px);
+}
+
+.form-surface__intro h1 {
+  max-width: 12ch;
+  font-size: clamp(2.2rem, 5vw, 4.25rem);
+  line-height: 1.2;
+}
+
+.form-surface__intro > p:not(.section-label) {
+  max-width: 48ch;
+  color: #5d574f;
+}
+
+.form-panel {
+  border: 1px solid var(--simple-border);
+  border-radius: var(--simple-radius);
+  background: var(--simple-surface);
+  box-shadow: 0 12px 32px rgba(17, 17, 17, 0.06);
+}
+
+.form-panel form::before {
+  display: none;
+}
+
+.form-panel input,
+.form-panel select {
+  min-height: 52px;
+  border: 1px solid rgba(17, 17, 17, 0.22);
+  border-radius: 12px;
+  background: #fffdf8;
+  color: var(--simple-ink);
+}
+
+.form-panel button {
+  min-height: 52px;
+  border-radius: 12px;
+  background: var(--simple-red);
+  color: #fff;
+}
+
+@media (max-width: 760px) {
+  .form-shell {
+    padding: 14px;
+  }
+
+  .form-surface__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-surface__intro {
+    text-align: center;
+  }
+
+  .form-surface__intro h1,
+  .form-surface__intro > p:not(.section-label) {
+    margin-inline: auto;
+  }
+}
+
 :root[data-motion="reduced"] .ticker__track {
   animation: none;
 }
@@ -3445,4 +3493,316 @@
   margin-block: var(--space-4) var(--space-6);
   border: 1px solid var(--hairline-strong);
   background: var(--carbon);
+}
+/* Strict simple product system */
+:root {
+  --simple-ink: #111111;
+  --simple-red: #c43a2f;
+  --simple-paper: #f2e7d6;
+  --simple-green: #2e4e47;
+  --simple-yellow: #e2b64c;
+  --simple-gray: #e8e1d6;
+  --simple-surface: #fbf7f0;
+  --simple-border: rgba(17, 17, 17, 0.14);
+  --simple-radius: 18px;
+  --simple-container: 1120px;
+}
+
+.simple-page,
+.simple-page-hero {
+  background: var(--simple-paper);
+  color: var(--simple-ink);
+}
+
+.simple-container {
+  width: min(calc(100% - 40px), var(--simple-container));
+  margin-inline: auto;
+}
+
+.simple-page-hero {
+  padding: clamp(72px, 10vw, 120px) 0 clamp(56px, 8vw, 88px);
+  text-align: center;
+}
+
+.simple-page-hero .simple-container {
+  max-width: 780px;
+}
+
+.simple-page-hero h1,
+.simple-heading h2 {
+  margin: 12px 0 16px;
+  font-family: var(--font-display-arabic), sans-serif;
+  font-weight: 900;
+  line-height: 1.22;
+}
+
+.simple-page-hero h1 {
+  font-size: clamp(2.4rem, 6vw, 4.8rem);
+}
+
+.simple-page-hero p:not(.simple-label),
+.simple-heading > p:last-child,
+.simple-card p {
+  color: #5d574f;
+  line-height: 1.85;
+}
+
+.simple-label {
+  margin: 0;
+  color: var(--simple-red);
+  font-size: 0.84rem;
+  font-weight: 900;
+}
+
+.simple-section {
+  padding: clamp(64px, 9vw, 104px) 0;
+  background: var(--simple-surface);
+}
+
+.simple-section--alternate {
+  background: var(--simple-paper);
+}
+
+.simple-heading {
+  max-width: 680px;
+  margin-bottom: 32px;
+}
+
+.simple-heading h2 {
+  font-size: clamp(2rem, 4vw, 3.4rem);
+}
+
+.simple-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.simple-grid--two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.simple-card {
+  padding: clamp(22px, 3vw, 32px);
+  border: 1px solid var(--simple-border);
+  border-radius: var(--simple-radius);
+  background: var(--simple-surface);
+  box-shadow: 0 8px 24px rgba(17, 17, 17, 0.045);
+}
+
+.simple-card h3 {
+  margin: 14px 0 8px;
+  font-size: 1.25rem;
+}
+
+.step-card__number {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--simple-red);
+  color: #fff;
+  font-weight: 900;
+}
+
+.simple-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.simple-button {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 24px;
+  border: 1px solid var(--simple-ink);
+  border-radius: 12px;
+  font-weight: 900;
+  text-decoration: none;
+  transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease;
+}
+
+.simple-button--primary {
+  border-color: var(--simple-red);
+  background: var(--simple-red);
+  color: #fff;
+}
+
+.simple-button--secondary {
+  background: transparent;
+  color: var(--simple-ink);
+}
+
+.simple-button:focus-visible,
+.simple-card a:focus-visible {
+  outline: 3px solid var(--simple-green);
+  outline-offset: 3px;
+}
+
+.simple-flow {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.simple-flow li {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 16px;
+  align-items: center;
+  min-height: 72px;
+  padding: 14px 18px;
+  border: 1px solid var(--simple-border);
+  border-radius: 14px;
+  background: var(--simple-surface);
+}
+
+.phone-preview {
+  overflow: hidden;
+  border-radius: 28px;
+  background: #fbf8f2;
+}
+
+.phone-preview img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--simple-border);
+  border-radius: 18px;
+}
+
+.simple-document {
+  display: grid;
+  max-width: 800px;
+  gap: 16px;
+}
+
+.simple-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0 0 8px;
+}
+
+.simple-meta div {
+  min-width: 140px;
+  padding: 14px 18px;
+  border: 1px solid var(--simple-border);
+  border-radius: 12px;
+  background: var(--simple-paper);
+}
+
+.simple-meta dt {
+  color: #6b645b;
+  font-size: 0.78rem;
+}
+
+.simple-meta dd {
+  margin: 4px 0 0;
+  font-weight: 800;
+}
+
+.simple-document section {
+  padding: clamp(22px, 3vw, 32px);
+  border: 1px solid var(--simple-border);
+  border-radius: var(--simple-radius);
+  background: var(--simple-surface);
+}
+
+.simple-document h2 {
+  margin: 0 0 12px;
+  font-size: clamp(1.35rem, 3vw, 1.8rem);
+}
+
+.simple-document p,
+.simple-document li {
+  color: #5d574f;
+  line-height: 1.9;
+}
+
+.simple-document ul {
+  margin: 0;
+  padding-inline-start: 22px;
+}
+
+.simple-state-section {
+  min-height: 28vh;
+  padding-top: 24px;
+}
+
+.simple-state-shell {
+  display: grid;
+  min-height: 100svh;
+  place-items: center;
+  padding: 20px;
+}
+
+.simple-state-card {
+  width: min(100%, 520px);
+  text-align: center;
+}
+
+.simple-state-card h1 {
+  margin: 14px 0 10px;
+  font-size: clamp(2rem, 7vw, 3.4rem);
+}
+
+.simple-state-card .simple-actions {
+  margin-top: 24px;
+}
+
+.simple-loader {
+  display: block;
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 20px;
+  border: 3px solid var(--simple-gray);
+  border-top-color: var(--simple-red);
+  border-radius: 50%;
+  animation: simple-spin 800ms linear infinite;
+}
+
+@keyframes simple-spin {
+  to { transform: rotate(1turn); }
+}
+
+@media (max-width: 760px) {
+  .simple-container {
+    width: min(calc(100% - 28px), var(--simple-container));
+  }
+
+  .simple-grid,
+  .simple-grid--two {
+    grid-template-columns: 1fr;
+  }
+
+  .simple-page-hero {
+    padding-top: 56px;
+  }
+
+  .simple-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .simple-button {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .simple-button {
+    transition: none;
+  }
+
+  .simple-loader {
+    animation: none;
+  }
 }

@@ -32,6 +32,9 @@ const INTERROGATION = new Set([
   "INTERROGATION_FOLLOWUP",
   "FINAL_QUESTION",
 ]);
+const RELEASE_EVIDENCE_DIR = process.env.SIMPLE_RELEASE_GATE === "1"
+  ? path.resolve("artifacts", "simple-release-gate", "screenshots")
+  : path.resolve("artifacts", "final-playtest-pass", "full-match");
 
 async function createClients(browser: Browser, count: number): Promise<MatchClients> {
   const contexts: BrowserContext[] = [];
@@ -222,7 +225,7 @@ async function driveToResults(
         const disconnectedPage = pages.at(-1)!;
         await contexts.at(-1)!.setOffline(true);
         await expect(disconnectedPage.locator(".reconnect-overlay")).toBeVisible();
-        await saveEvidence(disconnectedPage, "6-player-reconnect");
+        await saveEvidence(disconnectedPage, `${pages.length}-player-reconnect`);
         await Promise.all(pages.slice(0, -1).map((page) => clickFirstAvailable(page)));
         await waitForPhaseChange(host, phase);
         await contexts.at(-1)!.setOffline(false);
@@ -265,14 +268,19 @@ async function driveToResults(
           "the fixed confirmation CTA must not cover the final option",
         ).toBeLessThanOrEqual(fixedActionMetrics!.actionTop);
 
-        await confirm.evaluate((button) => {
-          (button as HTMLButtonElement).click();
-          (button as HTMLButtonElement).click();
-        });
+        if (process.env.SIMPLE_RELEASE_GATE === "1") {
+          await confirm.click();
+        } else {
+          await confirm.evaluate((button) => {
+            (button as HTMLButtonElement).click();
+            (button as HTMLButtonElement).click();
+          });
+        }
         await expect(pages[0]!.locator(".answer-receipt")).toHaveCount(1);
         if (options.evidence) {
           await expect(host.locator('.game[data-phase="INTERROGATION_FOUNDATION"]')).toBeVisible();
           await expect(host.locator(".answer-receipt")).toHaveAttribute("aria-live", "polite");
+          await saveEvidence(host, "4-player-answer-locked");
           await saveEvidence(host, "4-player-waiting");
         }
         await Promise.all(pages.slice(1).map((page) => clickFirstAvailable(page)));
@@ -296,10 +304,9 @@ async function driveToResults(
 }
 
 async function saveEvidence(page: Page, name: string): Promise<void> {
-  const evidenceDir = path.resolve("artifacts", "final-playtest-pass", "full-match");
-  await mkdir(evidenceDir, { recursive: true });
+  await mkdir(RELEASE_EVIDENCE_DIR, { recursive: true });
   await page.screenshot({
-    path: path.join(evidenceDir, `${name}.png`),
+    path: path.join(RELEASE_EVIDENCE_DIR, `${name}.png`),
     animations: "disabled",
     caret: "initial",
   });
@@ -359,7 +366,12 @@ test.describe("real multi-client UI matches", () => {
           (violation) => violation.impact === "serious" || violation.impact === "critical",
         ),
       ).toEqual([]);
-      await driveToResults(clients, { duplicateAnswer: true, axe: true, evidence: true });
+      await driveToResults(clients, {
+        duplicateAnswer: true,
+        disconnect: true,
+        axe: true,
+        evidence: true,
+      });
       const host = clients.pages[0]!;
       await expect(host.locator(".verdict-band")).toBeVisible();
       await expect(host.locator(".gm-metric-card")).toHaveCount(3);

@@ -65,6 +65,14 @@
   text-decoration: none;
 }
 
+.copy h1 > span {
+  display: block;
+}
+
+.copy h1 > span:nth-child(2) {
+  white-space: nowrap;
+}
+
 .nav {
   position: relative;
   z-index: 50;
@@ -257,25 +265,6 @@
 
 .proof span {
   position: relative;
-}
-
-.handNote {
-  position: absolute;
-  bottom: -78px;
-  left: 0;
-  display: flex;
-  width: 183px;
-  height: 61px;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  background: var(--yellow);
-  box-shadow:
-    0 2px 0 rgba(255, 255, 255, 0.4) inset,
-    0 12px 24px rgba(70, 47, 23, 0.2);
-  font-size: 16px;
-  font-weight: 950;
-  transform: rotate(-4deg);
 }
 
 .sceneWrap {
@@ -709,10 +698,6 @@
     gap: 13px;
     margin-top: 18px;
     font-size: 11px;
-  }
-
-  .handNote {
-    display: none;
   }
 
   .sceneWrap {

@@ -1,21 +1,21 @@
-import Link from "next/link";
-import { SiteNav } from "@/components/SiteNav";
 import { SiteFooter } from "@/components/SiteFooter";
+import { SiteNav } from "@/components/SiteNav";
+import { ActionGroup, SimplePageHero } from "@/components/SimpleUI";
 
 export default function NotFound() {
   return (
     <>
       <SiteNav />
-      <main id="main" className="container section reading" style={{ textAlign: "center" }}>
-        <p className="stamp">٤٠٤</p>
-        <h1 className="display" style={{ fontSize: "clamp(2.4rem,9vw,4.5rem)", marginTop: "var(--space-6)" }}>
-          الصفحة اختفت
-        </h1>
-        <p style={{ color: "var(--muted)" }}>ما لقينا هالصفحة. تقدر ترجع تنشئ غرفة أو تدخل برمز.</p>
-        <div className="hero__actions" style={{ justifyContent: "center", marginTop: "var(--space-6)" }}>
-          <Link className="btn btn--evidence" href="/create">أنشئ غرفة</Link>
-          <Link className="btn btn--ghost" href="/join">ادخل برمز</Link>
-        </div>
+      <main id="main" className="simple-page">
+        <SimplePageHero
+          label="٤٠٤"
+          title="الصفحة اختفت."
+          copy="ما لقينا هالصفحة. تقدر ترجع تنشئ غرفة أو تدخل برمز."
+          action={false}
+        />
+        <section className="simple-section simple-state-section">
+          <div className="simple-container"><ActionGroup /></div>
+        </section>
       </main>
       <SiteFooter />
     </>

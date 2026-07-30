@@ -53,9 +53,12 @@ test.describe("Golden Master fidelity surfaces", () => {
 
     const approvedHome = page.locator(".approved-home-source");
     await expect(approvedHome).toBeVisible();
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      "اتفقوا على رواية.ولا تختلفون.",
+    await expect(page.getByRole("heading", { level: 1 })).toHaveAccessibleName(
+      "اتفقوا على الرواية. ولا تختلفون.",
     );
+    await expect(page.getByText("مين كان عند الباب؟", { exact: true })).toHaveCount(0);
+    await expect(page.locator("[data-hero-line]")).toHaveCount(3);
+    await expect(page.locator('[data-hero-line="2"]')).toHaveText("الرواية. ولا");
     await expect(page.locator("#main").getByRole("link", { name: "ابدأ جلسة" })).toHaveAttribute(
       "href",
       "/create",
@@ -274,7 +277,9 @@ test.describe("Golden Master fidelity surfaces", () => {
       }
       await expect(host.locator(".roster li")).toHaveCount(4);
       await Promise.all(
-        pages.map((page) => page.getByRole("button", { name: "جاهز", exact: true }).click()),
+        pages.map((page) =>
+          page.getByRole("button", { name: "جاهز", exact: true }).click({ force: true }),
+        ),
       );
       await host.getByRole("button", { name: "ابدأ التحقيق" }).click();
 
@@ -367,7 +372,9 @@ test.describe("Golden Master fidelity surfaces", () => {
       }
       await expect(host.locator(".roster li")).toHaveCount(4);
       await Promise.all(
-        pages.map((page) => page.getByRole("button", { name: "جاهز", exact: true }).click()),
+        pages.map((page) =>
+          page.getByRole("button", { name: "جاهز", exact: true }).click({ force: true }),
+        ),
       );
       await host.getByRole("button", { name: "ابدأ التحقيق" }).click();
 

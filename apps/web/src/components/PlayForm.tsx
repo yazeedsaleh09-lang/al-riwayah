@@ -77,11 +77,6 @@ export function PlayForm() {
             <p className="section-label">دخول برمز</p>
             <h1>ارجعوا لنفس الرواية.</h1>
             <p>اكتب الرمز اللي شاركه معك منشئ الغرفة، ثم الاسم اللي بتعرفك فيه الشلة.</p>
-            <div className="join-fracture" aria-hidden>
-              <span />
-              <span />
-              <span />
-            </div>
           </section>
 
           <section className="form-panel">

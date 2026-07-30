@@ -45,7 +45,7 @@ function contradiction(ruleId: string, involvedPlayers: string[]): DetectedContr
 }
 
 describe("authoritative engine regressions", () => {
-  it("advances through exactly one adjacent canonical phase per transition", () => {
+  it("advances through every reachable canonical phase and records intentional skips", () => {
     const state = makeState();
     const observed = [state.phase];
     const revisions = [state.phaseRevision];
@@ -57,10 +57,15 @@ describe("authoritative engine regressions", () => {
       revisions.push(state.phaseRevision);
     }
 
-    expect(observed).toEqual(PHASE_SEQUENCE.slice(1));
-    expect(revisions).toEqual(
-      Array.from({ length: PHASE_SEQUENCE.length - 1 }, (_, index) => index + 1),
+    const skipped = new Set(state.skippedPhases.map(({ phase }) => phase));
+    expect(observed).toEqual(
+      PHASE_SEQUENCE.slice(1).filter((phase) => !skipped.has(phase)),
     );
+    expect(revisions).toEqual([...revisions].sort((a, b) => a - b));
+    expect(new Set(state.skippedPhases.map(({ reason }) => reason))).toContain(
+      "NO_CONTRADICTION",
+    );
+    expect(state.phaseRevision).toBe(PHASE_SEQUENCE.length - 1);
   });
 
   it("waits for a disconnected active player until the deadline, then applies one deterministic fallback penalty", () => {
@@ -71,6 +76,7 @@ describe("authoritative engine regressions", () => {
     }
 
     const disconnected = state.players.at(-1)!;
+    const disconnectedQuestion = state.questionsByPlayer[disconnected.id]!;
     disconnected.connected = false;
     for (const player of state.players.filter(({ connected }) => connected)) {
       const question = state.questionsByPlayer[player.id]!;
@@ -110,7 +116,7 @@ describe("authoritative engine regressions", () => {
 
     expect(fallbackAnswers).toHaveLength(1);
     expect(fallbackAnswers[0]!.optionId).toBe(
-      state.questionsByPlayer[disconnected.id]!.options[0]!.id,
+      disconnectedQuestion.options[0]!.id,
     );
     expect(penaltyCountAfter - penaltyCountBefore).toBe(CASE.scoring.noResponsePenalty.length);
   });
@@ -121,6 +127,18 @@ describe("authoritative engine regressions", () => {
     const unreleased = contradiction("unreleased", [players[1]!.id]);
     state.detectedContradictions = [released, unreleased];
     state.releasedContradictionIds = [contradictionKey(released)];
+    state.answers = state.players.flatMap((player) =>
+      Array.from({ length: 5 }, (_, index) => ({
+        playerId: player.id,
+        questionId: `question-${index}`,
+        tag: `tag-${index}`,
+        optionId: `option-${index}`,
+        normalized: "complete",
+        phase: "INTERROGATION_FOUNDATION" as const,
+        submittedAt: 2_000 + index,
+        fallback: false,
+      })),
+    );
 
     const { verdict } = finalizeVerdict(state, CASE);
 

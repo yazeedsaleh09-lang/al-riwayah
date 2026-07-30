@@ -60,11 +60,16 @@ test.describe("full product completion contracts", () => {
 
     const copy = await page.locator("main#main").innerText();
     expect(copy).toMatch(/(?:٤|4)\s*(?:–|-|إلى)\s*(?:٦|6)/);
-    expect(copy).toMatch(/(?:١٣|13)\s*(?:–|-|إلى)\s*(?:١٨|18)/);
     expect(copy).toMatch(/(?:بدون|لا تحتاج|ما تحتاج)[^\n]{0,40}(?:حساب|تسجيل)/);
-    expect(copy).toMatch(/(?:بدون|لا تحتاج|ما تحتاج)[^\n]{0,50}(?:تحميل|تنزيل|تطبيق)/);
     expect(copy).toMatch(/(?:بدون|لا تحتاج|ما تحتاج)[^\n]{0,50}(?:تلفزيون|شاشة)/);
     expect(copy).toMatch(/(?:الجوال|الجوالات|الهاتف|الهواتف)/);
+  });
+
+  test("homepage preserves the grounded duration and no-download claims", async ({ page }) => {
+    await page.goto("/");
+    const copy = await page.locator("main#main").innerText();
+    expect(copy).toMatch(/(?:١٣|13)\s*(?:–|-|إلى)\s*(?:١٨|18)/);
+    expect(copy).toMatch(/(?:بدون|لا تحتاج|ما تحتاج)[^\n]{0,50}(?:تحميل|تنزيل|تطبيق)/);
   });
 
   for (const route of PUBLIC_ROUTES) {

@@ -1,4 +1,5 @@
 import { DeadlineRing } from "./DeadlineRing";
+import { Wordmark } from "../Wordmark";
 
 type GameHeaderProps = {
   variant: "lobby" | "question" | "result";
@@ -34,12 +35,7 @@ export function GameHeader({
 
   return (
     <header className={`gm-game-header gm-game-header--${variant}`}>
-      <div className="gm-game-brand">
-        <span className="gm-game-brand__mark" aria-hidden>
-          {variant === "result" ? "ر" : <i />}
-        </span>
-        <strong>الرواية</strong>
-      </div>
+      <Wordmark size={0.78} href={null} />
       <span className="gm-game-status">
         <i aria-hidden />
         {variant === "result" ? "انتهى التحقيق" : connected ? "متصل" : "يعيد الاتصال"}

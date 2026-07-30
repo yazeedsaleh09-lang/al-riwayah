@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { PlayForm } from "@/components/PlayForm";
+import { SiteNav } from "@/components/SiteNav";
 
 export const metadata: Metadata = {
   title: "ادخل الغرفة",
@@ -10,8 +11,11 @@ export const metadata: Metadata = {
 
 export default function JoinPage() {
   return (
-    <Suspense fallback={<main className="form-shell">لحظة…</main>}>
-      <PlayForm />
-    </Suspense>
+    <>
+      <SiteNav />
+      <Suspense fallback={<main className="form-shell">لحظة…</main>}>
+        <PlayForm />
+      </Suspense>
+    </>
   );
 }

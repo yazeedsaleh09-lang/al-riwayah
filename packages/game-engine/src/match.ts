@@ -90,12 +90,14 @@ export function initializeMatch(input: InitMatchInput): MatchState {
     acknowledgedThisPhase: [],
     detectedContradictions: [],
     releasedContradictionIds: [],
+    releasedContradictionByPhase: {},
     selectedPatches: [],
     patchVotes: {},
     commitments: [],
     scoreLedger: [],
     verdict: null,
     revealedEvidenceIds: gameCase.immutableEvidence.map((e) => e.id),
+    skippedPhases: [],
   };
   // Store extendedPlanning on a symbol-free field via seed convention: recompute
   // deadlines using the same flag each transition. We persist it in-band:
@@ -201,6 +203,7 @@ function enterContradictionReveal(state: MatchState, gameCase: GameCase): void {
   if (!selected) return;
   const key = contradictionKey(selected);
   state.releasedContradictionIds.push(key);
+  state.releasedContradictionByPhase[state.phase] = key;
   // Consistency penalty for a revealed contradiction.
   state.scoreLedger.push({
     axis: "consistency",
@@ -227,7 +230,13 @@ function candidatesOf(state: MatchState, gameCase: GameCase) {
 
 /** The contradiction currently being revealed (last released). */
 export function currentReleasedContradiction(state: MatchState) {
-  const key = state.releasedContradictionIds[state.releasedContradictionIds.length - 1];
+  const revealPhase =
+    state.phase === "PATCH_1"
+      ? "CONTRADICTION_REVEAL_1"
+      : state.phase === "PATCH_2"
+        ? "CONTRADICTION_REVEAL_2"
+        : state.phase;
+  const key = state.releasedContradictionByPhase[revealPhase];
   if (!key) return null;
   return state.detectedContradictions.find((c) => contradictionKey(c) === key) ?? null;
 }
@@ -245,7 +254,11 @@ function resolvePatchPhase(state: MatchState, gameCase: GameCase): void {
   );
   state.commitments.push(...applied.commitments);
   state.scoreLedger.push(...applied.ledgerAdditions);
-  state.selectedPatches.push({ patchId: patch.id, phase: state.phase });
+  state.selectedPatches.push({
+    patchId: patch.id,
+    phase: state.phase,
+    contradictionKey: contradictionKey(contradiction),
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -292,65 +305,112 @@ export function advancePhase(
       break;
   }
 
-  const next = nextPhase(current);
-  if (next === null) {
-    // Already at RESULTS.
-    return state;
-  }
+  let next = nextPhase(current);
+  while (next !== null) {
+    state.phase = next;
+    state.phaseRevision += 1;
+    state.deadlineAt = deadlineFor(next, now, isExtended(state), state.phaseDurationScale);
+    state.answeredThisPhase = [];
+    state.acknowledgedThisPhase = [];
 
-  state.phase = next;
-  state.phaseRevision += 1;
-  state.deadlineAt = deadlineFor(next, now, isExtended(state), state.phaseDurationScale);
-  state.answeredThisPhase = [];
-  state.acknowledgedThisPhase = [];
-
-  // --- entry effects for the next phase ---
-  const questionRng = createRng(`${state.seed}:questions:${next}`);
-  const usedIds = new Set(state.answers.map((a) => a.questionId));
-  switch (next) {
-    case "INTERROGATION_FOUNDATION":
-    case "INTERROGATION_GAPS":
-    case "INTERROGATION_NO_GOOD_ANSWER":
-    case "FINAL_QUESTION":
-      state.questionsByPlayer = assignQuestionsForPhase(
-        questionRng,
-        gameCase,
-        state.players,
-        next,
-        usedIds,
-      );
-      break;
-    case "INTERROGATION_FOLLOWUP": {
-      const followUpIds = state.selectedPatches.flatMap(
-        (sp) => gameCase.patches.find((p) => p.id === sp.patchId)?.followUpQuestionIds ?? [],
-      );
-      state.questionsByPlayer = assignQuestionsForPhase(
-        questionRng,
-        gameCase,
-        state.players,
-        next,
-        usedIds,
-        followUpIds,
-      );
-      break;
+    if (
+      next === "INTERROGATION_FOLLOWUP" &&
+      !state.selectedPatches.some((selected) => selected.phase === "PATCH_1")
+    ) {
+      state.skippedPhases.push({
+        phase: next,
+        reason: "NO_FOLLOWUP_SOURCE",
+        phaseRevision: state.phaseRevision,
+      });
+      next = nextPhase(next);
+      continue;
     }
-    case "CONTRADICTION_REVEAL_1":
-    case "CONTRADICTION_REVEAL_2":
-      enterContradictionReveal(state, gameCase);
-      break;
-    case "SURPRISE_EVIDENCE":
-      if (!state.revealedEvidenceIds.includes(gameCase.surpriseEvidence.id)) {
-        state.revealedEvidenceIds.push(gameCase.surpriseEvidence.id);
+
+    if (next === "PATCH_1" || next === "PATCH_2") {
+      const contradiction = currentReleasedContradiction(state);
+      if (!contradiction) {
+        state.skippedPhases.push({
+          phase: next,
+          reason: "NO_CONTRADICTION",
+          phaseRevision: state.phaseRevision,
+        });
+        next = nextPhase(next);
+        continue;
       }
-      break;
-    case "VERDICT": {
-      const { verdict, ledgerAdditions } = finalizeVerdict(state, gameCase);
-      state.scoreLedger.push(...(ledgerAdditions as ScoreLedgerEntry[]));
-      state.verdict = verdict;
-      break;
+      if (applicablePatches(gameCase, contradiction).length === 0) {
+        state.skippedPhases.push({
+          phase: next,
+          reason: "NO_PATCH_ACTIONS",
+          phaseRevision: state.phaseRevision,
+        });
+        next = nextPhase(next);
+        continue;
+      }
     }
-    default:
-      break;
+
+    // --- entry effects for the next reachable phase ---
+    const questionRng = createRng(`${state.seed}:questions:${next}`);
+    const usedIds = new Set(state.answers.map((answer) => answer.questionId));
+    switch (next) {
+      case "INTERROGATION_FOUNDATION":
+      case "INTERROGATION_GAPS":
+      case "INTERROGATION_NO_GOOD_ANSWER":
+      case "FINAL_QUESTION":
+        state.questionsByPlayer = assignQuestionsForPhase(
+          questionRng,
+          gameCase,
+          state.players,
+          next,
+          usedIds,
+          [],
+          state.privateEvidenceByPlayer,
+        );
+        break;
+      case "INTERROGATION_FOLLOWUP": {
+        const followUpIds = state.selectedPatches.flatMap(
+          (selected) =>
+            gameCase.patches.find((patch) => patch.id === selected.patchId)
+              ?.followUpQuestionIds ?? [],
+        );
+        state.questionsByPlayer = assignQuestionsForPhase(
+          questionRng,
+          gameCase,
+          state.players,
+          next,
+          usedIds,
+          followUpIds,
+          state.privateEvidenceByPlayer,
+        );
+        break;
+      }
+      case "CONTRADICTION_REVEAL_1":
+      case "CONTRADICTION_REVEAL_2":
+        enterContradictionReveal(state, gameCase);
+        if (!state.releasedContradictionByPhase[next]) {
+          state.skippedPhases.push({
+            phase: next,
+            reason: "NO_CONTRADICTION",
+            phaseRevision: state.phaseRevision,
+          });
+          next = nextPhase(next);
+          continue;
+        }
+        break;
+      case "SURPRISE_EVIDENCE":
+        if (!state.revealedEvidenceIds.includes(gameCase.surpriseEvidence.id)) {
+          state.revealedEvidenceIds.push(gameCase.surpriseEvidence.id);
+        }
+        break;
+      case "VERDICT": {
+        const { verdict, ledgerAdditions } = finalizeVerdict(state, gameCase);
+        state.scoreLedger.push(...(ledgerAdditions as ScoreLedgerEntry[]));
+        state.verdict = verdict;
+        break;
+      }
+      default:
+        break;
+    }
+    break;
   }
   return state;
 }

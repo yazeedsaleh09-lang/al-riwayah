@@ -68,11 +68,15 @@ test.describe("approved identity and motion system", () => {
     await page.goto("/");
 
     await expect(page.locator(".approved-home-source .scene-wrap")).toBeHidden();
-    await expect(page.getByRole("heading", { name: "رواية واحدة تحت ضغط الأسئلة." })).toBeVisible();
-    await expect(page.locator("ol li")).toHaveCount(3);
-    await expect(page.getByLabel("مثال سؤال على الجوال")).toBeVisible();
-    await expect(page.getByLabel("مثال نتيجة على الجوال")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "جاهزين تثبّتون روايتكم؟" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "ثلاث خطوات واضحة." })).toBeVisible();
+    await expect(page.locator(".home-continuation .simple-card")).toHaveCount(11);
+    await expect(
+      page.getByRole("img", { name: "معاينة شاشة السؤال المعتمدة" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("img", { name: "معاينة شاشة النتيجة المعتمدة" }),
+    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: "جاهزين تبدأون؟" })).toBeVisible();
   });
 
   test("long-page progression reaches the phone preview and available case without overflow", async ({
@@ -80,11 +84,11 @@ test.describe("approved identity and motion system", () => {
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/");
-    const questionPreview = page.getByLabel("مثال سؤال على الجوال");
+    const questionPreview = page.getByRole("img", { name: "معاينة شاشة السؤال المعتمدة" });
     await questionPreview.scrollIntoViewIfNeeded();
     await expect(questionPreview).toBeVisible();
     await page.getByRole("heading", { name: "ظرف الرواتب المفقود" }).scrollIntoViewIfNeeded();
-    await expect(page.getByRole("link", { name: "شوفوا ملف القضية" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "ابدأ القضية" })).toBeVisible();
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,

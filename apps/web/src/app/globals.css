@@ -75,13 +75,24 @@
   --page-gutter: clamp(16px, 4vw, 64px);
 
   /* Motion */
-  --duration-select: 160ms;
-  --duration-lock: 220ms;
-  --duration-panel: 300ms;
+  --motion-immediate: 140ms;
+  --motion-control: 180ms;
+  --motion-card: 240ms;
+  --motion-section: 320ms;
+  --motion-reveal: 520ms;
+  --motion-stagger: 60ms;
+  --motion-enter-y: 10px;
+  --motion-lift-y: -2px;
+  --motion-press-scale: 0.98;
+  --motion-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --motion-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --duration-select: var(--motion-immediate);
+  --duration-lock: var(--motion-control);
+  --duration-panel: var(--motion-card);
   --duration-phase: 280ms;
-  --duration-reveal: 840ms;
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-in-out: cubic-bezier(0.76, 0, 0.24, 1);
+  --duration-reveal: var(--motion-reveal);
+  --ease-out: var(--motion-ease-out);
+  --ease-in-out: var(--motion-ease-in-out);
 
   /* Layer scale */
   --z-content: 1;

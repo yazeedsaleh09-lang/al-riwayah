@@ -7,6 +7,61 @@ import type { GameCase, ScoreAxis } from "./case-types";
 import type { MatchState, ScoreLedgerEntry, VerdictResult } from "./match-types";
 import { buildDetectionContext } from "./context";
 import { contradictionKey } from "./contradictions";
+import { INTERROGATION_PHASES } from "./phases";
+
+const NO_CONTRADICTION_EXPLANATION = {
+  ar: "روايتكم ما كشفت تناقضًا واضحًا.",
+};
+
+function hasCompleteEvaluationData(state: MatchState): boolean {
+  if (state.players.length === 0) return false;
+  const skippedPhases = new Set(state.skippedPhases.map((skipped) => skipped.phase));
+  const evaluatedPhaseCount = INTERROGATION_PHASES.filter(
+    (phase) => !skippedPhases.has(phase),
+  ).length;
+  if (evaluatedPhaseCount === 0) return false;
+
+  const playerIds = new Set(state.players.map((player) => player.id));
+  if (
+    state.answers.some(
+      (answer) =>
+        !playerIds.has(answer.playerId) ||
+        answer.questionId.length === 0 ||
+        answer.tag.length === 0 ||
+        answer.optionId.length === 0 ||
+        answer.normalized.length === 0,
+    )
+  ) {
+    return false;
+  }
+
+  return state.players.every(
+    (player) =>
+      state.answers.filter((answer) => answer.playerId === player.id).length ===
+      evaluatedPhaseCount,
+  );
+}
+
+function incompleteVerdict(gameCase: GameCase): VerdictResult {
+  const scores: Record<ScoreAxis, number> = {
+    consistency: 0,
+    plausibility: 0,
+    stability: 0,
+    evasion: 100,
+  };
+  return {
+    band: resolveBand(0, gameCase).band,
+    label: { ar: "تعذّر احتساب النتيجة" },
+    summary: { ar: "تعذّر تقييم الرواية لأن بيانات التحقيق غير مكتملة." },
+    composite: 0,
+    scores,
+    decisiveFactors: [{ ar: "بيانات التقييم ناقصة؛ لم تُمنح نتيجة تلقائية." }],
+    mostConsistentPlayerId: null,
+    primarySuspectPlayerId: null,
+    evaluationStatus: "incomplete",
+    diagnosticCode: "INCOMPLETE_EVALUATION",
+  };
+}
 
 /** Axis total = initial value + sum of all ledger deltas for that axis. */
 export function axisTotals(
@@ -60,6 +115,10 @@ export function finalizeVerdict(
   state: MatchState,
   gameCase: GameCase,
 ): { verdict: VerdictResult; ledgerAdditions: ScoreLedgerEntry[] } {
+  if (!hasCompleteEvaluationData(state)) {
+    return { verdict: incompleteVerdict(gameCase), ledgerAdditions: [] };
+  }
+
   const ctx = buildDetectionContext(state, gameCase);
   const additions: ScoreLedgerEntry[] = [];
 
@@ -74,6 +133,45 @@ export function finalizeVerdict(
         explanation: rule.reason,
       });
     }
+  }
+
+  const selectedContradictionKeys = new Set(
+    state.selectedPatches.map((selected) => selected.contradictionKey),
+  );
+  const releasedContradictionKeys = new Set(state.releasedContradictionIds);
+  for (const contradiction of state.detectedContradictions) {
+    const key = contradictionKey(contradiction);
+    if (selectedContradictionKeys.has(key)) continue;
+    if (releasedContradictionKeys.has(key)) {
+      additions.push({
+        axis: "stability",
+        delta: -Math.max(4, Math.ceil(contradiction.severity / 3)),
+        reasonCode: "contradiction.unresolved",
+        refs: [contradiction.ruleId],
+        release: "summary",
+        explanation: { ar: "بقي تناقض مكشوف بلا إصلاح." },
+      });
+    } else {
+      additions.push({
+        axis: "consistency",
+        delta: -Math.max(4, Math.ceil(contradiction.severity / 2)),
+        reasonCode: "contradiction.additional_unresolved",
+        refs: [contradiction.ruleId],
+        release: "summary",
+        explanation: { ar: "ظهرت ثغرة إضافية غير محلولة في الرواية." },
+      });
+    }
+  }
+
+  if (state.releasedContradictionIds.length === 0) {
+    additions.push({
+      axis: "consistency",
+      delta: 0,
+      reasonCode: "evaluation.no_contradiction",
+      refs: [],
+      release: "summary",
+      explanation: NO_CONTRADICTION_EXPLANATION,
+    });
   }
 
   const fullLedger = state.scoreLedger.concat(additions);
@@ -130,6 +228,8 @@ export function finalizeVerdict(
     decisiveFactors,
     mostConsistentPlayerId: mostConsistent,
     primarySuspectPlayerId: primarySuspect,
+    evaluationStatus: "complete",
+    diagnosticCode: null,
   };
 
   return { verdict, ledgerAdditions: additions };

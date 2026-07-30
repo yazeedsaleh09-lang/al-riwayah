@@ -13,7 +13,7 @@ export const SITE = {
 } as const;
 
 export const NAV_LINKS = [
-  { href: "/how-to-play", label: "كيف تُلعب" },
+  { href: "/how-to-play", label: "كيف تلعب" },
   { href: "/cases", label: "القضايا" },
   { href: "/about", label: "عن اللعبة" },
 ] as const;

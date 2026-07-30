@@ -3,10 +3,14 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Wordmark } from "./Wordmark";
-import { PreferenceControls } from "./PreferenceControls";
 import { NAV_LINKS } from "@/lib/site";
 
-export function SiteNav({ variant = "default" }: { variant?: "default" | "golden" }) {
+const ACTION_LINKS = [
+  { href: "/create", label: "ابدأ جلسة", className: "site-nav__primary" },
+  { href: "/play", label: "عندي رمز", className: "site-nav__secondary" },
+] as const;
+
+export function SiteNav() {
   const [open, setOpen] = useState(false);
   const toggleRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLElement>(null);
@@ -19,7 +23,7 @@ export function SiteNav({ variant = "default" }: { variant?: "default" | "golden
     );
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    focusable?.[0]?.focus();
+    const focusFrame = requestAnimationFrame(() => focusable?.[0]?.focus());
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -41,6 +45,7 @@ export function SiteNav({ variant = "default" }: { variant?: "default" | "golden
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => {
+      cancelAnimationFrame(focusFrame);
       document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", handleKeyDown);
     };
@@ -51,82 +56,27 @@ export function SiteNav({ variant = "default" }: { variant?: "default" | "golden
     toggleRef.current?.focus();
   };
 
-  if (variant === "golden") {
-    return (
-      <header className="site-nav site-nav--golden" id="top">
-        <div className="container site-nav__row">
-          <Wordmark variant="golden" />
-          <nav aria-label="التنقل الرئيسي" className="site-nav__desktop">
-            <Link href="/how-to-play">كيف تلعب</Link>
-            <Link href="/cases">القضية</Link>
-            <Link href="/about">عن اللعبة</Link>
-            <Link className="btn btn--evidence site-nav__cta" href="/create">
-              ابدأ جلسة
-            </Link>
-            <Link className="btn btn--ghost site-nav__code" href="/join">
-              عندي رمز
-            </Link>
-          </nav>
-          <button
-            ref={toggleRef}
-            className="site-nav__toggle"
-            aria-expanded={open}
-            aria-controls="mobile-menu"
-            aria-label={open ? "أغلق القائمة" : "افتح القائمة"}
-            onClick={() => setOpen((value) => !value)}
-          >
-            <span className="visually-hidden">القائمة</span>
-            <svg aria-hidden viewBox="0 0 24 24" width="22" height="22" fill="none">
-              <path d="M4 8h16M4 16h16" stroke="currentColor" strokeWidth="1.8" />
-            </svg>
-          </button>
-        </div>
-        {open && (
-          <nav
-            ref={menuRef}
-            id="mobile-menu"
-            aria-label="قائمة الجوال"
-            className="site-nav__mobile"
-          >
-            <Link href="/how-to-play" onClick={closeMenu}>
-              كيف تلعب
-            </Link>
-            <Link href="/cases" onClick={closeMenu}>
-              القضية
-            </Link>
-            <Link href="/about" onClick={closeMenu}>
-              عن اللعبة
-            </Link>
-            <PreferenceControls />
-            <Link className="btn btn--evidence btn--full" href="/create" onClick={closeMenu}>
-              ابدأ جلسة
-            </Link>
-          </nav>
-        )}
-      </header>
-    );
-  }
-
   return (
     <header className="site-nav" id="top">
-      <div className="container site-nav__row">
+      <div className="site-nav__row">
         <Wordmark />
-        <nav aria-label="التنقل الرئيسي" className="site-nav__desktop">
+        <nav aria-label="التنقل الرئيسي" className="site-nav__links">
           {NAV_LINKS.map((l) => (
             <Link key={l.href} href={l.href}>
               {l.label}
             </Link>
           ))}
-          <PreferenceControls />
-          <Link className="btn btn--evidence site-nav__cta" href="/create">
-            أنشئ غرفة
-          </Link>
-          <Link className="btn btn--ghost site-nav__code" href="/join">
-            عندي رمز
-          </Link>
         </nav>
+        <div className="site-nav__actions">
+          {ACTION_LINKS.map((action) => (
+            <Link key={action.href} className={action.className} href={action.href}>
+              {action.label}
+            </Link>
+          ))}
+        </div>
         <button
           ref={toggleRef}
+          type="button"
           className="site-nav__toggle"
           aria-expanded={open}
           aria-controls="mobile-menu"
@@ -162,13 +112,16 @@ export function SiteNav({ variant = "default" }: { variant?: "default" | "golden
               {l.label}
             </Link>
           ))}
-          <PreferenceControls />
-          <Link className="btn btn--evidence btn--full" href="/create" onClick={closeMenu}>
-            أنشئ غرفة
-          </Link>
-          <Link className="btn btn--ghost btn--full" href="/join" onClick={closeMenu}>
-            ادخل برمز
-          </Link>
+          {ACTION_LINKS.map((action) => (
+            <Link
+              key={action.href}
+              className={action.className}
+              href={action.href}
+              onClick={closeMenu}
+            >
+              {action.label}
+            </Link>
+          ))}
         </nav>
       )}
     </header>

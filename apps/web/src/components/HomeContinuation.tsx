@@ -7,7 +7,7 @@ export function HomeContinuation() {
   const gameCase = publicCaseSummaries()[0];
 
   return (
-    <div className="simple-page">
+    <div className="simple-page home-continuation">
       <section className="simple-section" aria-labelledby="home-how-title">
         <div className="simple-container">
           <SectionHeader label="كيف تمشي الجلسة" title="ثلاث خطوات واضحة." id="home-how-title" />

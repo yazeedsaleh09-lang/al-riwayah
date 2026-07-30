@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Wordmark } from "./Wordmark";
 
 const BUILD =
   process.env.NEXT_PUBLIC_BUILD_ID ??
@@ -11,19 +12,17 @@ export function SiteFooter() {
       <div className="container">
         <div className="site-footer__grid">
           <div>
-            <p className="display" style={{ fontSize: "2rem", margin: 0 }}>
-              الرواية
-            </p>
+            <Wordmark />
             <p style={{ color: "var(--muted)", maxWidth: 320 }}>
               اتفقوا على رواية. ولا تختلفون. لعبة جماعية على الجوالات، بدون تلفزيون وبدون تحميل.
             </p>
           </div>
           <nav aria-label="روابط سفلية" className="site-footer__links">
-            <Link href="/how-to-play">كيف تُلعب</Link>
+            <Link href="/how-to-play">كيف تلعب</Link>
             <Link href="/cases">القضايا</Link>
             <Link href="/about">عن اللعبة</Link>
-            <Link href="/create">أنشئ غرفة</Link>
-            <Link href="/join">ادخل برمز</Link>
+            <Link href="/create">ابدأ جلسة</Link>
+            <Link href="/play">عندي رمز</Link>
             <Link href="/privacy">الخصوصية</Link>
             <Link href="/terms">الشروط</Link>
           </nav>

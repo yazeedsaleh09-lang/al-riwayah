@@ -3,7 +3,6 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useRef, useState } from "react";
 import Link from "next/link";
-import { Wordmark } from "./Wordmark";
 import { joinRoom } from "@/lib/game-client";
 import type { ConnectionStage } from "@/lib/game-client";
 
@@ -67,11 +66,6 @@ export function PlayForm() {
   return (
     <main className="form-shell" id="main">
       <div className="form-surface">
-        <header className="form-surface__header">
-          <Wordmark />
-          <Link href="/" className="text-link">العودة للرئيسية</Link>
-        </header>
-
         <div className="form-surface__grid">
           <section className="form-surface__intro">
             <p className="section-label">دخول برمز</p>

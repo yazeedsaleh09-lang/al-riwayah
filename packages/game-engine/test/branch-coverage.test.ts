@@ -363,6 +363,7 @@ describe("public and private view branches", () => {
         phase: "PATCH_1",
         detectedContradictions: [detected],
         releasedContradictionIds: [releasedKey],
+        releasedContradictionByPhase: { CONTRADICTION_REVEAL_1: releasedKey },
         revealedEvidenceIds: [CASE.immutableEvidence[0]!.id, "no-time", CASE.surpriseEvidence.id],
       }),
       gameCase,
@@ -389,6 +390,9 @@ describe("public and private view branches", () => {
         phase: "CONTRADICTION_REVEAL_2",
         detectedContradictions: [detected],
         releasedContradictionIds: [contradictionKey(detected)],
+        releasedContradictionByPhase: {
+          CONTRADICTION_REVEAL_2: contradictionKey(detected),
+        },
       }),
       CASE,
       "ABCD",
@@ -423,10 +427,11 @@ describe("public and private view branches", () => {
       phase: "RESULTS",
       detectedContradictions: [detected],
       releasedContradictionIds: [firstKey],
+      releasedContradictionByPhase: { CONTRADICTION_REVEAL_1: firstKey },
       selectedPatches: [
-        { patchId: firstPatch.id, phase: "PATCH_1" },
-        { patchId: "missing-patch", phase: "PATCH_1" },
-        { patchId: secondPatch.id, phase: "PATCH_2" },
+        { patchId: firstPatch.id, phase: "PATCH_1", contradictionKey: firstKey },
+        { patchId: "missing-patch", phase: "PATCH_1", contradictionKey: firstKey },
+        { patchId: secondPatch.id, phase: "PATCH_2", contradictionKey: firstKey },
       ],
       verdict: {
         band: "B",
@@ -442,6 +447,8 @@ describe("public and private view branches", () => {
         ],
         mostConsistentPlayerId: "p1",
         primarySuspectPlayerId: "missing-player",
+        evaluationStatus: "complete",
+        diagnosticCode: null,
       },
     });
 
@@ -466,6 +473,8 @@ describe("public and private view branches", () => {
       decisiveFactors: [],
       mostConsistentPlayerId: "p1",
       primarySuspectPlayerId: "p2",
+      evaluationStatus: "complete" as const,
+      diagnosticCode: null,
     };
     const resultState = state({ phase: "VERDICT", verdict });
     expect(toPrivateView(resultState, CASE, "p1").ownResultNote).not.toBeNull();

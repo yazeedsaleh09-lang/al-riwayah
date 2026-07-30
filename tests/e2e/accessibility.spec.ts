@@ -37,40 +37,13 @@ test.describe("accessibility smoke (axe)", () => {
     });
   }
 
-  test("mute and reduced-motion preferences persist and remain keyboard reachable", async ({
-    page,
-  }) => {
+  test("public navigation omits gameplay-only preference controls", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/");
     await expect(page.locator("html")).toHaveAttribute("data-hydrated", "true");
-    await page.evaluate(() => localStorage.clear());
-    await page.reload();
-    await expect(page.locator("html")).toHaveAttribute("data-hydrated", "true");
-    const mobileMenu = page.getByRole("button", { name: /القائمة/ });
-    if (await mobileMenu.isVisible()) await mobileMenu.click();
-    const visiblePreferences = page.locator(".prefs:visible");
-    const sound = visiblePreferences.locator(".prefs__btn").first();
-    const motion = visiblePreferences.locator(".prefs__btn").nth(1);
-
-    await sound.focus();
-    await expect(sound).toBeFocused();
-    await sound.press("Enter");
-    await expect(sound).toHaveAttribute("aria-pressed", "true");
-
-    await motion.focus();
-    await motion.press("Enter");
-    await expect(motion).toHaveAttribute("aria-pressed", "true");
-    await expect(page.locator("html")).toHaveAttribute("data-motion", "reduced");
-
-    await page.reload();
-    await expect(page.locator("html")).toHaveAttribute("data-hydrated", "true");
-    const reloadedMobileMenu = page.getByRole("button", { name: /القائمة/ });
-    if (await reloadedMobileMenu.isVisible()) await reloadedMobileMenu.click();
-    await expect(page.locator(".prefs:visible .prefs__btn").first()).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
-    await expect(page.locator("html")).toHaveAttribute("data-motion", "reduced");
+    await expect(page.locator(".site-nav .prefs")).toHaveCount(0);
+    await page.getByRole("button", { name: "افتح القائمة" }).click();
+    await expect(page.locator("#mobile-menu .prefs")).toHaveCount(0);
   });
 
   test("mobile menu traps focus, closes on Escape, and restores body scrolling", async ({

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ApprovedMobileNav } from "./ApprovedMobileNav";
+import { SiteNav } from "./SiteNav";
 import styles from "./ApprovedHome.module.css";
 
 function classes(...names: Array<string | undefined>) {
@@ -9,28 +9,7 @@ function classes(...names: Array<string | undefined>) {
 export function ApprovedHome() {
   return (
     <div className={classes("approved-home-source", styles.page)}>
-      <header className={classes("nav", styles.nav)} id="top">
-        <Link className={styles.brand} href="/" aria-label="الرواية — الصفحة الرئيسية">
-          <span className={styles.mark} aria-hidden="true" />
-          <span>الرواية</span>
-        </Link>
-
-        <nav className={styles.navlinks} aria-label="التنقل الرئيسي">
-          <Link href="/how-to-play">كيف تلعب</Link>
-          <Link href="/cases">القضية</Link>
-          <Link href="/about">عن اللعبة</Link>
-        </nav>
-
-        <div className={styles.navcta}>
-          <Link className={classes(styles.btn, styles.primary)} href="/create">
-            ابدأ جلسة
-          </Link>
-          <Link className={styles.btn} href="/join">
-            عندي رمز
-          </Link>
-        </div>
-        <ApprovedMobileNav />
-      </header>
+      <SiteNav />
 
       <main className={styles.hero} id="main">
         <section className={styles.copy}>

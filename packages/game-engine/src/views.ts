@@ -65,6 +65,7 @@ export interface PublicResult {
   costliestPatch: LocalizedText | null;
   mostConsistentPlayerName: string | null;
   primarySuspectPlayerName: string | null;
+  evaluationStatus: VerdictResult["evaluationStatus"];
 }
 
 export interface PublicRoomView {
@@ -255,6 +256,7 @@ export function toPublicView(
       primarySuspectPlayerName: v.primarySuspectPlayerId
         ? (state.players.find((p) => p.id === v.primarySuspectPlayerId)?.name ?? null)
         : null,
+      evaluationStatus: v.evaluationStatus,
     };
   }
 
@@ -296,7 +298,7 @@ function allowedActionsFor(state: MatchState, playerId: string): AllowedActionTy
       return state.answeredThisPhase.includes(playerId) ? ["WAIT"] : ["ANSWER"];
     case "PATCH_1":
     case "PATCH_2":
-      return ["PATCH_VOTE"];
+      return state.patchVotes[state.phase]?.[playerId] ? ["WAIT"] : ["PATCH_VOTE"];
     default:
       return ["WAIT"];
   }

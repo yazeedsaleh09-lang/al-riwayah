@@ -742,7 +742,7 @@ const patches: PatchDefinition[] = [
         label: ar("{{player}} كان بالمستودع ثم طلع بين ١١:٤٠ و ١١:٤٦"),
       },
     ],
-    scoreEffects: { plausibility: -3, stability: -5 },
+    scoreEffects: { consistency: 7, plausibility: -3, stability: -5 },
     followUpQuestionIds: [
       "followup.why_left_storage",
       "followup.who_requested_parking_trip",
@@ -763,7 +763,7 @@ const patches: PatchDefinition[] = [
         label: ar("شهادة {{player}} صارت أقل موثوقية بسبب الظلمة"),
       },
     ],
-    scoreEffects: { plausibility: -4 },
+    scoreEffects: { consistency: 5, plausibility: -4 },
     followUpQuestionIds: ["followup.identity_confusion", "followup.who_requested_parking_trip"],
   },
   {
@@ -785,7 +785,7 @@ const patches: PatchDefinition[] = [
         label: ar("لازم يثبت إنه رجع قبل ١١:٤٨"),
       },
     ],
-    scoreEffects: { plausibility: -2, stability: -3 },
+    scoreEffects: { consistency: 8, plausibility: -2, stability: -3 },
     followUpQuestionIds: [
       "followup.charger_owner",
       "followup.return_time",
@@ -806,7 +806,7 @@ const patches: PatchDefinition[] = [
         label: ar("{{player}} يقول إن الاتصال كان تلقائي من الممر"),
       },
     ],
-    scoreEffects: { plausibility: -6 },
+    scoreEffects: { consistency: 2, plausibility: -6 },
     followUpQuestionIds: ["followup.return_time"],
   },
   {
@@ -823,7 +823,7 @@ const patches: PatchDefinition[] = [
         label: ar("عدّلنا مكان {{player}} في الرواية"),
       },
     ],
-    scoreEffects: { stability: -4 },
+    scoreEffects: { consistency: 4, stability: -4 },
     followUpQuestionIds: ["followup.return_time"],
   },
 ];

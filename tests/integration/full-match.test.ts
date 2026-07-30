@@ -28,7 +28,7 @@ describe("full match through the server authority (GAME-*)", () => {
     expect(mgr.publicView(code)!.phase).toBe("RESULTS");
   });
 
-  it("phase never skips: revision increments by one per transition", () => {
+  it("phase order remains canonical when empty phases are intentionally skipped", () => {
     const { clock, now } = makeClock();
     const mgr = new RoomManager({ now });
     const { code, players } = createRoomWithPlayers(mgr, 4);
@@ -47,9 +47,10 @@ describe("full match through the server authority (GAME-*)", () => {
       mgr.tick();
       guard++;
     }
-    expect(phases).toEqual(PHASE_SEQUENCE.slice(1));
+    const canonicalIndexes = phases.map((phase) => PHASE_SEQUENCE.indexOf(phase as never));
+    expect(canonicalIndexes).toEqual([...canonicalIndexes].sort((a, b) => a - b));
     for (let i = 1; i < revisions.length; i++) {
-      expect(revisions[i]! - revisions[i - 1]!).toBe(1);
+      expect(revisions[i]! - revisions[i - 1]!).toBeGreaterThanOrEqual(1);
     }
     expect(mgr.publicView(code)!.phase).toBe("RESULTS");
   });
@@ -85,6 +86,99 @@ describe("full match through the server authority (GAME-*)", () => {
     const after = mgr.privateView(code, p.id)!;
     expect(after.answerLocked).toBe(true);
     expect(after.submittedOptionId).toBe(optionId);
+  });
+
+  it("reconnect during a live patch restores only that player's state and vote status", () => {
+    const { clock, now } = makeClock();
+    const mgr = new RoomManager({ now, seedFactory: () => "patch-reconnect-five" });
+    const { code, players } = createRoomWithPlayers(mgr, 5);
+    readyAndStart(mgr, code, players);
+
+    let guard = 0;
+    while (mgr.publicView(code)!.phase !== "PATCH_1" && guard < 30) {
+      const pub = mgr.publicView(code)!;
+      clock.t = (pub.deadlineAt ?? clock.t) + 1;
+      mgr.tick();
+      guard++;
+    }
+
+    const patchView = mgr.publicView(code)!;
+    expect(patchView.phase).toBe("PATCH_1");
+    expect(patchView.patchOptions?.length).toBeGreaterThan(0);
+    const player = players[2]!;
+    const otherPlayer = players[3]!;
+    const before = mgr.privateView(code, player.id)!;
+    const otherPrivateEvidence = mgr.privateView(code, otherPlayer.id)!.privateEvidence;
+    expect(before.allowedActions).toContain("PATCH_VOTE");
+
+    mgr.bindSocket(code, player.id, "patch-socket-1");
+    mgr.handleDisconnect("patch-socket-1");
+    const restored = mgr.restore({ recoveryToken: player.token });
+    expect(restored.ok).toBe(true);
+    if (!restored.ok) throw new Error("restore failed");
+
+    const afterRestore = mgr.privateView(code, player.id)!;
+    expect(afterRestore).toMatchObject({
+      playerId: player.id,
+      phase: "PATCH_1",
+      privateEvidence: before.privateEvidence,
+    });
+    expect(afterRestore.allowedActions).toContain("PATCH_VOTE");
+    expect(JSON.stringify(mgr.publicView(code))).not.toContain(before.privateEvidence?.id ?? "");
+    if (otherPrivateEvidence?.id !== before.privateEvidence?.id) {
+      expect(JSON.stringify(afterRestore)).not.toContain(otherPrivateEvidence!.id);
+    }
+
+    const vote = mgr.gameIntent({
+      code,
+      playerId: player.id,
+      requestId: "patch-vote-before-second-reconnect",
+      phaseRevision: patchView.phaseRevision,
+      intent: {
+        type: "PATCH_VOTE",
+        playerId: player.id,
+        patchId: patchView.patchOptions![0]!.id,
+      },
+    });
+    expect(vote.ok).toBe(true);
+    expect(mgr.getRoom(code)!.match!.patchVotes.PATCH_1![player.id]).toBe(
+      patchView.patchOptions![0]!.id,
+    );
+
+    mgr.bindSocket(code, player.id, "patch-socket-2");
+    mgr.handleDisconnect("patch-socket-2");
+    const restoredAgain = mgr.restore({ recoveryToken: restored.data.rotatedToken });
+    expect(restoredAgain.ok).toBe(true);
+    expect(mgr.privateView(code, player.id)!.allowedActions).toEqual(["WAIT"]);
+    expect(mgr.getRoom(code)!.match!.releasedContradictionByPhase.CONTRADICTION_REVEAL_1).toBe(
+      mgr.getRoom(code)!.match!.releasedContradictionIds[0],
+    );
+  });
+
+  it("public views never expose private evidence or another player's question", () => {
+    const { clock, now } = makeClock();
+    const mgr = new RoomManager({ now });
+    const { code, players } = createRoomWithPlayers(mgr, 5);
+    readyAndStart(mgr, code, players);
+
+    let guard = 0;
+    while (mgr.publicView(code)!.phase !== "INTERROGATION_FOUNDATION" && guard < 20) {
+      const pub = mgr.publicView(code)!;
+      clock.t = (pub.deadlineAt ?? clock.t) + 1;
+      mgr.tick();
+      guard++;
+    }
+
+    const privateViews = players.map((player) => mgr.privateView(code, player.id)!);
+    const publicPayload = JSON.stringify(mgr.publicView(code));
+    for (const privateView of privateViews) {
+      expect(privateView.currentQuestion).not.toBeNull();
+      expect(publicPayload).not.toContain(privateView.privateEvidence!.id);
+      expect(publicPayload).not.toContain(privateView.currentQuestion!.instanceId);
+      for (const other of privateViews.filter(({ playerId }) => playerId !== privateView.playerId)) {
+        expect(JSON.stringify(privateView)).not.toContain(other.currentQuestion!.instanceId);
+      }
+    }
   });
 
   it("replay resets private state and starts a fresh match", () => {

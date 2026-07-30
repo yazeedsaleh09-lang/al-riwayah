@@ -114,6 +114,7 @@ export function assignQuestionsForPhase(
   phase: PhaseId,
   usedIds: Set<string>,
   followUpIds: readonly string[] = [],
+  privateEvidenceByPlayer: Record<string, string[]> = {},
 ): Record<string, AssignedQuestion> {
   const out: Record<string, AssignedQuestion> = {};
   let pool: Question[];
@@ -131,9 +132,26 @@ export function assignQuestionsForPhase(
   }
 
   const ordered = players.slice().sort((a, b) => a.joinOrder - b.joinOrder);
-  for (const player of ordered) {
-    const fresh = rng.shuffle(pool.filter((q) => !usedIds.has(q.id)));
-    const question = fresh[0] ?? rng.pick(pool);
+  const questionByTag = (tag: string) => gameCase.questions.find((question) => question.tag === tag);
+  const wifiHolderId = Object.entries(privateEvidenceByPlayer).find(([, evidenceIds]) =>
+    evidenceIds.includes("pe.own_device_wifi"),
+  )?.[0];
+  const nonWifiPlayers = ordered.filter((player) => player.id !== wifiHolderId);
+
+  for (const [index, player] of ordered.entries()) {
+    let anchoredQuestion: Question | undefined;
+    if (phase === "INTERROGATION_FOUNDATION" && index < 2) {
+      anchoredQuestion = questionByTag("driver");
+    } else if (phase === "INTERROGATION_GAPS" && player.id === wifiHolderId) {
+      anchoredQuestion = questionByTag("storage_visit");
+    } else if (phase === "INTERROGATION_GAPS" && player.id === nonWifiPlayers[0]?.id) {
+      anchoredQuestion = questionByTag("with_player");
+    } else if (phase === "INTERROGATION_GAPS" && player.id === nonWifiPlayers[1]?.id) {
+      anchoredQuestion = questionByTag("was_alone");
+    }
+
+    const fresh = rng.shuffle(pool.filter((question) => !usedIds.has(question.id)));
+    const question = anchoredQuestion ?? fresh[0] ?? rng.pick(pool);
     usedIds.add(question.id);
     out[player.id] = {
       instanceId: `${phase}:${player.id}:${question.id}`,

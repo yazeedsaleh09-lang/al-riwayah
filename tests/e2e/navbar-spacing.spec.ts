@@ -60,28 +60,28 @@ async function measureNavbar(page: Page): Promise<NavbarGeometry> {
       };
     };
 
-    const nav = box(".approved-home-source .nav");
-    const brand = box(".approved-home-source .nav a[href='/']");
-    const links = box(".approved-home-source nav[aria-label]");
-    const actions = box(".approved-home-source .nav > div");
+    const nav = box(".approved-home-source .site-nav__row");
+    const brand = box(".approved-home-source .site-nav .wordmark");
+    const links = box(".approved-home-source .site-nav__links");
+    const actions = box(".approved-home-source .site-nav__actions");
     const linkBoxes = Array.from(
-      document.querySelectorAll<HTMLElement>(".approved-home-source nav[aria-label] a"),
+      document.querySelectorAll<HTMLElement>(".approved-home-source .site-nav__links a"),
     )
       .map((element) => stableBox(element.getBoundingClientRect()))
       .sort((a, b) => a.left - b.left);
     const actionBoxes = Array.from(
-      document.querySelectorAll<HTMLElement>(".approved-home-source .nav > div a"),
+      document.querySelectorAll<HTMLElement>(".approved-home-source .site-nav__actions a"),
     )
       .map((element) => stableBox(element.getBoundingClientRect()))
       .sort((a, b) => a.left - b.left);
     const navbarItems = Array.from(
       document.querySelectorAll<HTMLElement>(
-        ".approved-home-source .nav > a, .approved-home-source .nav nav a, .approved-home-source .nav > div a",
+        ".approved-home-source .site-nav .wordmark, .approved-home-source .site-nav__links a, .approved-home-source .site-nav__actions a",
       ),
     );
     const navbarTextItems = Array.from(
       document.querySelectorAll<HTMLElement>(
-        ".approved-home-source .nav > a span:last-child, .approved-home-source .nav nav a, .approved-home-source .nav > div a",
+        ".approved-home-source .wordmark__name, .approved-home-source .site-nav__links a, .approved-home-source .site-nav__actions a",
       ),
     );
 

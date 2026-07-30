@@ -4,7 +4,7 @@
  * simulation" requirement (CONTENT_SYSTEM.md). Given identical (seed, script)
  * it produces an identical final state (ENG-008).
  */
-import { advancePhase, initializeMatch } from "./match";
+import { advancePhase, currentReleasedContradiction, initializeMatch } from "./match";
 import { applyIntent, isPhaseComplete } from "./engine";
 import type { GameCase } from "./case-types";
 import type { MatchState, PlayerState } from "./match-types";
@@ -45,13 +45,8 @@ export function optByNormalized(
   return options.find((o) => o.normalized === normalized)?.id ?? options[0]!.id;
 }
 
-function contradictionKeyOf(c: { ruleId: string; involvedPlayers: string[] }): string {
-  return `${c.ruleId}::${[...c.involvedPlayers].sort().join(",")}`;
-}
-
 function firstApplicablePatchId(state: MatchState, gameCase: GameCase): string | undefined {
-  const key = state.releasedContradictionIds.at(-1);
-  const c = state.detectedContradictions.find((x) => contradictionKeyOf(x) === key);
+  const c = currentReleasedContradiction(state);
   if (!c) return undefined;
   return gameCase.patches.find((p) => p.resolvesCategories.includes(c.category))?.id;
 }

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { CreateForm } from "@/components/CreateForm";
+import { SiteNav } from "@/components/SiteNav";
 
 export const metadata: Metadata = {
   title: "أنشئ غرفة",
@@ -8,5 +9,10 @@ export const metadata: Metadata = {
 };
 
 export default function CreatePage() {
-  return <CreateForm />;
+  return (
+    <>
+      <SiteNav />
+      <CreateForm />
+    </>
+  );
 }

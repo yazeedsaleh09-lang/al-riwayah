@@ -1,6 +1,4 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="64" fill="#F3ECDF"/>
-  <path d="M88 150h336M88 354h112M312 354h112" fill="none" stroke="#1A1915" stroke-width="24"/>
-  <path d="m194 360 124-94" fill="none" stroke="#C94F45" stroke-width="38"/>
-  <path d="M270 82v150" fill="none" stroke="#315F55" stroke-width="34"/>
+  <rect width="512" height="512" fill="#171612"/>
+  <text x="256" y="350" fill="#FBF5EB" font-family="Arial, sans-serif" font-size="290" font-weight="700" text-anchor="middle">ر</text>
 </svg>

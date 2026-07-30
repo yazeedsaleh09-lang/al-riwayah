@@ -2,7 +2,7 @@ import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 
-const OUTPUT_DIR = path.resolve("artifacts", "golden-master-pass");
+const OUTPUT_DIR = path.resolve("artifacts", "nav-logo-motion-pass", "screenshots");
 const INTERROGATION_PHASES = new Set([
   "INTERROGATION_FOUNDATION",
   "INTERROGATION_GAPS",
@@ -79,7 +79,7 @@ test.describe("Golden Master fidelity surfaces", () => {
         return { node, style: getComputedStyle(node), rect: node.getBoundingClientRect() };
       };
       const root = select(".approved-home-source");
-      const nav = select(".approved-home-source .nav");
+      const nav = select(".approved-home-source .site-nav__row");
       const hero = select(".approved-home-source #main");
       const scene = select(".approved-home-source .scene-wrap");
       const shared = select(".approved-home-source .shared");
@@ -190,7 +190,7 @@ test.describe("Golden Master fidelity surfaces", () => {
     expect(overflow.scrollWidth, JSON.stringify(overflow)).toBe(overflow.clientWidth);
 
     await page.screenshot({
-      path: path.join(OUTPUT_DIR, "home-implementation-1440x900.png"),
+      path: path.join(OUTPUT_DIR, "homepage-1440x900.png"),
       animations: "disabled",
     });
   });
@@ -230,6 +230,8 @@ test.describe("Golden Master fidelity surfaces", () => {
         await pages[index]!.getByRole("button", { name: "جاهز", exact: true }).click();
       }
       await expect(host.locator(".gm-lobby")).toBeVisible();
+      await expect(host.locator(".gm-game-header .wordmark")).toBeVisible();
+      await expect(host.locator(".gm-game-header a.wordmark")).toHaveCount(0);
       await expect(host.locator(".gm-room-card")).toContainText(code);
       await expect(host.locator(".roster li")).toHaveCount(5);
       await expect(host.locator(".gm-player-badge--waiting")).toHaveCount(1);
@@ -283,12 +285,49 @@ test.describe("Golden Master fidelity surfaces", () => {
       );
       await host.getByRole("button", { name: "ابدأ التحقيق" }).click();
 
+      let verifiedGameplayPreferences = false;
       for (let guard = 0; guard < 15; guard++) {
         const phase = await host.locator(".game").getAttribute("data-phase");
         if (phase === "INTERROGATION_FOUNDATION") break;
         if (!phase) continue;
 
         if (["CASE_BRIEF", "PRIVATE_EVIDENCE", "PLAN_REVIEW"].includes(phase)) {
+          if (phase === "CASE_BRIEF" && !verifiedGameplayPreferences) {
+            const controls = host.locator(".game__top .prefs__btn");
+            await expect(controls).toHaveCount(2);
+            expect(
+              await controls.evaluateAll((buttons) =>
+                buttons.map((button) => ({
+                  tagName: button.tagName,
+                  tabIndex: (button as HTMLElement).tabIndex,
+                })),
+              ),
+            ).toEqual([
+              { tagName: "BUTTON", tabIndex: 0 },
+              { tagName: "BUTTON", tabIndex: 0 },
+            ]);
+            await controls.first().click();
+            await expect(controls.first()).toHaveAttribute("aria-pressed", "true");
+            await controls.nth(1).click();
+            await expect(controls.nth(1)).toHaveAttribute("aria-pressed", "true");
+            expect(
+              await host.evaluate(() => ({
+                sound: localStorage.getItem("alr:sound"),
+                motion: localStorage.getItem("alr:motion"),
+              })),
+            ).toEqual({ sound: "off", motion: "reduced" });
+            await controls.first().click();
+            await controls.nth(1).click();
+            await expect(controls.first()).toHaveAttribute("aria-pressed", "false");
+            await expect(controls.nth(1)).toHaveAttribute("aria-pressed", "false");
+            expect(
+              await host.evaluate(() => ({
+                sound: localStorage.getItem("alr:sound"),
+                motion: localStorage.getItem("alr:motion"),
+              })),
+            ).toEqual({ sound: "on", motion: "full" });
+            verifiedGameplayPreferences = true;
+          }
           await Promise.all(pages.map(clickFirstAvailable));
         } else if (phase === "PLAN_REASON") {
           await Promise.all(pages.slice(0, 3).map(clickFirstAvailable));
@@ -308,6 +347,7 @@ test.describe("Golden Master fidelity surfaces", () => {
         await waitForPhaseChange(host, phase);
       }
 
+      expect(verifiedGameplayPreferences).toBe(true);
       await waitForPhase(host, "INTERROGATION_FOUNDATION");
       let capturePage = host;
       for (const page of pages) {

@@ -406,10 +406,25 @@ export class RoomManager {
     const gameCase = this.resolveCase(room.caseId)!;
     let guard = 0;
     while (room.match.phase !== "RESULTS" && isPhaseComplete(room.match, gameCase) && guard < 25) {
+      const previousPhase = room.match.phase;
       advancePhase(room.match, gameCase, now, { forced: false });
+      this.logIncompleteEvaluation(room, previousPhase);
       guard++;
     }
     if (room.match.phase === "RESULTS") room.status = "results";
+  }
+
+  private logIncompleteEvaluation(room: Room, previousPhase: string): void {
+    if (
+      room.match?.phase === "VERDICT" &&
+      previousPhase !== "VERDICT" &&
+      room.match.verdict?.evaluationStatus === "incomplete"
+    ) {
+      this.log.log("warn", "evaluation_incomplete", {
+        roomId: room.id,
+        diagnosticCode: room.match.verdict.diagnosticCode,
+      });
+    }
   }
 
   gameIntent(params: {
@@ -524,7 +539,9 @@ export class RoomManager {
       const gameCase = this.resolveCase(room.caseId)!;
       const before = room.match.phaseRevision;
       if (room.match.deadlineAt !== null && now >= room.match.deadlineAt) {
+        const previousPhase = room.match.phase;
         advancePhase(room.match, gameCase, now, { forced: true });
+        this.logIncompleteEvaluation(room, previousPhase);
         this.advanceWhileComplete(room, now);
       } else {
         this.advanceWhileComplete(room, now);

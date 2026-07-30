@@ -55,6 +55,19 @@ export interface VerdictResult {
   decisiveFactors: LocalizedText[];
   mostConsistentPlayerId: string | null;
   primarySuspectPlayerId: string | null;
+  evaluationStatus: "complete" | "incomplete";
+  diagnosticCode: "INCOMPLETE_EVALUATION" | null;
+}
+
+export type PhaseSkipReason =
+  | "NO_CONTRADICTION"
+  | "NO_PATCH_ACTIONS"
+  | "NO_FOLLOWUP_SOURCE";
+
+export interface SkippedPhase {
+  phase: PhaseId;
+  reason: PhaseSkipReason;
+  phaseRevision: number;
 }
 
 export interface MatchState {
@@ -89,8 +102,10 @@ export interface MatchState {
   detectedContradictions: DetectedContradiction[];
   /** Ids of contradictions already revealed to the room. */
   releasedContradictionIds: string[];
+  /** Released contradiction key for each reveal slot. */
+  releasedContradictionByPhase: Partial<Record<PhaseId, string>>;
   /** Patch selections applied so far. */
-  selectedPatches: { patchId: string; phase: PhaseId }[];
+  selectedPatches: { patchId: string; phase: PhaseId; contradictionKey: string }[];
   /** Patch votes per phase: phase -> playerId -> patchId. */
   patchVotes: Record<string, Record<string, string>>;
   /** Commitments created by applied patches. */
@@ -100,4 +115,6 @@ export interface MatchState {
   verdict: VerdictResult | null;
   /** Ids of immutable evidence currently revealed (surprise added at its phase). */
   revealedEvidenceIds: string[];
+  /** Server-authoritative record of phases skipped because no action was possible. */
+  skippedPhases: SkippedPhase[];
 }

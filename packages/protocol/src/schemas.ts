@@ -110,6 +110,44 @@ export const patchVotePayloadSchema = z.object({
   patchId: z.string().min(1).max(200),
 });
 
+export const warehouseStoryFieldSchema = z.enum([
+  "entryReason",
+  "entryRoute",
+  "keyHolderInitial",
+  "location2346",
+  "carPurpose",
+  "carDepartureExpected",
+]);
+
+export const warehouseStoryValueSchema = z.union([
+  z.string().min(1).max(120),
+  z.boolean(),
+]);
+
+export const storySetPayloadSchema = z
+  .object({
+    fieldId: warehouseStoryFieldSchema,
+    targetPlayerId: z.string().min(1).max(120).optional(),
+    value: warehouseStoryValueSchema,
+  })
+  .strict();
+
+export const rankedBallotPayloadSchema = z
+  .object({
+    rankedOptionIds: z
+      .array(z.string().min(1).max(200))
+      .min(2)
+      .max(3)
+      .refine((ids) => new Set(ids).size === ids.length, "duplicate ranked option"),
+  })
+  .strict();
+
+export const skipPlayerPayloadSchema = z
+  .object({
+    playerId: z.string().min(1).max(120),
+  })
+  .strict();
+
 export const emptyPayloadSchema = z.object({}).strict();
 
 /** Full envelope schemas keyed by event name. */
@@ -122,8 +160,15 @@ export const CLIENT_EVENT_SCHEMAS = {
   "phase:acknowledge": gameplayEnvelope(acknowledgePayloadSchema),
   "story:propose": gameplayEnvelope(proposePayloadSchema),
   "story:confirm": gameplayEnvelope(confirmPayloadSchema),
+  "story:set": gameplayEnvelope(storySetPayloadSchema),
+  "story:submit": gameplayEnvelope(emptyPayloadSchema),
+  "story:review": gameplayEnvelope(emptyPayloadSchema),
+  "question:start": gameplayEnvelope(emptyPayloadSchema),
   "answer:submit": gameplayEnvelope(answerPayloadSchema),
   "patch:vote": gameplayEnvelope(patchVotePayloadSchema),
+  "discussion:ready": gameplayEnvelope(emptyPayloadSchema),
+  "patch:ballot": gameplayEnvelope(rankedBallotPayloadSchema),
+  "player:skip": gameplayEnvelope(skipPlayerPayloadSchema),
   "result:replay": envelope(emptyPayloadSchema),
   "room:newGroup": envelope(emptyPayloadSchema),
   "player:leave": envelope(emptyPayloadSchema),

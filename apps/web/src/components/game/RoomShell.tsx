@@ -1,15 +1,23 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getCase } from "@al-riwayah/content";
-import { PHASE_SEQUENCE, phaseIndex, type GameCase } from "@al-riwayah/game-engine";
+import {
+  PHASE_SEQUENCE,
+  phaseIndex,
+  type GameCase,
+  type PrivatePlayerView,
+  type PublicRoomView,
+  type WarehouseCaseDefinition,
+} from "@al-riwayah/game-engine";
 import { useGameRoom } from "@/lib/useGameRoom";
 import { DeadlineRing, useDeadlineExpired } from "./DeadlineRing";
 import { GameHeader } from "./GameHeader";
 import { PreferenceControls } from "../PreferenceControls";
 import { playCue, type Cue } from "@/lib/sound";
+import { WarehouseRoom, isWarehousePrivateView, isWarehousePublicView } from "./WarehouseRoom";
 
 const PHASE_CUE: Record<string, Cue> = {
   PRIVATE_EVIDENCE: "evidence",
@@ -29,6 +37,15 @@ const INTERROGATION = new Set([
   "FINAL_QUESTION",
 ]);
 
+function isLegacyPrivateView(value: unknown): value is PrivatePlayerView {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "currentQuestion" in value &&
+    "answerLocked" in value
+  );
+}
+
 export function RoomShell({ code }: { code: string }) {
   const router = useRouter();
   const { pub, priv, connected, connectionStage, fatal, actions } = useGameRoom(code);
@@ -42,10 +59,11 @@ export function RoomShell({ code }: { code: string }) {
     pub?.deadlineAt ?? null,
     pub?.serverTime ?? 0,
   );
-  const gameCase = useMemo<GameCase | undefined>(
+  const warehouseCase = useMemo<WarehouseCaseDefinition | undefined>(
     () => (pub ? getCase(pub.caseId) : undefined),
     [pub],
   );
+  const gameCase = warehouseCase as unknown as GameCase | undefined;
   const lastPhase = useRef<string | null>(null);
 
   useEffect(() => {
@@ -59,10 +77,10 @@ export function RoomShell({ code }: { code: string }) {
 
   useEffect(() => {
     setShowAnswerReceipt(false);
-    if (!priv?.answerLocked) return;
+    if (!isLegacyPrivateView(priv) || !priv.answerLocked) return;
     const id = setTimeout(() => setShowAnswerReceipt(true), 650);
     return () => clearTimeout(id);
-  }, [priv?.answerLocked, pub?.phaseRevision]);
+  }, [isLegacyPrivateView(priv) ? priv.answerLocked : false, pub?.phaseRevision]);
 
   useEffect(() => {
     setSelectedPatchLabel(null);
@@ -127,11 +145,6 @@ export function RoomShell({ code }: { code: string }) {
     );
   }
 
-  const me = pub.players.find((p) => p.id === priv.playerId);
-  const phase = pub.phase;
-  const submittedOptionLabel = priv.currentQuestion?.options.find(
-    (option) => option.id === priv.submittedOptionId,
-  )?.label.ar;
   const run = async (fn: () => Promise<unknown>) => {
     setBusy(true);
     setActionError("");
@@ -155,13 +168,39 @@ export function RoomShell({ code }: { code: string }) {
       setBusy(false);
     }
   };
+
+  if (isWarehousePublicView(pub) && isWarehousePrivateView(priv) && warehouseCase) {
+    return (
+      <WarehouseRoom
+        code={code}
+        pub={pub}
+        priv={priv}
+        connected={connected}
+        busy={busy}
+        run={run}
+        actionError={actionError}
+        actions={actions}
+        warehouseCase={warehouseCase}
+        goToNewGroup={goToNewGroup}
+      />
+    );
+  }
+
+  const legacyPub = pub as PublicRoomView;
+  const legacyPriv = priv as PrivatePlayerView;
+
+  const me = legacyPub.players.find((p) => p.id === legacyPriv.playerId);
+  const phase = legacyPub.phase;
+  const submittedOptionLabel = legacyPriv.currentQuestion?.options.find(
+    (option) => option.id === legacyPriv.submittedOptionId,
+  )?.label.ar;
   const shareRoom = async () => {
-    const url = `${window.location.origin}/join?code=${encodeURIComponent(pub.roomCode)}`;
+    const url = `${window.location.origin}/join?code=${encodeURIComponent(legacyPub.roomCode)}`;
     try {
       if (navigator.share) {
         await navigator.share({
           title: "الرواية — غرفة تحقيق",
-          text: `ادخل غرفة الرواية بالرمز ${pub.roomCode}`,
+          text: `ادخل غرفة الرواية بالرمز ${legacyPub.roomCode}`,
           url,
         });
         setShareStatus("تمت المشاركة");
@@ -175,7 +214,7 @@ export function RoomShell({ code }: { code: string }) {
     }
   };
 
-  const playerName = (id: string) => pub.players.find((p) => p.id === id)?.name ?? id;
+  const playerName = (id: string) => legacyPub.players.find((p) => p.id === id)?.name ?? id;
   const reasonLabel = (id: string) =>
     gameCase?.planning.reasons.find((r) => r.id === id)?.label.ar ?? id;
   const locationLabel = (id: string) =>
@@ -213,8 +252,8 @@ export function RoomShell({ code }: { code: string }) {
           connected={connected}
           caseTitle={gameCase?.title.ar}
           questionNumber={questionNumber(phase)}
-          deadlineAt={pub.deadlineAt}
-          serverTime={pub.serverTime}
+          deadlineAt={legacyPub.deadlineAt}
+          serverTime={legacyPub.serverTime}
         />
       ) : isResult ? (
         <GameHeader variant="result" connected={connected} />
@@ -228,7 +267,7 @@ export function RoomShell({ code }: { code: string }) {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
             <PreferenceControls compact />
-            <DeadlineRing deadlineAt={pub.deadlineAt} serverTime={pub.serverTime} />
+            <DeadlineRing deadlineAt={legacyPub.deadlineAt} serverTime={legacyPub.serverTime} />
           </div>
         </div>
       )}
@@ -260,7 +299,7 @@ export function RoomShell({ code }: { code: string }) {
             <section className="gm-room-card" aria-label="رمز الغرفة">
               <div>
                 <span>رمز الغرفة</span>
-                <bdi className="room-code">{pub.roomCode}</bdi>
+                <bdi className="room-code">{legacyPub.roomCode}</bdi>
               </div>
               <button type="button" onClick={() => void shareRoom()} aria-label="شارك رابط الدخول">
                 ↗
@@ -270,7 +309,7 @@ export function RoomShell({ code }: { code: string }) {
               {shareStatus}
             </p>
             <ul className="roster">
-              {pub.players.map((p) => (
+              {legacyPub.players.map((p) => (
                 <li key={p.id}>
                   <span className="gm-player-avatar" aria-hidden>
                     {p.name.trim().charAt(0)}
@@ -307,13 +346,13 @@ export function RoomShell({ code }: { code: string }) {
               {me?.isHost && (
                 <button
                   className="btn"
-                  disabled={busy || pub.players.length < 4 || !pub.players.every((p) => p.ready)}
+                  disabled={busy || legacyPub.players.length < 4 || !legacyPub.players.every((p) => p.ready)}
                   onClick={() => run(actions.start)}
                 >
                   ابدأ التحقيق
                 </button>
               )}
-              {me?.isHost && pub.players.length < 4 && (
+              {me?.isHost && legacyPub.players.length < 4 && (
                 <p style={{ color: "var(--muted)", textAlign: "center" }}>
                   نحتاج ٤ لاعبين على الأقل
                 </p>
@@ -328,7 +367,7 @@ export function RoomShell({ code }: { code: string }) {
             <h1 className="game__prompt">{gameCase.title.ar}</h1>
             <p>{gameCase.premise.ar}</p>
             <ul className="features">
-              {pub.evidence.map((e) => (
+              {legacyPub.evidence.map((e) => (
                 <li key={e.id}>
                   <span>
                     <strong>{e.title.ar}</strong> — {e.detail.ar}
@@ -336,7 +375,7 @@ export function RoomShell({ code }: { code: string }) {
                 </li>
               ))}
             </ul>
-            <AckBar priv={priv} busy={busy} onAck={() => run(actions.acknowledge)} />
+            <AckBar priv={legacyPriv} busy={busy} onAck={() => run(actions.acknowledge)} />
           </>
         )}
 
@@ -344,16 +383,16 @@ export function RoomShell({ code }: { code: string }) {
         {phase === "PRIVATE_EVIDENCE" && (
           <>
             <p className="eyebrow">هذا الدليل عندك لحالك</p>
-            {priv.privateEvidence ? (
+            {legacyPriv.privateEvidence ? (
               <div className="evidence-private">
-                <h2 style={{ marginTop: 0 }}>{priv.privateEvidence.title.ar}</h2>
-                <p style={{ margin: 0 }}>{priv.privateEvidence.detail.ar}</p>
+                <h2 style={{ marginTop: 0 }}>{legacyPriv.privateEvidence.title.ar}</h2>
+                <p style={{ margin: 0 }}>{legacyPriv.privateEvidence.detail.ar}</p>
               </div>
             ) : (
               <p>ما عندك دليل خاص هالجولة.</p>
             )}
             <p style={{ color: "var(--muted)" }}>لا تورّي شاشتك لأحد.</p>
-            <AckBar priv={priv} busy={busy} onAck={() => run(actions.acknowledge)} />
+            <AckBar priv={legacyPriv} busy={busy} onAck={() => run(actions.acknowledge)} />
           </>
         )}
 
@@ -391,7 +430,7 @@ export function RoomShell({ code }: { code: string }) {
         {phase === "PLAN_ROLES" && gameCase && (
           <RolesPicker
             roles={gameCase.planning.roles.map((r) => ({ id: r.id, label: r.label.ar }))}
-            players={pub.players.map((p) => ({ id: p.id, name: p.name }))}
+            players={legacyPub.players.map((p) => ({ id: p.id, name: p.name }))}
             busy={busy}
             onPick={(roleId, playerId) =>
               run(async () => {
@@ -408,13 +447,13 @@ export function RoomShell({ code }: { code: string }) {
             <h1 className="game__prompt">آخر مراجعة</h1>
             <p style={{ color: "var(--muted)" }}>بعدها تختفي الرواية.</p>
             <ul className="features">
-              {pub.releasedStory["reason"] && (
+              {legacyPub.releasedStory["reason"] && (
                 <li>
-                  <span>السبب: {reasonLabel(pub.releasedStory["reason"])}</span>
+                  <span>السبب: {reasonLabel(legacyPub.releasedStory["reason"])}</span>
                 </li>
               )}
               {gameCase?.planning.roles.map((r) => {
-                const pid = pub.releasedStory[`role.${r.id}`];
+                const pid = legacyPub.releasedStory[`role.${r.id}`];
                 return pid ? (
                   <li key={r.id}>
                     <span>
@@ -423,8 +462,8 @@ export function RoomShell({ code }: { code: string }) {
                   </li>
                 ) : null;
               })}
-              {pub.players.map((p) => {
-                const loc = pub.releasedStory[`location.${p.id}`];
+              {legacyPub.players.map((p) => {
+                const loc = legacyPub.releasedStory[`location.${p.id}`];
                 return loc ? (
                   <li key={p.id}>
                     <span>
@@ -434,17 +473,17 @@ export function RoomShell({ code }: { code: string }) {
                 ) : null;
               })}
             </ul>
-            <AckBar priv={priv} busy={busy} onAck={() => run(actions.acknowledge)} />
+            <AckBar priv={legacyPriv} busy={busy} onAck={() => run(actions.acknowledge)} />
           </>
         )}
 
         {/* INTERROGATION / FINAL */}
         {INTERROGATION.has(phase) && (
           <>
-            {priv.currentQuestion ? (
-              !priv.answerLocked && deadlineExpired ? (
+            {legacyPriv.currentQuestion ? (
+              !legacyPriv.answerLocked && deadlineExpired ? (
                 <ExpiredDeadlineReceipt />
-              ) : priv.answerLocked && showAnswerReceipt ? (
+              ) : legacyPriv.answerLocked && showAnswerReceipt ? (
                 <section className="answer-receipt" aria-live="polite">
                   <span className="answer-receipt__label">إجابة مقفلة · لك فقط</span>
                   <h1>{submittedOptionLabel ?? "تم تثبيت الإجابة"}</h1>
@@ -459,29 +498,29 @@ export function RoomShell({ code }: { code: string }) {
                 </section>
               ) : (
                 <>
-                <h1 className="game__prompt">{priv.currentQuestion.prompt.ar}</h1>
+                <h1 className="game__prompt">{legacyPriv.currentQuestion.prompt.ar}</h1>
                 <p className="gm-question__helper">
                   اختر اللي تتذكره أنه جزء من الرواية. ما تقدر ترجع بعد التثبيت.
                 </p>
                 <aside className="gm-private-info">
                   <span>المعلومة الخاصة بك:</span>{" "}
-                  {priv.privateEvidence?.detail.ar ??
+                  {legacyPriv.privateEvidence?.detail.ar ??
                     "الدليل اللي وصلك قبل التحقيق يخص إجابتك وحدك."}
                 </aside>
                 <div className="game__actions" role="radiogroup" aria-label="اختر إجابة واحدة">
-                  {priv.currentQuestion.options.map((o) => (
+                  {legacyPriv.currentQuestion.options.map((o) => (
                     <button
                       key={o.id}
                       role="radio"
                       aria-checked={
-                        (priv.submittedOptionId ?? selectedOptionId) === o.id
+                        (legacyPriv.submittedOptionId ?? selectedOptionId) === o.id
                       }
                       className={`option-btn ${
-                        (priv.submittedOptionId ?? selectedOptionId) === o.id
+                        (legacyPriv.submittedOptionId ?? selectedOptionId) === o.id
                           ? "is-selected"
                           : ""
                       }`}
-                      disabled={priv.answerLocked || busy}
+                      disabled={legacyPriv.answerLocked || busy}
                       onClick={(event) => {
                         setSelectedOptionId(o.id);
                         event.currentTarget.focus();
@@ -491,7 +530,7 @@ export function RoomShell({ code }: { code: string }) {
                           return;
                         }
                         event.preventDefault();
-                        const options = priv.currentQuestion!.options;
+                        const options = legacyPriv.currentQuestion!.options;
                         const currentIndex = options.findIndex((option) => option.id === o.id);
                         const direction =
                           event.key === "ArrowDown" || event.key === "ArrowLeft" ? 1 : -1;
@@ -516,20 +555,20 @@ export function RoomShell({ code }: { code: string }) {
                   className="gm-question__confirm"
                   type="button"
                   disabled={
-                    priv.answerLocked || busy || deadlineExpired || selectedOptionId === null
+                    legacyPriv.answerLocked || busy || deadlineExpired || selectedOptionId === null
                   }
                   aria-label="ثبّت الإجابة"
                   onClick={() => {
-                    if (!selectedOptionId || !priv.currentQuestion) return;
+                    if (!selectedOptionId || !legacyPriv.currentQuestion) return;
                     void run(async () => {
-                      await actions.answer(priv.currentQuestion!.instanceId, selectedOptionId);
+                      await actions.answer(legacyPriv.currentQuestion!.instanceId, selectedOptionId);
                       playCue("lock");
                     });
                   }}
                 >
                   ثبّت الإجابة
                 </button>
-                {priv.answerLocked && (
+                {legacyPriv.answerLocked && (
                   <p
                     className="gm-question__locked"
                     aria-live="polite"
@@ -550,7 +589,7 @@ export function RoomShell({ code }: { code: string }) {
         {(phase === "CONTRADICTION_REVEAL_1" || phase === "CONTRADICTION_REVEAL_2") && (
           <>
             <span className="stamp">تناقض مسجّل</span>
-            {pub.releasedContradiction ? (
+            {legacyPub.releasedContradiction ? (
               <>
                 <h1 className="game__prompt" style={{ marginTop: "var(--space-4)" }}>
                   كلامكم ما يركب
@@ -559,17 +598,17 @@ export function RoomShell({ code }: { code: string }) {
                   <div className="statement">
                     <span className="eyebrow">الشهادة الأولى</span>
                     <p style={{ margin: "var(--space-3) 0 0" }}>
-                      {pub.releasedContradiction.statementA.ar}
+                      {legacyPub.releasedContradiction.statementA.ar}
                     </p>
                   </div>
                   <div className="statement is-flagged">
                     <span className="eyebrow">الشهادة المقابلة</span>
                     <p style={{ margin: "var(--space-3) 0 0" }}>
-                      {pub.releasedContradiction.statementB.ar}
+                      {legacyPub.releasedContradiction.statementB.ar}
                     </p>
                   </div>
                 </div>
-                <p className="demo__rule">{pub.releasedContradiction.rule.ar}</p>
+                <p className="demo__rule">{legacyPub.releasedContradiction.rule.ar}</p>
               </>
             ) : (
               <section className="phase-proof phase-proof--clear" aria-label="نتيجة فحص التناقض">
@@ -593,19 +632,19 @@ export function RoomShell({ code }: { code: string }) {
         {(phase === "PATCH_1" || phase === "PATCH_2") && (
           <>
             <h1 className="game__prompt">
-              {pub.patchOptions?.length ? "رقّعوا الرواية" : "النسخة الحالية ثابتة."}
+              {legacyPub.patchOptions?.length ? "رقّعوا الرواية" : "النسخة الحالية ثابتة."}
             </h1>
             <p style={{ color: "var(--muted)" }}>
-              {pub.patchOptions?.length
+              {legacyPub.patchOptions?.length
                 ? "كل حل بيفتح عليكم سؤال جديد."
                 : "ما فيه تعديل يحتاج تصويتًا في هذه الجولة."}
             </p>
-            {pub.patchOptions?.length ? (
+            {legacyPub.patchOptions?.length ? (
               deadlineExpired && selectedPatchLabel === null ? (
                 <ExpiredDeadlineReceipt />
               ) : (
               <div className="game__actions">
-                {pub.patchOptions.map((p) => (
+                {legacyPub.patchOptions.map((p) => (
                   <button
                     key={p.id}
                     className="option-btn"
@@ -650,18 +689,18 @@ export function RoomShell({ code }: { code: string }) {
         {phase === "SURPRISE_EVIDENCE" && (
           <>
             <span className="stamp">دليل جديد</span>
-            {pub.evidence.slice(-1).map((e) => (
+            {legacyPub.evidence.slice(-1).map((e) => (
               <div key={e.id} className="evidence-private" style={{ marginTop: "var(--space-4)" }}>
                 <h2 style={{ marginTop: 0 }}>{e.title.ar}</h2>
                 <p style={{ margin: 0 }}>{e.detail.ar}</p>
               </div>
             ))}
-            <AckBar priv={priv} busy={busy} onAck={() => run(actions.acknowledge)} />
+            <AckBar priv={legacyPriv} busy={busy} onAck={() => run(actions.acknowledge)} />
           </>
         )}
 
         {/* VERDICT / RESULTS */}
-        {(phase === "VERDICT" || phase === "RESULTS") && pub.result && (
+        {(phase === "VERDICT" || phase === "RESULTS") && legacyPub.result && (
           <>
             <section className="gm-verdict-panel">
               <div className="gm-verdict-copy">
@@ -669,72 +708,72 @@ export function RoomShell({ code }: { code: string }) {
                 <h1>
                   روايتكم
                   <br />
-                  <em>{pub.result.label.ar}</em>
+                  <em>{legacyPub.result.label.ar}</em>
                 </h1>
               </div>
-              <div className="gm-score-orbit" aria-label={`النتيجة ${pub.result.composite} من 100`}>
-                <strong className="verdict-band">{pub.result.composite}</strong>
+              <div className="gm-score-orbit" aria-label={`النتيجة ${legacyPub.result.composite} من 100`}>
+                <strong className="verdict-band">{legacyPub.result.composite}</strong>
                 <span>من 100</span>
               </div>
             </section>
             <section className="gm-metrics" aria-label="مقاييس النتيجة">
-              <MetricCard label="الاتساق" value={pub.result.scores.consistency} />
-              <MetricCard label="المعقولية" value={pub.result.scores.plausibility} />
-              <MetricCard label="الثبات" value={pub.result.scores.stability} />
+              <MetricCard label="الاتساق" value={legacyPub.result.scores.consistency} />
+              <MetricCard label="المعقولية" value={legacyPub.result.scores.plausibility} />
+              <MetricCard label="الثبات" value={legacyPub.result.scores.stability} />
             </section>
             <div className="result-story" aria-label="ملخص التحقيق">
-              {pub.result.firstFracture && (
+              {legacyPub.result.firstFracture && (
                 <div className="gm-recap gm-recap--danger">
                   <header>
                     <span>أسوأ تناقض</span>
-                    {pub.result.primarySuspectPlayerName && (
-                      <b>{pub.result.primarySuspectPlayerName}</b>
+                    {legacyPub.result.primarySuspectPlayerName && (
+                      <b>{legacyPub.result.primarySuspectPlayerName}</b>
                     )}
                   </header>
-                  <p>{pub.result.firstFracture.ar}</p>
+                  <p>{legacyPub.result.firstFracture.ar}</p>
                   <small>هذا الجواب رفع الشك وفتح سؤالين إضافيين على المجموعة.</small>
                 </div>
               )}
-              {pub.result.strongestPatch && (
+              {legacyPub.result.strongestPatch && (
                 <div className="gm-recap gm-recap--success">
                   <header>
                     <span>أفضل ترقيعة</span>
-                    {pub.result.mostConsistentPlayerName && (
-                      <b>{pub.result.mostConsistentPlayerName}</b>
+                    {legacyPub.result.mostConsistentPlayerName && (
+                      <b>{legacyPub.result.mostConsistentPlayerName}</b>
                     )}
                   </header>
-                  <p>{pub.result.strongestPatch.ar}</p>
+                  <p>{legacyPub.result.strongestPatch.ar}</p>
                 </div>
               )}
-              {pub.result.costliestPatch &&
-                pub.result.costliestPatch.ar !== pub.result.strongestPatch?.ar && (
+              {legacyPub.result.costliestPatch &&
+                legacyPub.result.costliestPatch.ar !== legacyPub.result.strongestPatch?.ar && (
                 <div className="gm-recap">
                   <span className="eyebrow">ترقيعة مكلفة</span>
-                  <p>{pub.result.costliestPatch.ar}</p>
+                  <p>{legacyPub.result.costliestPatch.ar}</p>
                 </div>
                 )}
-              {pub.result.mostConsistentPlayerName && (
+              {legacyPub.result.mostConsistentPlayerName && (
                 <div>
                   <span className="eyebrow">أقوى شاهد</span>
-                  <p>{pub.result.mostConsistentPlayerName}</p>
+                  <p>{legacyPub.result.mostConsistentPlayerName}</p>
                 </div>
               )}
-              {pub.result.primarySuspectPlayerName && (
+              {legacyPub.result.primarySuspectPlayerName && (
                 <div className="is-pressure">
                   <span className="eyebrow">أكثر شخص ضرّ الرواية</span>
-                  <p>{pub.result.primarySuspectPlayerName}</p>
+                  <p>{legacyPub.result.primarySuspectPlayerName}</p>
                 </div>
               )}
             </div>
             <div className="axes gm-result__legacy-axes" aria-hidden="true">
-              <ScoreAxis label="تماسك الرواية" v={pub.result.scores.consistency} />
-              <ScoreAxis label="معقولية الرواية" v={pub.result.scores.plausibility} />
-              <ScoreAxis label="الثبات" v={pub.result.scores.stability} />
-              <ScoreAxis label="التهرّب" v={pub.result.scores.evasion} evasion />
+              <ScoreAxis label="تماسك الرواية" v={legacyPub.result.scores.consistency} />
+              <ScoreAxis label="معقولية الرواية" v={legacyPub.result.scores.plausibility} />
+              <ScoreAxis label="الثبات" v={legacyPub.result.scores.stability} />
+              <ScoreAxis label="التهرّب" v={legacyPub.result.scores.evasion} evasion />
             </div>
-            {pub.result.decisiveFactors.length > 0 && (
+            {legacyPub.result.decisiveFactors.length > 0 && (
               <ul className="features">
-                {pub.result.decisiveFactors.map((f, i) => (
+                {legacyPub.result.decisiveFactors.map((f, i) => (
                   <li key={i}>
                     <span>{f.ar}</span>
                   </li>

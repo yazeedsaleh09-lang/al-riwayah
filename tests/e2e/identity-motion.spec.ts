@@ -87,7 +87,7 @@ test.describe("approved identity and motion system", () => {
     const questionPreview = page.getByRole("img", { name: "معاينة شاشة السؤال المعتمدة" });
     await questionPreview.scrollIntoViewIfNeeded();
     await expect(questionPreview).toBeVisible();
-    await page.getByRole("heading", { name: "ظرف الرواتب المفقود" }).scrollIntoViewIfNeeded();
+    await page.getByRole("heading", { name: "قضية المستودع" }).scrollIntoViewIfNeeded();
     await expect(page.getByRole("link", { name: "ابدأ القضية" })).toBeVisible();
     expect(
       await page.evaluate(

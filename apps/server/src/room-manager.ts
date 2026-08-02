@@ -5,18 +5,30 @@
  * agnostic and clock-injectable so it can be driven directly by tests.
  */
 import {
-  advancePhase,
-  applyIntent,
-  initializeMatch,
-  isPhaseComplete,
-  toPrivateView,
-  toPublicView,
+  advanceWarehousePhase,
+  confirmWarehouseStory,
+  createWarehouseCase,
+  disconnectWarehousePlayer,
+  expireWarehouseAdvisoryDeadline,
+  lockWarehouseAnswer,
+  reconnectWarehousePlayer,
+  setWarehouseDiscussionReady,
+  setWarehouseStoryField,
+  skipDisconnectedWarehousePlayer,
+  startWarehouseQuestion,
+  submitWarehouseRankedBallot,
+  submitWarehouseStory,
+  toWarehousePrivateView,
+  toWarehousePublicView,
   type EngineIntent,
-  type GameCase,
-  type MatchState,
-  type PlayerState,
   type PublicRoomView,
   type PrivatePlayerView,
+  type WarehouseCaseDefinition,
+  type WarehousePrivateView,
+  type WarehousePublicView,
+  type WarehouseState,
+  type WarehouseStoryField,
+  type WarehouseStructuredValue,
 } from "@al-riwayah/game-engine";
 import { getCase, DEFAULT_CASE_ID } from "@al-riwayah/content";
 import type { RoomSettings, SafeError, SafeErrorCode, ServerAck } from "@al-riwayah/protocol";
@@ -47,11 +59,32 @@ interface ServerPlayer {
   joinOrder: number;
   ready: boolean;
   connected: boolean;
+  disconnectedAt: number | null;
   isHost: boolean;
   sessionHash: string;
   socketId: string | null;
   idempotency: Map<string, IdempotencyEntry>;
 }
+
+export type WarehouseManagerIntent =
+  | {
+      type: "WAREHOUSE_STORY_SET";
+      playerId: string;
+      field: WarehouseStoryField;
+      value: WarehouseStructuredValue;
+    }
+  | { type: "WAREHOUSE_STORY_SUBMIT"; playerId: string }
+  | { type: "WAREHOUSE_STORY_REVIEW"; playerId: string }
+  | { type: "WAREHOUSE_START_QUESTION"; playerId: string }
+  | { type: "WAREHOUSE_ADVANCE"; playerId: string }
+  | {
+      type: "WAREHOUSE_ANSWER";
+      playerId: string;
+      questionInstanceId: string;
+      optionId: string;
+    }
+  | { type: "WAREHOUSE_DISCUSSION_READY"; playerId: string }
+  | { type: "WAREHOUSE_BALLOT"; playerId: string; rankedOptionIds: readonly string[] };
 
 export interface Room {
   id: string;
@@ -64,7 +97,7 @@ export interface Room {
   expiresAt: number;
   seed: string;
   players: ServerPlayer[];
-  match: MatchState | null;
+  match: WarehouseState | null;
 }
 
 export interface CreateResult {
@@ -103,7 +136,6 @@ export class RoomManager {
   private maxLifetimeMs: number;
   private limiter: RateLimiter;
   private log: Logger;
-  private phaseDurationScale: number;
   private seedFactory: () => string;
   private rateLimitsEnabled: boolean;
 
@@ -113,7 +145,6 @@ export class RoomManager {
     this.maxLifetimeMs = opts.maxLifetimeMs ?? 2 * 60 * 60 * 1000;
     this.limiter = new RateLimiter(this.now);
     this.log = opts.logger ?? createLogger();
-    this.phaseDurationScale = opts.phaseDurationScale ?? 1;
     this.seedFactory = opts.seedFactory ?? (() => randomId("seed"));
     this.rateLimitsEnabled = opts.disableRateLimits !== true;
   }
@@ -130,11 +161,11 @@ export class RoomManager {
     room.expiresAt = Math.min(room.createdAt + this.maxLifetimeMs, t + this.ttlMs);
   }
 
-  private resolveCase(caseId: string): GameCase | undefined {
+  private resolveCase(caseId: string): WarehouseCaseDefinition | undefined {
     return getCase(caseId);
   }
 
-  private toEnginePlayers(room: Room): PlayerState[] {
+  private toEnginePlayers(room: Room) {
     return room.players
       .slice()
       .sort((a, b) => a.joinOrder - b.joinOrder)
@@ -148,17 +179,41 @@ export class RoomManager {
       }));
   }
 
-  /** Mirror server player connection/host state into the live match. */
+  private initializeWarehouseMatch(room: Room): WarehouseState {
+    const definition = this.resolveCase(room.caseId)!;
+    const orderedPlayers = this.toEnginePlayers(room);
+    const firstPlayerId = orderedPlayers[0]!.id;
+    const firstLocation = definition.storyOptions.locations[0]!.id;
+    return createWarehouseCase({
+      definition,
+      sessionId: randomId("match"),
+      players: orderedPlayers,
+      now: this.now(),
+      sharedStory: {
+        entryReason: definition.storyOptions.entryReasons[0]!.id,
+        entryRoute: definition.storyOptions.entryRoutes[0]!.id,
+        keyHolderInitial: firstPlayerId,
+        location2346: Object.fromEntries(
+          orderedPlayers.map((candidate) => [candidate.id, firstLocation]),
+        ),
+        carPurpose: definition.storyOptions.carPurposes[0]!.id,
+        carDepartureExpected: true,
+      },
+    });
+  }
+
+  /** Mirror server player connection state into the live Warehouse match. */
   private syncMatchPlayers(room: Room): void {
     if (!room.match) return;
-    for (const mp of room.match.players) {
-      const sp = room.players.find((p) => p.id === mp.id);
-      if (sp) {
-        mp.connected = sp.connected;
-        mp.isHost = sp.isHost;
-        mp.ready = sp.ready;
-      }
-    }
+    room.match = {
+      ...room.match,
+      players: room.match.players.map((matchPlayer) => {
+        const serverPlayer = room.players.find((player) => player.id === matchPlayer.id);
+        return serverPlayer
+          ? { ...matchPlayer, connected: serverPlayer.connected }
+          : matchPlayer;
+      }),
+    };
   }
 
   getRoom(code: string): Room | undefined {
@@ -186,6 +241,7 @@ export class RoomManager {
       joinOrder,
       ready: false,
       connected: true,
+      disconnectedAt: null,
       isHost,
       sessionHash: hashToken(recoveryToken),
       socketId: null,
@@ -278,16 +334,7 @@ export class RoomManager {
     if (room.players.length > MAX_PLAYERS) return this.err("ROOM_FULL");
     if (!room.players.every((p) => p.ready)) return this.err("NOT_READY");
 
-    const gameCase = this.resolveCase(room.caseId)!;
-    room.match = initializeMatch({
-      matchId: randomId("match"),
-      seed: room.seed,
-      gameCase,
-      players: this.toEnginePlayers(room),
-      now: this.now(),
-      extendedPlanning: room.settings.extendedPlanning,
-      phaseDurationScale: this.phaseDurationScale,
-    });
+    room.match = this.initializeWarehouseMatch(room);
     room.status = "active";
     this.touch(room);
     this.log.log("info", "match_started", { roomId: room.id, players: room.players.length });
@@ -306,8 +353,12 @@ export class RoomManager {
       for (const player of room.players) {
         if (verifyToken(params.recoveryToken, player.sessionHash)) {
           const rotated = generateRecoveryToken();
+          if (room.match) {
+            room.match = reconnectWarehousePlayer(room.match, player.id, this.now());
+          }
           player.sessionHash = hashToken(rotated);
           player.connected = true;
+          player.disconnectedAt = null;
           this.syncMatchPlayers(room);
           this.touch(room);
           this.log.log("info", "session_restored", { roomId: room.id });
@@ -348,13 +399,25 @@ export class RoomManager {
           }
           candidatePlayer.socketId = null;
           candidatePlayer.connected = false;
+          candidatePlayer.disconnectedAt = this.now();
+          if (candidateRoom.match) {
+            candidateRoom.match = disconnectWarehousePlayer(
+              candidateRoom.match,
+              candidatePlayer.id,
+              candidatePlayer.disconnectedAt,
+            );
+          }
           if (candidatePlayer.isHost) this.transferHost(candidateRoom, candidatePlayer.id);
           this.syncMatchPlayers(candidateRoom);
         }
       }
       const previousSocketId = player.socketId;
+      if (room.match) {
+        room.match = reconnectWarehousePlayer(room.match, player.id, this.now());
+      }
       player.socketId = socketId;
       player.connected = true;
+      player.disconnectedAt = null;
       this.syncMatchPlayers(room);
       return previousSocketId;
     }
@@ -367,6 +430,10 @@ export class RoomManager {
       const player = room.players.find((p) => p.socketId === socketId);
       if (!player) continue;
       player.connected = false;
+      player.disconnectedAt = this.now();
+      if (room.match) {
+        room.match = disconnectWarehousePlayer(room.match, player.id, player.disconnectedAt);
+      }
       player.socketId = null;
       if (player.isHost) this.transferHost(room, player.id);
       this.syncMatchPlayers(room);
@@ -388,42 +455,66 @@ export class RoomManager {
 
   // --- gameplay intents ---
 
-  private mapEngineError(code: string): SafeErrorCode {
-    switch (code) {
-      case "INVALID_PHASE":
-        return "INVALID_PHASE";
-      case "ANSWER_ALREADY_LOCKED":
-        return "ANSWER_ALREADY_LOCKED";
-      case "SESSION_INVALID":
-        return "SESSION_INVALID";
+  private applyWarehouseIntent(
+    room: Room,
+    player: ServerPlayer,
+    intent: WarehouseManagerIntent | EngineIntent,
+    now: number,
+  ): WarehouseState {
+    const state = room.match!;
+    const definition = this.resolveCase(room.caseId)!;
+    switch (intent.type) {
+      case "WAREHOUSE_STORY_SET":
+        return setWarehouseStoryField(
+          state,
+          definition,
+          intent.field,
+          intent.value,
+          player.id,
+          now,
+        );
+      case "WAREHOUSE_STORY_SUBMIT":
+        return player.isHost ? submitWarehouseStory(state, now) : state;
+      case "WAREHOUSE_STORY_REVIEW": {
+        const confirmed = confirmWarehouseStory(state, player.id, now);
+        if (confirmed === state) return state;
+        return advanceWarehousePhase(confirmed, definition, now);
+      }
+      case "WAREHOUSE_START_QUESTION":
+        return startWarehouseQuestion(state, player.id, now);
+      case "WAREHOUSE_ADVANCE":
+      case "ACKNOWLEDGE":
+        return player.isHost ? advanceWarehousePhase(state, definition, now) : state;
+      case "WAREHOUSE_ANSWER": {
+        const privateView = toWarehousePrivateView(state, player.id);
+        if (privateView?.question?.instanceId !== intent.questionInstanceId) return state;
+        const answered = lockWarehouseAnswer(state, player.id, intent.optionId, now);
+        if (answered === state) return state;
+        return advanceWarehousePhase(answered, definition, now);
+      }
+      case "ANSWER": {
+        const privateView = toWarehousePrivateView(state, player.id);
+        if (privateView?.question?.instanceId !== intent.questionInstanceId) return state;
+        const answered = lockWarehouseAnswer(state, player.id, intent.optionId, now);
+        if (answered === state) return state;
+        return advanceWarehousePhase(answered, definition, now);
+      }
+      case "WAREHOUSE_DISCUSSION_READY": {
+        const ready = setWarehouseDiscussionReady(state, player.id, now);
+        if (ready === state) return state;
+        return advanceWarehousePhase(ready, definition, now);
+      }
+      case "WAREHOUSE_BALLOT": {
+        const submitted = submitWarehouseRankedBallot(
+          state,
+          { playerId: player.id, rankedOptionIds: intent.rankedOptionIds },
+          now,
+        );
+        if (submitted === state) return state;
+        return advanceWarehousePhase(submitted, definition, now);
+      }
       default:
-        return "ACTION_NOT_ALLOWED";
-    }
-  }
-
-  private advanceWhileComplete(room: Room, now: number): void {
-    if (!room.match) return;
-    const gameCase = this.resolveCase(room.caseId)!;
-    let guard = 0;
-    while (room.match.phase !== "RESULTS" && isPhaseComplete(room.match, gameCase) && guard < 25) {
-      const previousPhase = room.match.phase;
-      advancePhase(room.match, gameCase, now, { forced: false });
-      this.logIncompleteEvaluation(room, previousPhase);
-      guard++;
-    }
-    if (room.match.phase === "RESULTS") room.status = "results";
-  }
-
-  private logIncompleteEvaluation(room: Room, previousPhase: string): void {
-    if (
-      room.match?.phase === "VERDICT" &&
-      previousPhase !== "VERDICT" &&
-      room.match.verdict?.evaluationStatus === "incomplete"
-    ) {
-      this.log.log("warn", "evaluation_incomplete", {
-        roomId: room.id,
-        diagnosticCode: room.match.verdict.diagnosticCode,
-      });
+        return state;
     }
   }
 
@@ -432,7 +523,7 @@ export class RoomManager {
     playerId: string;
     requestId: string;
     phaseRevision?: number;
-    intent: EngineIntent;
+    intent: WarehouseManagerIntent | EngineIntent;
   }): ServerAck {
     const { requestId } = params;
     const fail = (error: SafeError): ServerAck => ({ ok: false, requestId, error });
@@ -464,18 +555,64 @@ export class RoomManager {
       return fail(safeError("STALE_REVISION"));
     }
     const now = this.now();
-    if (room.match.deadlineAt !== null && now > room.match.deadlineAt) {
-      return fail(safeError("DEADLINE_PASSED"));
+    const updated = this.applyWarehouseIntent(room, player, params.intent, now);
+    if (updated === room.match) {
+      const code =
+        params.intent.type === "WAREHOUSE_ANSWER" || params.intent.type === "ANSWER"
+          ? "ANSWER_ALREADY_LOCKED"
+          : "ACTION_NOT_ALLOWED";
+      return fail(safeError(code));
     }
-
-    const result = applyIntent(room.match, this.resolveCase(room.caseId)!, params.intent, now);
-    if (!result.ok) return fail(safeError(this.mapEngineError(result.error)));
+    room.match = updated;
 
     this.touch(room);
-    this.advanceWhileComplete(room, now);
+    if (room.match.phase === "RESULT_REVEAL") room.status = "results";
 
     const ack: ServerAck = { ok: true, requestId, data: {} };
     this.storeIdempotency(player, requestId, { intentKey, ack });
+    return ack;
+  }
+
+  skipDisconnectedPlayer(params: {
+    code: string;
+    hostPlayerId: string;
+    targetPlayerId: string;
+    requestId: string;
+    phaseRevision: number;
+  }): ServerAck {
+    const fail = (code: SafeErrorCode): ServerAck => ({
+      ok: false,
+      requestId: params.requestId,
+      error: safeError(code),
+    });
+    const room = this.getRoom(params.code);
+    if (!room?.match) return fail("INVALID_PHASE");
+    const host = room.players.find((player) => player.id === params.hostPlayerId);
+    if (!host) return fail("SESSION_INVALID");
+    if (!host.isHost) return fail("NOT_HOST");
+    const intentKey = JSON.stringify({
+      type: "WAREHOUSE_SKIP_DISCONNECTED",
+      targetPlayerId: params.targetPlayerId,
+    });
+    const cached = host.idempotency.get(params.requestId);
+    if (cached) {
+      return cached.intentKey === intentKey ? cached.ack : fail("INVALID_PAYLOAD");
+    }
+    if (this.rateLimitsEnabled && !this.limiter.check("intent", host.id)) {
+      return fail("RATE_LIMITED");
+    }
+    if (params.phaseRevision !== room.match.phaseRevision) return fail("STALE_REVISION");
+
+    const updated = skipDisconnectedWarehousePlayer(
+      room.match,
+      params.targetPlayerId,
+      this.now(),
+    );
+    if (updated === room.match) return fail("ACTION_NOT_ALLOWED");
+    room.match = advanceWarehousePhase(updated, this.resolveCase(room.caseId)!, this.now());
+    this.touch(room);
+    const ack: ServerAck = { ok: true, requestId: params.requestId, data: {} };
+    this.storeIdempotency(host, params.requestId, { intentKey, ack });
     return ack;
   }
 
@@ -503,16 +640,7 @@ export class RoomManager {
       p.ready = true;
       p.idempotency.clear();
     }
-    const gameCase = this.resolveCase(room.caseId)!;
-    room.match = initializeMatch({
-      matchId: randomId("match"),
-      seed: room.seed,
-      gameCase,
-      players: this.toEnginePlayers(room),
-      now: this.now(),
-      extendedPlanning: room.settings.extendedPlanning,
-      phaseDurationScale: this.phaseDurationScale,
-    });
+    room.match = this.initializeWarehouseMatch(room);
     room.status = "active";
     this.touch(room);
     return { ok: true, data: null };
@@ -530,24 +658,15 @@ export class RoomManager {
 
   // --- timing / cleanup ---
 
-  /** Advance any room whose deadline passed. Returns codes of changed rooms. */
+  /** Mark advisory timers elapsed without choosing, submitting, or advancing. */
   tick(): string[] {
     const now = this.now();
     const changed = new Set<string>();
     for (const room of this.rooms.values()) {
       if (room.status !== "active" || !room.match) continue;
-      const gameCase = this.resolveCase(room.caseId)!;
-      const before = room.match.phaseRevision;
-      if (room.match.deadlineAt !== null && now >= room.match.deadlineAt) {
-        const previousPhase = room.match.phase;
-        advancePhase(room.match, gameCase, now, { forced: true });
-        this.logIncompleteEvaluation(room, previousPhase);
-        this.advanceWhileComplete(room, now);
-      } else {
-        this.advanceWhileComplete(room, now);
-      }
-      if (room.match.phaseRevision !== before) {
-        if (room.match.phase === "RESULTS") room.status = "results";
+      const before = room.match;
+      room.match = expireWarehouseAdvisoryDeadline(room.match, now);
+      if (room.match !== before) {
         changed.add(room.code);
       }
     }
@@ -577,17 +696,33 @@ export class RoomManager {
 
   // --- views ---
 
-  publicView(code: string): PublicRoomView | null {
+  publicView(code: string): PublicRoomView | (WarehousePublicView & {
+    protocolVersion: 1;
+    roomCode: string;
+    deadlineAt: number | null;
+    serverTime: number;
+    caseId: string;
+    caseVersion: string;
+  }) | null {
     const room = this.getRoom(code);
     if (!room) return null;
     const gameCase = this.resolveCase(room.caseId)!;
     if (!room.match) {
       return this.lobbyPublicView(room, gameCase);
     }
-    return toPublicView(room.match, gameCase, room.code, this.now());
+    const view = toWarehousePublicView(room.match, gameCase);
+    return {
+      ...view,
+      protocolVersion: 1,
+      roomCode: room.code,
+      deadlineAt: view.advisoryDeadlineAt,
+      serverTime: this.now(),
+      caseId: room.caseId,
+      caseVersion: gameCase.version,
+    };
   }
 
-  private lobbyPublicView(room: Room, gameCase: GameCase): PublicRoomView {
+  private lobbyPublicView(room: Room, gameCase: WarehouseCaseDefinition): PublicRoomView {
     return {
       protocolVersion: 1,
       roomCode: room.code,
@@ -617,12 +752,16 @@ export class RoomManager {
     };
   }
 
-  privateView(code: string, playerId: string): PrivatePlayerView | null {
+  privateView(code: string, playerId: string): PrivatePlayerView | (WarehousePrivateView & {
+    protocolVersion: 1;
+    isHost: boolean;
+    connected: boolean;
+    phaseRevision: number;
+  }) | null {
     const room = this.getRoom(code);
     if (!room) return null;
     const player = room.players.find((p) => p.id === playerId);
     if (!player) return null;
-    const gameCase = this.resolveCase(room.caseId)!;
     if (!room.match) {
       return {
         protocolVersion: 1,
@@ -639,7 +778,16 @@ export class RoomManager {
         ownResultNote: null,
       };
     }
-    return toPrivateView(room.match, gameCase, playerId);
+    const view = toWarehousePrivateView(room.match, playerId, player.isHost);
+    return view
+      ? {
+          ...view,
+          protocolVersion: 1,
+          isHost: player.isHost,
+          connected: player.connected,
+          phaseRevision: room.match.phaseRevision,
+        }
+      : null;
   }
 
   /** Player ids + socket ids for a room, for the gateway to emit to. */

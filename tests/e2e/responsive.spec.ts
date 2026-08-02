@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 
@@ -26,6 +26,18 @@ const VIEWPORTS = [
   { name: "1920x1080", width: 1920, height: 1080 },
 ] as const;
 
+async function gotoWithNetworkRetry(page: Page, route: string) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await page.goto(route, { waitUntil: "domcontentloaded" });
+      return;
+    } catch (error) {
+      if (!String(error).includes("ERR_NETWORK_CHANGED") || attempt === 2) throw error;
+      await page.waitForTimeout(250);
+    }
+  }
+}
+
 test("responsive route matrix has no overflow, console errors, or clipped primary controls", async ({
   page,
 }) => {
@@ -43,8 +55,16 @@ test("responsive route matrix has no overflow, console errors, or clipped primar
     await page.setViewportSize(viewport);
     for (const route of ROUTES) {
       consoleErrors.length = 0;
-      await page.goto(route, { waitUntil: "domcontentloaded" });
+      await gotoWithNetworkRetry(page, route);
       await expect(page.locator("h1").first()).toBeVisible();
+      if (
+        consoleErrors.length > 0 &&
+        consoleErrors.every((message) => message.includes("ERR_NETWORK_CHANGED"))
+      ) {
+        consoleErrors.length = 0;
+        await gotoWithNetworkRetry(page, route);
+        await expect(page.locator("h1").first()).toBeVisible();
+      }
 
       const metrics = await page.evaluate(() => ({
         documentOverflow:

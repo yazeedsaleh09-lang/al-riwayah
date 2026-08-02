@@ -303,12 +303,138 @@
   clip-path: inset(50%);
 }
 
+.warehouse-phase-banner {
+  position: sticky;
+  z-index: calc(var(--z-sticky) - 1);
+  inset-block-start: 0;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  gap: 9px 12px;
+  width: 100%;
+  padding: 14px max(18px, calc((100% - 390px) / 2 + 20px));
+  border-block-end: 1px solid color-mix(in srgb, currentColor 24%, transparent);
+  background: var(--gm-paper-alt);
+  color: var(--gm-ink);
+  box-shadow: 0 8px 20px rgba(23, 23, 19, 0.08);
+}
+
+.warehouse-phase-banner[data-tone="talk"] {
+  background: var(--gm-green);
+  color: var(--gm-card);
+}
+
+.warehouse-phase-banner[data-tone="silence"] {
+  background: var(--gm-ink);
+  color: var(--gm-card);
+}
+
+.warehouse-phase-banner[data-tone="ballot"] {
+  background: var(--gm-note);
+  color: var(--gm-ink);
+}
+
+.warehouse-phase-banner[data-tone="waiting"] {
+  background: #ded5c7;
+  color: var(--gm-ink);
+}
+
+.warehouse-phase-banner__icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  grid-row: 1 / span 2;
+  place-items: center;
+  align-self: center;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-family: var(--font-ui), Arial, sans-serif;
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.warehouse-phase-banner__copy {
+  min-width: 0;
+}
+
+.warehouse-phase-banner__copy strong {
+  display: block;
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.warehouse-phase-banner__copy p {
+  margin: 3px 0 0;
+  color: inherit;
+  font-size: 0.75rem;
+  line-height: 1.55;
+  opacity: 0.88;
+}
+
+.warehouse-phase-banner__mode {
+  grid-column: 2;
+  justify-self: start;
+  padding-block-start: 6px;
+  border-block-start: 1px solid color-mix(in srgb, currentColor 32%, transparent);
+  font-size: 0.68rem;
+  font-weight: 900;
+}
+
+.warehouse-phase-interstitial {
+  position: fixed;
+  z-index: calc(var(--z-overlay) + 1);
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 16px;
+  padding: 32px;
+  background: rgba(23, 23, 19, 0.94);
+  color: var(--gm-card);
+  text-align: center;
+  pointer-events: none;
+  animation: warehouse-phase-cue 2s var(--motion-ease-out) both;
+}
+
+.warehouse-phase-interstitial > span {
+  display: grid;
+  width: 54px;
+  height: 54px;
+  place-items: center;
+  justify-self: center;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: 1.3rem;
+}
+
+.warehouse-phase-interstitial strong {
+  max-width: 330px;
+  font-size: clamp(1.5rem, 7vw, 2.1rem);
+  line-height: 1.45;
+  text-wrap: balance;
+}
+
+@keyframes warehouse-phase-cue {
+  0% {
+    opacity: 0;
+  }
+  12%,
+  82% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .warehouse-phase-interstitial {
+    animation: none;
+  }
+}
+
 .gm-question .game__body {
   width: min(100%, 390px);
   min-height: calc(100svh - 80px);
-  padding:
-    94px 20px
-    calc(100px + env(safe-area-inset-bottom));
+  padding: 32px 20px calc(100px + env(safe-area-inset-bottom));
 }
 
 .gm-question .game__prompt {
@@ -614,14 +740,12 @@
 
 @keyframes result-reveal {
   from {
-    opacity: 0;
     transform: translateY(12px);
   }
 }
 
 @keyframes result-item-enter {
   from {
-    opacity: 0;
     transform: translateY(8px);
   }
 }
@@ -729,6 +853,228 @@
 .gm-result .game__actions {
   position: static;
   background: transparent;
+}
+
+.warehouse-actions {
+  position: static;
+  padding-block: 0;
+  background: transparent;
+}
+
+.warehouse-story-builder {
+  display: grid;
+  gap: 14px;
+  margin-block-start: 22px;
+}
+
+.warehouse-fieldset {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 14px;
+  border: 1px solid var(--gm-line);
+  border-radius: 14px;
+  background: var(--gm-card);
+}
+
+.warehouse-fieldset legend,
+.warehouse-fieldset h2,
+.warehouse-story-summary h2,
+.warehouse-disconnect h2 {
+  margin: 0;
+  color: var(--gm-green);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.warehouse-choice-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.warehouse-choice-grid .option-btn {
+  min-height: 48px;
+  padding: 10px 12px;
+  text-align: start;
+}
+
+.warehouse-select-row {
+  display: grid;
+  gap: 7px;
+  color: var(--gm-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.warehouse-select-row select {
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--gm-line);
+  border-radius: 10px;
+  background: var(--gm-paper);
+  color: var(--gm-ink);
+  font: inherit;
+}
+
+.warehouse-story-summary,
+.warehouse-evidence,
+.warehouse-disconnect {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--gm-line);
+  border-radius: 14px;
+  background: var(--gm-card);
+}
+
+.warehouse-story-summary p,
+.warehouse-evidence p,
+.warehouse-disconnect p {
+  margin: 0;
+  color: var(--gm-muted);
+  font-size: 0.8rem;
+  line-height: 1.7;
+}
+
+.warehouse-story-list {
+  gap: 8px;
+  margin-block: 18px;
+}
+
+.warehouse-progress,
+.warehouse-advisory {
+  margin: 14px 0 0;
+  padding: 11px 13px;
+  border: 1px solid var(--gm-line);
+  border-radius: 12px;
+  background: var(--gm-private);
+  color: var(--gm-green);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.warehouse-advisory {
+  border-color: rgba(198, 59, 48, 0.24);
+  background: var(--gm-red-soft);
+  color: var(--gm-red);
+}
+
+.warehouse-issue-list,
+.warehouse-ranked-ballot {
+  display: grid;
+  gap: 10px;
+  margin: 18px 0;
+  padding: 0;
+}
+
+.warehouse-issue-list .gm-recap,
+.warehouse-ranked-ballot li {
+  min-height: auto;
+  padding: 16px;
+  border: 1px solid var(--gm-line);
+  border-radius: 16px;
+  background: var(--gm-card);
+}
+
+.warehouse-issue-list .gm-recap small {
+  display: block;
+  margin-block-start: 8px;
+  color: var(--gm-muted);
+  font-size: 0.7rem;
+  line-height: 1.6;
+}
+
+.warehouse-ranked-ballot {
+  list-style: none;
+}
+
+.warehouse-ranked-ballot li {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 10px;
+}
+
+.warehouse-rank {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--gm-ink);
+  color: var(--gm-card);
+  font-weight: 800;
+}
+
+.warehouse-ranked-ballot strong {
+  display: block;
+  margin-block-end: 6px;
+  color: var(--gm-ink);
+  font-size: 0.9rem;
+}
+
+.warehouse-ranked-ballot p,
+.warehouse-ranked-ballot small {
+  display: block;
+  margin: 0 0 6px;
+  color: var(--gm-muted);
+  font-size: 0.72rem;
+  line-height: 1.55;
+}
+
+.warehouse-rank-controls {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.warehouse-rank-controls button,
+.warehouse-disconnect button {
+  min-height: 44px;
+  border: 1px solid var(--gm-line);
+  border-radius: 10px;
+  background: var(--gm-paper);
+  color: var(--gm-ink);
+  font-weight: 800;
+}
+
+.warehouse-rank-controls button:disabled {
+  opacity: 0.45;
+}
+
+.warehouse-disconnect {
+  margin-block-start: 14px;
+  border-color: rgba(198, 59, 48, 0.32);
+}
+
+.warehouse-disconnect > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.warehouse-disconnect span {
+  font-weight: 800;
+}
+
+.patch-choice-receipt ul {
+  margin: 10px 0 0;
+  padding-inline-start: 18px;
+}
+
+.patch-choice-receipt li {
+  margin-block: 5px;
+  color: var(--gm-muted);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+@media (min-width: 560px) {
+  .warehouse-choice-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .legacy-testimony-editor {

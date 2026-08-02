@@ -12,7 +12,7 @@ import {
   type SessionCredentials,
 } from "@al-riwayah/protocol";
 import type { EngineIntent } from "@al-riwayah/game-engine";
-import type { RoomManager } from "./room-manager";
+import type { RoomManager, WarehouseManagerIntent } from "./room-manager";
 import type { Logger } from "./redact-log";
 
 interface SocketState {
@@ -260,7 +260,7 @@ export function registerGateway(io: Server, manager: RoomManager, log: Logger): 
       event: keyof typeof CLIENT_EVENT_SCHEMAS,
       raw: unknown,
       ack: AckFn | undefined,
-      toIntent: (playerId: string, payload: unknown) => EngineIntent,
+      toIntent: (playerId: string, payload: unknown) => EngineIntent | WarehouseManagerIntent,
     ): void => {
       const g = guard(event, raw, ack);
       if (!g.ok) return;
@@ -305,6 +305,48 @@ export function registerGateway(io: Server, manager: RoomManager, log: Logger): 
         fieldId: (payload as { fieldId: string }).fieldId,
       })),
     );
+    socket.on("story:set", (raw: unknown, ack?: AckFn) =>
+      gameplay("story:set", raw, ack, (playerId, payload) => {
+        const story = payload as {
+          fieldId:
+            | "entryReason"
+            | "entryRoute"
+            | "keyHolderInitial"
+            | "location2346"
+            | "carPurpose"
+            | "carDepartureExpected";
+          targetPlayerId?: string;
+          value: string | boolean;
+        };
+        return {
+          type: "WAREHOUSE_STORY_SET",
+          playerId,
+          field:
+            story.fieldId === "location2346"
+              ? `location2346.${story.targetPlayerId ?? ""}`
+              : story.fieldId,
+          value: story.value,
+        };
+      }),
+    );
+    socket.on("story:submit", (raw: unknown, ack?: AckFn) =>
+      gameplay("story:submit", raw, ack, (playerId) => ({
+        type: "WAREHOUSE_STORY_SUBMIT",
+        playerId,
+      })),
+    );
+    socket.on("story:review", (raw: unknown, ack?: AckFn) =>
+      gameplay("story:review", raw, ack, (playerId) => ({
+        type: "WAREHOUSE_STORY_REVIEW",
+        playerId,
+      })),
+    );
+    socket.on("question:start", (raw: unknown, ack?: AckFn) =>
+      gameplay("question:start", raw, ack, (playerId) => ({
+        type: "WAREHOUSE_START_QUESTION",
+        playerId,
+      })),
+    );
     socket.on("answer:submit", (raw: unknown, ack?: AckFn) =>
       gameplay("answer:submit", raw, ack, (playerId, payload) => ({
         type: "ANSWER",
@@ -320,6 +362,40 @@ export function registerGateway(io: Server, manager: RoomManager, log: Logger): 
         patchId: (payload as { patchId: string }).patchId,
       })),
     );
+    socket.on("discussion:ready", (raw: unknown, ack?: AckFn) =>
+      gameplay("discussion:ready", raw, ack, (playerId) => ({
+        type: "WAREHOUSE_DISCUSSION_READY",
+        playerId,
+      })),
+    );
+    socket.on("patch:ballot", (raw: unknown, ack?: AckFn) =>
+      gameplay("patch:ballot", raw, ack, (playerId, payload) => ({
+        type: "WAREHOUSE_BALLOT",
+        playerId,
+        rankedOptionIds: (payload as { rankedOptionIds: string[] }).rankedOptionIds,
+      })),
+    );
+
+    socket.on("player:skip", (raw: unknown, ack?: AckFn) => {
+      const g = guard("player:skip", raw, ack);
+      if (!g.ok) return;
+      const env = g.value as {
+        requestId: string;
+        phaseRevision: number;
+        payload: { playerId: string };
+      };
+      const s = requireSession(env.requestId, ack);
+      if (!s) return;
+      const outcome = manager.skipDisconnectedPlayer({
+        code: s.code!,
+        hostPlayerId: s.playerId!,
+        targetPlayerId: env.payload.playerId,
+        requestId: env.requestId,
+        phaseRevision: env.phaseRevision,
+      });
+      ack?.(outcome);
+      if (outcome.ok) emitRoom(s.code!);
+    });
 
     socket.on("result:replay", (raw: unknown, ack?: AckFn) =>
       simple("result:replay", raw, ack, (s, _payload, requestId) => {

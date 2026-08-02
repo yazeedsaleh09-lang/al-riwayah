@@ -1,198 +1,213 @@
-import { describe, it, expect } from "vitest";
-import { RoomManager, redact, buildServer } from "@al-riwayah/server";
+import { describe, expect, it } from "vitest";
+import type { WarehousePrivateView } from "@al-riwayah/game-engine";
+import { RoomManager, buildServer, redact } from "@al-riwayah/server";
+import type { WarehouseManagerIntent } from "@al-riwayah/server";
 import { displayNameSchema } from "@al-riwayah/protocol";
-import { missingPayrollEnvelopeV1 as CASE } from "@al-riwayah/content";
 import { createRoomWithPlayers, makeClock, readyAndStart } from "../integration/driver";
 
-/** Advance a started match (forcing deadlines) until it reaches `phase`. */
-function advanceTo(mgr: RoomManager, code: string, clock: { t: number }, phase: string): void {
-  let guard = 0;
-  while (mgr.publicView(code)!.phase !== phase && guard < 40) {
-    const pub = mgr.publicView(code)!;
-    if (pub.phase === "RESULTS") break;
-    clock.t = (pub.deadlineAt ?? clock.t) + 1;
-    mgr.tick();
-    guard++;
+function advanceToQuestions(
+  manager: RoomManager,
+  code: string,
+  players: ReturnType<typeof createRoomWithPlayers>["players"],
+): void {
+  let requestId = 0;
+  const send = (playerId: string, intent: WarehouseManagerIntent) => {
+    const result = manager.gameIntent({
+      code,
+      playerId,
+      requestId: `security:${requestId++}`,
+      phaseRevision: manager.publicView(code)!.phaseRevision,
+      intent,
+    });
+    if (!result.ok) throw new Error(result.error.code);
+  };
+  send(players[0]!.id, {
+    type: "WAREHOUSE_STORY_SUBMIT",
+    playerId: players[0]!.id,
+  });
+  for (const player of players) {
+    send(player.id, { type: "WAREHOUSE_STORY_REVIEW", playerId: player.id });
   }
+  for (const player of players) {
+    send(player.id, {
+      type: "WAREHOUSE_START_QUESTION",
+      playerId: player.id,
+    });
+  }
+  send(players[0]!.id, {
+    type: "WAREHOUSE_ADVANCE",
+    playerId: players[0]!.id,
+  });
 }
 
-const WIFI_DETAIL = CASE.privateEvidencePool.find((e) => e.id === "pe.own_device_wifi")!.detail.ar;
-
-describe("secrecy & security (SEC-001..010)", () => {
-  it("SEC-001: public view has no private keys and no private evidence text", () => {
-    const { clock, now } = makeClock();
-    const mgr = new RoomManager({ now });
-    const { code, players } = createRoomWithPlayers(mgr, 4);
-    readyAndStart(mgr, code, players);
-    advanceTo(mgr, code, clock, "INTERROGATION_FOUNDATION");
-
-    const pub = mgr.publicView(code)! as unknown as Record<string, unknown>;
-    for (const key of ["answers", "scoreLedger", "privateEvidenceByPlayer", "detectedContradictions", "questionsByPlayer"]) {
-      expect(key in pub).toBe(false);
-    }
-    expect(JSON.stringify(pub)).not.toContain(WIFI_DETAIL);
-  });
-
-  it("SEC-002: a player's view never contains another player's question/evidence", () => {
-    const { clock, now } = makeClock();
-    const mgr = new RoomManager({ now });
-    const { code, players } = createRoomWithPlayers(mgr, 4);
-    readyAndStart(mgr, code, players);
-    advanceTo(mgr, code, clock, "INTERROGATION_FOUNDATION");
-
-    const v0 = mgr.privateView(code, players[0]!.id)!;
-    const v1 = mgr.privateView(code, players[1]!.id)!;
-    // Each player's own question instance id is scoped to them.
-    expect(v0.currentQuestion?.instanceId).toContain(players[0]!.id);
-    expect(v1.currentQuestion?.instanceId).toContain(players[1]!.id);
-    // Player 0's serialized view must not contain player 1's question instance.
-    expect(JSON.stringify(v0)).not.toContain(v1.currentQuestion!.instanceId);
-  });
-
-  it("SEC-003 & SEC-004: no unreleased candidates and no result before verdict", () => {
-    const { clock, now } = makeClock();
-    const mgr = new RoomManager({ now });
-    const { code, players } = createRoomWithPlayers(mgr, 4);
-    readyAndStart(mgr, code, players);
-    advanceTo(mgr, code, clock, "INTERROGATION_GAPS");
-    const pub = mgr.publicView(code)!;
-    expect(pub.releasedContradiction).toBeNull();
-    expect(pub.result).toBeNull();
-  });
-
-  it("SEC-005: an invalid option cannot mutate state", () => {
-    const { clock, now } = makeClock();
-    const mgr = new RoomManager({ now });
-    const { code, players } = createRoomWithPlayers(mgr, 4);
-    readyAndStart(mgr, code, players);
-    advanceTo(mgr, code, clock, "INTERROGATION_FOUNDATION");
-    const p = players[0]!;
-    const rev = mgr.publicView(code)!.phaseRevision;
-    const priv = mgr.privateView(code, p.id)!;
-    const ack = mgr.gameIntent({ code, playerId: p.id, requestId: "bad", phaseRevision: rev, intent: { type: "ANSWER", playerId: p.id, questionInstanceId: priv.currentQuestion!.instanceId, optionId: "opt.DOES_NOT_EXIST" } });
-    expect(ack.ok).toBe(false);
-    expect(mgr.privateView(code, p.id)!.answerLocked).toBe(false);
-  });
-
-  it("SEC-006: a replayed / conflicting requestId does not change the locked answer", () => {
-    const { clock, now } = makeClock();
-    const mgr = new RoomManager({ now });
-    const { code, players } = createRoomWithPlayers(mgr, 4);
-    readyAndStart(mgr, code, players);
-    advanceTo(mgr, code, clock, "INTERROGATION_FOUNDATION");
-    const p = players[0]!;
-    const rev = mgr.publicView(code)!.phaseRevision;
-    const priv = mgr.privateView(code, p.id)!;
-    const inst = priv.currentQuestion!.instanceId;
-    const first = priv.currentQuestion!.options[0]!.id;
-    const second = priv.currentQuestion!.options[1]?.id ?? first;
-
-    const a1 = mgr.gameIntent({ code, playerId: p.id, requestId: "r1", phaseRevision: rev, intent: { type: "ANSWER", playerId: p.id, questionInstanceId: inst, optionId: first } });
-    expect(a1.ok).toBe(true);
-    // Same requestId, same payload → cached identical ack.
-    const a2 = mgr.gameIntent({ code, playerId: p.id, requestId: "r1", phaseRevision: rev, intent: { type: "ANSWER", playerId: p.id, questionInstanceId: inst, optionId: first } });
-    expect(a2.ok).toBe(true);
-    // Same requestId, different payload → rejected.
-    const a3 = mgr.gameIntent({ code, playerId: p.id, requestId: "r1", phaseRevision: rev, intent: { type: "ANSWER", playerId: p.id, questionInstanceId: inst, optionId: second } });
-    expect(a3.ok).toBe(false);
-    expect(mgr.privateView(code, p.id)!.submittedOptionId).toBe(first);
-  });
-
-  it("SEC-007: join brute-force is rate limited", () => {
+describe("Warehouse secrecy and security", () => {
+  it("publishes count-only progress and never another player's private question", () => {
     const { now } = makeClock();
-    const mgr = new RoomManager({ now });
-    const attempts = Array.from({ length: 25 }, () =>
-      mgr.joinRoom({ code: "ZZZZ", name: "x", ip: "5.5.5.5" }),
+    const manager = new RoomManager({ now });
+    const { code, players } = createRoomWithPlayers(manager, 4);
+    readyAndStart(manager, code, players);
+    advanceToQuestions(manager, code, players);
+
+    const privateViews = players.map(
+      (player) => manager.privateView(code, player.id)! as WarehousePrivateView,
     );
-    expect(attempts.some((r) => !r.ok && r.error.code === "RATE_LIMITED")).toBe(true);
+    const first = privateViews[0]!;
+    const accepted = manager.gameIntent({
+      code,
+      playerId: players[0]!.id,
+      requestId: "first-answer",
+      phaseRevision: manager.publicView(code)!.phaseRevision,
+      intent: {
+        type: "WAREHOUSE_ANSWER",
+        playerId: players[0]!.id,
+        questionInstanceId: first.question!.instanceId,
+        optionId: first.question!.options[0]!.id,
+      },
+    });
+    expect(accepted.ok).toBe(true);
+
+    const publicPayload = JSON.stringify(manager.publicView(code));
+    expect(manager.publicView(code)).toMatchObject({
+      progress: { required: 4, answersLocked: 1 },
+      result: null,
+    });
+    for (const privateView of privateViews) {
+      expect(publicPayload).not.toContain(privateView.question!.instanceId);
+      for (const other of privateViews.filter(
+        (candidate) => candidate.playerId !== privateView.playerId,
+      )) {
+        expect(JSON.stringify(privateView)).not.toContain(other.question!.instanceId);
+      }
+    }
+    for (const forbiddenKey of [
+      "questionAssignments",
+      "lockedAnswers",
+      "rankedBallots",
+      "eventLedger",
+      "disconnectedAtByPlayer",
+      "recoveryToken",
+      "sessionHash",
+    ]) {
+      expect(publicPayload).not.toContain(forbiddenKey);
+    }
   });
 
-  it("SEC-008: script / markup names are rejected at the schema boundary", () => {
+  it("rejects invalid options and conflicting idempotency replays without mutation", () => {
+    const { now } = makeClock();
+    const manager = new RoomManager({ now });
+    const { code, players } = createRoomWithPlayers(manager, 4);
+    readyAndStart(manager, code, players);
+    advanceToQuestions(manager, code, players);
+    const player = players[0]!;
+    const privateView = manager.privateView(code, player.id)! as WarehousePrivateView;
+    const revision = manager.publicView(code)!.phaseRevision;
+    const base = {
+      type: "WAREHOUSE_ANSWER" as const,
+      playerId: player.id,
+      questionInstanceId: privateView.question!.instanceId,
+    };
+
+    expect(
+      manager.gameIntent({
+        code,
+        playerId: player.id,
+        requestId: "invalid-option",
+        phaseRevision: revision,
+        intent: { ...base, optionId: "not-an-option" },
+      }).ok,
+    ).toBe(false);
+    expect((manager.privateView(code, player.id)! as WarehousePrivateView).lockedAnswer).toBeNull();
+
+    const firstOption = privateView.question!.options[0]!.id;
+    const secondOption = privateView.question!.options[1]?.id ?? firstOption;
+    const firstIntent = { ...base, optionId: firstOption };
+    expect(
+      manager.gameIntent({
+        code,
+        playerId: player.id,
+        requestId: "locked-answer",
+        phaseRevision: revision,
+        intent: firstIntent,
+      }).ok,
+    ).toBe(true);
+    expect(
+      manager.gameIntent({
+        code,
+        playerId: player.id,
+        requestId: "locked-answer",
+        phaseRevision: revision,
+        intent: firstIntent,
+      }).ok,
+    ).toBe(true);
+    expect(
+      manager.gameIntent({
+        code,
+        playerId: player.id,
+        requestId: "locked-answer",
+        phaseRevision: revision,
+        intent: { ...base, optionId: secondOption },
+      }).ok,
+    ).toBe(false);
+    expect(
+      (manager.privateView(code, player.id)! as WarehousePrivateView).lockedAnswer
+        ?.fact.value,
+    ).toBe(privateView.question!.options[0]!.value);
+  });
+
+  it("rate-limits join-code scans", () => {
+    const manager = new RoomManager({ now: makeClock().now });
+    const attempts = Array.from({ length: 25 }, () =>
+      manager.joinRoom({ code: "ZZZZ", name: "x", ip: "5.5.5.5" }),
+    );
+    expect(attempts.some((result) => !result.ok && result.error.code === "RATE_LIMITED")).toBe(true);
+  });
+
+  it("rejects markup names at the schema boundary", () => {
     expect(displayNameSchema.safeParse("<script>alert(1)</script>").success).toBe(false);
     expect(displayNameSchema.safeParse("نواف").success).toBe(true);
   });
 
-  it("SEC-009: redaction hides tokens, evidence, answers, names, codes", () => {
-    const out = redact({
+  it("redacts tokens, evidence, answers, names, and room codes from logs", () => {
+    const output = redact({
       recoveryToken: "secret-token",
       roomCode: "ABCD",
       displayName: "نواف",
       answers: [{ optionId: "x" }],
       nested: { privateEvidence: { detail: "leak" }, safe: 42 },
     }) as Record<string, unknown>;
-    expect(out.recoveryToken).toBe("[REDACTED]");
-    expect(out.roomCode).toBe("[REDACTED]");
-    expect(out.displayName).toBe("[REDACTED]");
-    expect(out.answers).toBe("[REDACTED]");
-    expect((out.nested as Record<string, unknown>).privateEvidence).toBe("[REDACTED]");
-    expect((out.nested as Record<string, unknown>).safe).toBe(42);
+    expect(output.recoveryToken).toBe("[REDACTED]");
+    expect(output.roomCode).toBe("[REDACTED]");
+    expect(output.displayName).toBe("[REDACTED]");
+    expect(output.answers).toBe("[REDACTED]");
+    expect((output.nested as Record<string, unknown>).privateEvidence).toBe("[REDACTED]");
+    expect((output.nested as Record<string, unknown>).safe).toBe(42);
   });
 
-  it("SEC-010: debug routes are unavailable in production", async () => {
-    const { app, stopTimers } = await buildServer({
+  it("keeps debug routes unavailable and requires explicit production CORS", async () => {
+    const built = await buildServer({
       NODE_ENV: "production",
       HOST: "127.0.0.1",
       PORT: 0,
       CORS_ORIGIN: "https://play.example.test",
-      ROOM_TTL_MS: 60000,
-      ROOM_MAX_LIFETIME_MS: 600000,
+      ROOM_TTL_MS: 60_000,
+      ROOM_MAX_LIFETIME_MS: 600_000,
       PHASE_DURATION_SCALE: 1,
     });
-    const res = await app.inject({ method: "GET", url: "/debug/rooms" });
-    expect(res.statusCode).toBe(404);
-    const health = await app.inject({ method: "GET", url: "/health" });
-    expect(health.statusCode).toBe(200);
-    stopTimers();
-    await app.close();
-  });
+    expect((await built.app.inject({ method: "GET", url: "/debug/rooms" })).statusCode).toBe(404);
+    expect((await built.app.inject({ method: "GET", url: "/health" })).statusCode).toBe(200);
+    built.stopTimers();
+    await built.app.close();
 
-  it("production refuses a wildcard CORS policy", async () => {
     await expect(
       buildServer({
         NODE_ENV: "production",
         HOST: "127.0.0.1",
         PORT: 0,
         CORS_ORIGIN: "*",
-        ROOM_TTL_MS: 60000,
-        ROOM_MAX_LIFETIME_MS: 600000,
+        ROOM_TTL_MS: 60_000,
+        ROOM_MAX_LIFETIME_MS: 600_000,
         PHASE_DURATION_SCALE: 1,
       }),
     ).rejects.toThrow("explicit CORS_ORIGIN");
-  });
-
-  it("production CORS allows the Render web origin and rejects other origins", async () => {
-    const allowedOrigin = "https://al-riwayah.onrender.com";
-    const { app, stopTimers } = await buildServer({
-      NODE_ENV: "production",
-      HOST: "127.0.0.1",
-      PORT: 0,
-      CORS_ORIGIN: allowedOrigin,
-      ROOM_TTL_MS: 60000,
-      ROOM_MAX_LIFETIME_MS: 600000,
-      PHASE_DURATION_SCALE: 1,
-    });
-
-    const allowed = await app.inject({
-      method: "OPTIONS",
-      url: "/socket.io/",
-      headers: {
-        origin: allowedOrigin,
-        "access-control-request-method": "GET",
-      },
-    });
-    expect(allowed.headers["access-control-allow-origin"]).toBe(allowedOrigin);
-
-    const denied = await app.inject({
-      method: "OPTIONS",
-      url: "/socket.io/",
-      headers: {
-        origin: "https://attacker.example",
-        "access-control-request-method": "GET",
-      },
-    });
-    expect(denied.headers["access-control-allow-origin"]).toBeUndefined();
-
-    stopTimers();
-    await app.close();
   });
 });

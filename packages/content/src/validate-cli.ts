@@ -3,11 +3,11 @@
  * gate CI/build (CONTENT_SYSTEM.md "Build must fail when …").
  */
 import { CASES } from "./index";
-import { validateCase } from "./validate";
+import { validateWarehouseCase } from "./validate";
 
 let failed = false;
 for (const gameCase of Object.values(CASES)) {
-  const result = validateCase(gameCase);
+  const result = validateWarehouseCase(gameCase);
   if (result.ok) {
     console.log(`✓ ${gameCase.id} valid`);
   } else {

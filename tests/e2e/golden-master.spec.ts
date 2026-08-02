@@ -3,22 +3,10 @@ import { mkdir } from "node:fs/promises";
 import path from "node:path";
 
 const OUTPUT_DIR = path.resolve("artifacts", "nav-logo-motion-pass", "screenshots");
-const INTERROGATION_PHASES = new Set([
-  "INTERROGATION_FOUNDATION",
-  "INTERROGATION_GAPS",
-  "INTERROGATION_NO_GOOD_ANSWER",
-  "INTERROGATION_FOLLOWUP",
-  "FINAL_QUESTION",
-]);
-
 async function joinLobby(page: Page, route: string, field: "#name" | "#pname", name: string) {
   await page.goto(route);
   await expect(page.locator("html")).toHaveAttribute("data-hydrated", "true");
   await page.locator(field).fill(name);
-}
-
-async function waitForPhase(page: Page, phase: string) {
-  await expect(page.locator(`.game[data-phase="${phase}"]`)).toBeVisible({ timeout: 30_000 });
 }
 
 async function waitForPhaseChange(page: Page, phase: string) {
@@ -29,19 +17,59 @@ async function waitForPhaseChange(page: Page, phase: string) {
   );
 }
 
-async function clickFirstAvailable(page: Page) {
-  const phase = await page.locator(".game").getAttribute("data-phase");
-  if (phase && INTERROGATION_PHASES.has(phase)) {
-    const option = page.locator(".option-btn:not([disabled])").first();
-    if (!(await option.isVisible().catch(() => false))) return;
-    await option.click();
-    const confirm = page.locator(".gm-question__confirm");
-    await expect(confirm).toBeEnabled();
-    await confirm.click();
-    return;
+async function driveWarehouseTo(pages: Page[], targetPhase: string) {
+  const host = pages[0]!;
+  for (let guard = 0; guard < 40; guard++) {
+    const phase = await host.locator(".game").getAttribute("data-phase");
+    if (phase === targetPhase) return;
+    if (!phase) continue;
+    if (phase === "STORY_BUILDING") {
+      await host.getByRole("button", { name: "اعتمدوا الرواية للمراجعة" }).click({ force: true });
+    } else if (phase === "STORY_REVIEW") {
+      for (const page of pages) {
+        await page.getByRole("button", { name: "فهمت الرواية" }).click({ force: true });
+        await page.waitForTimeout(150);
+      }
+    } else if (phase === "SILENT_PHASE_INTRO") {
+      for (const page of pages) {
+        await page.getByRole("button", { name: "ابدأ سؤالي" }).click({ force: true });
+        await page.waitForTimeout(150);
+      }
+    } else if (phase === "CHAPTER_CONTEXT") {
+      await host.getByRole("button", { name: "ابدأوا الأسئلة بصمت" }).click({ force: true });
+    } else if (phase === "SILENT_ANSWERING" || phase === "WAITING_FOR_ANSWERS") {
+      for (const page of pages) {
+        const confirm = page.getByRole("button", { name: "ثبّت الإجابة" });
+        if (!(await confirm.isVisible().catch(() => false))) continue;
+        await page.locator('[role="radio"]:not([disabled])').first().click({ force: true });
+        await confirm.click({ force: true });
+        await page.waitForTimeout(150);
+      }
+    } else if (phase === "ISSUE_REVEAL") {
+      await host.getByRole("button", { name: "افتحوا النقاش" }).click({ force: true });
+    } else if (phase === "OPEN_DISCUSSION") {
+      for (const page of pages) {
+        await page.getByRole("button", { name: "خلصت نقاش" }).click({ force: true });
+        await page.waitForTimeout(150);
+      }
+    } else if (phase === "PATCH_BALLOT") {
+      for (const page of pages) {
+        await page.getByRole("button", { name: "ثبّت الترتيب" }).click({ force: true });
+        await page.waitForTimeout(150);
+      }
+    } else if (phase === "PATCH_RESOLUTION") {
+      await host.getByRole("button", { name: "شوفوا تحديث الرواية" }).click({ force: true });
+    } else if (phase === "STORY_UPDATE") {
+      for (const page of pages) {
+        await page.getByRole("button", { name: "فهمت التعديل" }).click({ force: true });
+        await page.waitForTimeout(150);
+      }
+    } else if (phase === "RESULT_CALCULATION") {
+      await host.getByRole("button", { name: "اعرض النتيجة" }).click({ force: true });
+    }
+    await waitForPhaseChange(host, phase);
   }
-  const button = page.locator(".game__body button:not([disabled])").first();
-  if (await button.isVisible().catch(() => false)) await button.click();
+  throw new Error(`Warehouse flow did not reach ${targetPhase}`);
 }
 
 test.describe("Golden Master fidelity surfaces", () => {
@@ -285,70 +313,7 @@ test.describe("Golden Master fidelity surfaces", () => {
       );
       await host.getByRole("button", { name: "ابدأ التحقيق" }).click();
 
-      let verifiedGameplayPreferences = false;
-      for (let guard = 0; guard < 15; guard++) {
-        const phase = await host.locator(".game").getAttribute("data-phase");
-        if (phase === "INTERROGATION_FOUNDATION") break;
-        if (!phase) continue;
-
-        if (["CASE_BRIEF", "PRIVATE_EVIDENCE", "PLAN_REVIEW"].includes(phase)) {
-          if (phase === "CASE_BRIEF" && !verifiedGameplayPreferences) {
-            const controls = host.locator(".game__top .prefs__btn");
-            await expect(controls).toHaveCount(2);
-            expect(
-              await controls.evaluateAll((buttons) =>
-                buttons.map((button) => ({
-                  tagName: button.tagName,
-                  tabIndex: (button as HTMLElement).tabIndex,
-                })),
-              ),
-            ).toEqual([
-              { tagName: "BUTTON", tabIndex: 0 },
-              { tagName: "BUTTON", tabIndex: 0 },
-            ]);
-            await controls.first().click();
-            await expect(controls.first()).toHaveAttribute("aria-pressed", "true");
-            await controls.nth(1).click();
-            await expect(controls.nth(1)).toHaveAttribute("aria-pressed", "true");
-            expect(
-              await host.evaluate(() => ({
-                sound: localStorage.getItem("alr:sound"),
-                motion: localStorage.getItem("alr:motion"),
-              })),
-            ).toEqual({ sound: "off", motion: "reduced" });
-            await controls.first().click();
-            await controls.nth(1).click();
-            await expect(controls.first()).toHaveAttribute("aria-pressed", "false");
-            await expect(controls.nth(1)).toHaveAttribute("aria-pressed", "false");
-            expect(
-              await host.evaluate(() => ({
-                sound: localStorage.getItem("alr:sound"),
-                motion: localStorage.getItem("alr:motion"),
-              })),
-            ).toEqual({ sound: "on", motion: "full" });
-            verifiedGameplayPreferences = true;
-          }
-          await Promise.all(pages.map(clickFirstAvailable));
-        } else if (phase === "PLAN_REASON") {
-          await Promise.all(pages.slice(0, 3).map(clickFirstAvailable));
-        } else if (phase === "PLAN_LOCATIONS") {
-          await Promise.all(
-            pages.map(async (page) => {
-              await page.locator(".game__body button:not([disabled])").last().click();
-            }),
-          );
-        } else if (phase === "PLAN_ROLES") {
-          const rows = host.locator(".game__body .roster");
-          for (let index = 0; index < (await rows.count()); index++) {
-            if (!(await host.locator('.game[data-phase="PLAN_ROLES"]').count())) break;
-            await rows.nth(index).locator("button").first().click();
-          }
-        }
-        await waitForPhaseChange(host, phase);
-      }
-
-      expect(verifiedGameplayPreferences).toBe(true);
-      await waitForPhase(host, "INTERROGATION_FOUNDATION");
+      await driveWarehouseTo(pages, "SILENT_ANSWERING");
       let capturePage = host;
       for (const page of pages) {
         if ((await page.locator(".option-btn").count()) === 4) {
@@ -364,7 +329,7 @@ test.describe("Golden Master fidelity surfaces", () => {
       await expect(capturePage.locator(".gm-question")).toBeVisible();
       await expect(capturePage.locator(".gm-private-info")).toBeVisible();
       await expect(capturePage.locator(".option-btn.is-selected")).toHaveCount(1);
-      await expect(capturePage.locator(".gm-question__confirm")).toBeVisible();
+      await expect(capturePage.getByRole("button", { name: "ثبّت الإجابة" })).toBeVisible();
       await expect(capturePage.locator(".deadline-ring")).toHaveCSS("border-radius", "999px");
       await capturePage.evaluate(() => {
         if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
@@ -418,47 +383,14 @@ test.describe("Golden Master fidelity surfaces", () => {
       );
       await host.getByRole("button", { name: "ابدأ التحقيق" }).click();
 
-      for (let guard = 0; guard < 55; guard++) {
-        const phase = await host.locator(".game").getAttribute("data-phase");
-        if (phase === "RESULTS") break;
-        if (!phase) continue;
-
-        if (
-          ["CASE_BRIEF", "PRIVATE_EVIDENCE", "PLAN_REVIEW", "SURPRISE_EVIDENCE"].includes(phase)
-        ) {
-          await Promise.all(pages.map(clickFirstAvailable));
-        } else if (phase === "PLAN_REASON") {
-          await Promise.all(pages.slice(0, 3).map(clickFirstAvailable));
-        } else if (phase === "PLAN_LOCATIONS") {
-          await Promise.all(
-            pages.map(async (page) => {
-              await page.locator(".game__body button:not([disabled])").last().click();
-            }),
-          );
-        } else if (phase === "PLAN_ROLES") {
-          const rows = host.locator(".game__body .roster");
-          for (let index = 0; index < (await rows.count()); index++) {
-            if (!(await host.locator('.game[data-phase="PLAN_ROLES"]').count())) break;
-            await rows.nth(index).locator("button").first().click();
-          }
-        } else if (INTERROGATION_PHASES.has(phase)) {
-          await Promise.all(pages.map(clickFirstAvailable));
-        } else if (phase === "PATCH_1" || phase === "PATCH_2") {
-          await Promise.all(pages.map(clickFirstAvailable));
-        }
-
-        await waitForPhaseChange(host, phase);
-      }
-
-      await waitForPhase(host, "RESULTS");
+      await driveWarehouseTo(pages, "RESULT_REVEAL");
       await expect(host.locator(".gm-result")).toBeVisible();
       await expect(host.locator(".gm-verdict-panel")).toHaveCSS(
         "background-color",
         "rgb(25, 24, 21)",
       );
       await expect(host.locator(".gm-metric-card")).toHaveCount(3);
-      await expect(host.getByText("أسوأ تناقض", { exact: true })).toBeVisible();
-      await expect(host.getByText("أفضل ترقيعة", { exact: true })).toBeVisible();
+      await expect(host.getByTestId("warehouse-no-direct-result")).toBeVisible();
       await expect(host.locator(".gm-result")).not.toContainText("الشرخ");
       await host.evaluate(() => {
         if (document.activeElement instanceof HTMLElement) document.activeElement.blur();

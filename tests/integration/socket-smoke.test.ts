@@ -44,6 +44,29 @@ function emit<T = unknown>(socket: Socket, event: string, payload: unknown): Pro
   });
 }
 
+function waitForPublic(
+  socket: Socket,
+  predicate: (view: { phase: string; phaseRevision: number; progress?: { questionsStarted: number } }) => boolean,
+): Promise<{ phase: string; phaseRevision: number; progress?: { questionsStarted: number } }> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      socket.off("view:public", handler);
+      reject(new Error("public view timeout"));
+    }, 4000);
+    const handler = (view: {
+      phase: string;
+      phaseRevision: number;
+      progress?: { questionsStarted: number };
+    }) => {
+      if (!predicate(view)) return;
+      clearTimeout(timer);
+      socket.off("view:public", handler);
+      resolve(view);
+    };
+    socket.on("view:public", handler);
+  });
+}
+
 const env = (requestId: string, payload: unknown, extra: Record<string, unknown> = {}) => ({
   protocolVersion: 1,
   requestId,
@@ -58,7 +81,7 @@ describe("socket gateway smoke (multi-client)", () => {
     expect(res.json()).toMatchObject({ status: "ok" });
   });
 
-  it("4 clients create + join + ready + start and all receive CASE_BRIEF", async () => {
+  it("4 clients create + join + ready + start and all receive STORY_BUILDING", async () => {
     const host = connect();
     const created = await emit<{ ok: boolean; data: { roomCode: string; playerId: string } }>(
       host,
@@ -86,7 +109,7 @@ describe("socket gateway smoke (multi-client)", () => {
     const briefPromises = all.map((s) =>
       new Promise<string>((resolve) => {
         const handler = (view: { phase: string }) => {
-          if (view.phase === "CASE_BRIEF") {
+          if (view.phase === "STORY_BUILDING") {
             s.off("view:public", handler);
             resolve(view.phase);
           }
@@ -99,7 +122,83 @@ describe("socket gateway smoke (multi-client)", () => {
     expect(start.ok).toBe(true);
 
     const phases = await Promise.all(briefPromises);
-    expect(phases.every((p) => p === "CASE_BRIEF")).toBe(true);
+    expect(phases.every((p) => p === "STORY_BUILDING")).toBe(true);
+  });
+
+  it("four acknowledged question starts advance the live room to CHAPTER_CONTEXT", async () => {
+    const sockets = [connect(), connect(), connect(), connect()];
+    const created = await emit<{ ok: true; data: { roomCode: string } }>(
+      sockets[0]!,
+      "room:create",
+      env("question-create", { displayName: "لاعب البداية 1" }),
+    );
+    const code = created.data.roomCode;
+    for (let index = 1; index < sockets.length; index++) {
+      const joined = await emit<{ ok: boolean }>(
+        sockets[index]!,
+        "room:join",
+        env(`question-join-${index}`, { code, displayName: `لاعب البداية ${index + 1}` }),
+      );
+      expect(joined.ok).toBe(true);
+    }
+    let finalQuestionView: { phase: string } | null = null;
+    for (let index = 0; index < sockets.length; index++) {
+      expect(
+        (await emit<{ ok: boolean }>(
+          sockets[index]!,
+          "player:setReady",
+          env(`question-ready-${index}`, { ready: true }),
+        )).ok,
+      ).toBe(true);
+    }
+
+    const building = waitForPublic(sockets[0]!, (view) => view.phase === "STORY_BUILDING");
+    expect((await emit<{ ok: boolean }>(sockets[0]!, "match:start", env("question-match", {}))).ok).toBe(true);
+    const buildingView = await building;
+    const review = waitForPublic(sockets[0]!, (view) => view.phase === "STORY_REVIEW");
+    expect(
+      (
+        await emit<{ ok: boolean }>(
+          sockets[0]!,
+          "story:submit",
+          env("question-story-submit", {}, { phaseRevision: buildingView.phaseRevision }),
+        )
+      ).ok,
+    ).toBe(true);
+    const reviewView = await review;
+
+    for (let index = 0; index < sockets.length; index++) {
+      const intro = waitForPublic(
+        sockets[0]!,
+        (view) =>
+          view.phase === "SILENT_PHASE_INTRO" ||
+          (view.phase === "STORY_REVIEW" && index < sockets.length - 1),
+      );
+      const ack = await emit<{ ok: boolean; error?: { code: string } }>(
+        sockets[index]!,
+        "story:review",
+        env(`question-review-${index}`, {}, { phaseRevision: reviewView.phaseRevision }),
+      );
+      expect(ack).toMatchObject({ ok: true });
+      await intro;
+    }
+
+    for (let index = 0; index < sockets.length; index++) {
+      const next = waitForPublic(
+        sockets[0]!,
+        (view) =>
+          view.phase === "CHAPTER_CONTEXT" || view.progress?.questionsStarted === index + 1,
+      );
+      const ack = await emit<{ ok: boolean; error?: { code: string } }>(
+        sockets[index]!,
+        "question:start",
+        env(`question-start-${index}`, {}, { phaseRevision: reviewView.phaseRevision + 1 }),
+      );
+      expect(ack).toMatchObject({ ok: true });
+      finalQuestionView = await next;
+    }
+
+    expect(finalQuestionView).toMatchObject({ phase: "CHAPTER_CONTEXT" });
   });
 
   it("rejects a malformed payload without a crash", async () => {

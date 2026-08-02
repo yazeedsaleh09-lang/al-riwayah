@@ -88,8 +88,14 @@ describe("realtime production boundaries", () => {
       "phase:acknowledge": {},
       "story:propose": { fieldId: "reason", value: "reason.delivery" },
       "story:confirm": { fieldId: "reason" },
+      "story:set": { fieldId: "entryReason", value: "check_inventory_mismatch" },
+      "story:submit": {},
+      "story:review": {},
       "answer:submit": { questionInstanceId: "q:p1", optionId: "option.1" },
       "patch:vote": { patchId: "patch.1" },
+      "discussion:ready": {},
+      "patch:ballot": { rankedOptionIds: ["patch.1", "patch.2"] },
+      "player:skip": { playerId: "p-disconnected" },
     } as const;
 
     for (const [event, payload] of Object.entries(gameplayPayloads) as [
@@ -105,17 +111,69 @@ describe("realtime production boundaries", () => {
     }
   });
 
+  it("requires a complete, duplicate-free ranked ballot with at least two options", () => {
+    const base = {
+      protocolVersion: 1,
+      requestId: "ranked-ballot",
+      phaseRevision: 8,
+    };
+
+    expect(
+      CLIENT_EVENT_SCHEMAS["patch:ballot"].safeParse({
+        ...base,
+        payload: { rankedOptionIds: ["patch.1", "patch.2", "patch.3"] },
+      }).success,
+    ).toBe(true);
+    expect(
+      CLIENT_EVENT_SCHEMAS["patch:ballot"].safeParse({
+        ...base,
+        payload: { rankedOptionIds: ["patch.1"] },
+      }).success,
+    ).toBe(false);
+    expect(
+      CLIENT_EVENT_SCHEMAS["patch:ballot"].safeParse({
+        ...base,
+        payload: { rankedOptionIds: ["patch.1", "patch.1"] },
+      }).success,
+    ).toBe(false);
+  });
+
+  it("accepts only structured Warehouse story fields and bounded scalar values", () => {
+    const base = {
+      protocolVersion: 1,
+      requestId: "story-field",
+      phaseRevision: 1,
+    };
+
+    expect(
+      CLIENT_EVENT_SCHEMAS["story:set"].safeParse({
+        ...base,
+        payload: {
+          fieldId: "location2346",
+          targetPlayerId: "p1",
+          value: "loading_area",
+        },
+      }).success,
+    ).toBe(true);
+    expect(
+      CLIENT_EVENT_SCHEMAS["story:set"].safeParse({
+        ...base,
+        payload: { fieldId: "arbitrary_private_fact", value: "leak" },
+      }).success,
+    ).toBe(false);
+    expect(
+      CLIENT_EVENT_SCHEMAS["story:set"].safeParse({
+        ...base,
+        payload: { fieldId: "carDepartureExpected", value: { fabricated: true } },
+      }).success,
+    ).toBe(false);
+  });
+
   it("finds forbidden private keys recursively in every public projection", () => {
-    const { clock, now } = makeClock();
+    const { now } = makeClock();
     const manager = new RoomManager({ now });
     const { code, players } = createRoomWithPlayers(manager, 4);
     readyAndStart(manager, code, players);
-
-    while (manager.publicView(code)!.phase !== "INTERROGATION_FOUNDATION") {
-      const publicView = manager.publicView(code)!;
-      clock.t = (publicView.deadlineAt ?? clock.t) + 1;
-      manager.tick();
-    }
 
     const forbidden = new Set([
       "answers",

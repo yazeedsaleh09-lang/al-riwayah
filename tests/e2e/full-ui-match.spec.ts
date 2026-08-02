@@ -80,9 +80,10 @@ async function createClients(browser: Browser, count: number): Promise<MatchClie
   }
 
   await expect(host.locator(".roster li")).toHaveCount(count);
-  await Promise.all(
-    pages.map((page) => page.getByRole("button", { name: "جاهز", exact: true }).click()),
-  );
+  for (const page of pages) {
+    await page.getByRole("button", { name: "جاهز", exact: true }).click({ force: true });
+    await expect(page.getByRole("button", { name: "ألغِ الجاهزية", exact: true })).toBeVisible();
+  }
   await expect(host.getByRole("button", { name: "ابدأ التحقيق" })).toBeEnabled();
   return { contexts, pages, code };
 }
@@ -158,7 +159,75 @@ async function driveToResults(
       await host.waitForTimeout(100);
       continue;
     }
-    if (phase === "RESULTS") return;
+    if (phase === "RESULT_REVEAL") return;
+
+    if (phase === "STORY_BUILDING") {
+      await host.getByRole("button", { name: "اعتمدوا الرواية للمراجعة" }).click({ force: true });
+    } else if (phase === "STORY_REVIEW") {
+      for (const page of pages) {
+        await page.getByRole("button", { name: "فهمت الرواية" }).click({ force: true });
+        await page.waitForTimeout(150);
+      }
+    } else if (phase === "SILENT_PHASE_INTRO") {
+      for (const page of pages) {
+        await page.getByRole("button", { name: "ابدأ سؤالي" }).click({ force: true });
+        await page.waitForTimeout(150);
+      }
+    } else if (phase === "CHAPTER_CONTEXT") {
+      await host.getByRole("button", { name: "ابدأوا الأسئلة بصمت" }).click({ force: true });
+    } else if (phase === "SILENT_ANSWERING" || phase === "WAITING_FOR_ANSWERS") {
+      if (options.refresh && !refreshed) {
+        refreshed = true;
+        await pages[2]!.reload({ waitUntil: "domcontentloaded" });
+      }
+      if (options.disconnect && !disconnected) {
+        disconnected = true;
+        const disconnectedPage = pages.at(-1)!;
+        await contexts.at(-1)!.setOffline(true);
+        await expect(disconnectedPage.locator(".reconnect-overlay")).toBeVisible();
+        await saveEvidence(disconnectedPage, `${pages.length}-player-reconnect`);
+        await contexts.at(-1)!.setOffline(false);
+        await expect(disconnectedPage.locator(".reconnect-overlay")).toHaveCount(0);
+      }
+      for (const [index, page] of pages.entries()) {
+        if (!(await page.getByRole("button", { name: "ثبّت الإجابة" }).isVisible().catch(() => false))) {
+          continue;
+        }
+        await page.locator('[role="radio"]:not([disabled])').first().click({ force: true });
+        const confirm = page.getByRole("button", { name: "ثبّت الإجابة" });
+        if (options.duplicateAnswer && !duplicated && index === 0) {
+          duplicated = true;
+          await confirm.evaluate((button) => {
+            (button as HTMLButtonElement).click();
+            (button as HTMLButtonElement).click();
+          });
+        } else {
+          await confirm.click({ force: true });
+        }
+        await page.waitForTimeout(150);
+      }
+    } else if (phase === "ISSUE_REVEAL") {
+      await host.getByRole("button", { name: "افتحوا النقاش" }).click({ force: true });
+    } else if (phase === "OPEN_DISCUSSION") {
+      for (const page of pages) {
+        await page.getByRole("button", { name: "خلصت نقاش" }).click({ force: true });
+        await page.waitForTimeout(150);
+      }
+    } else if (phase === "PATCH_BALLOT") {
+      for (const page of pages) {
+        await page.getByRole("button", { name: "ثبّت الترتيب" }).click({ force: true });
+        await page.waitForTimeout(150);
+      }
+    } else if (phase === "PATCH_RESOLUTION") {
+      await host.getByRole("button", { name: "شوفوا تحديث الرواية" }).click({ force: true });
+    } else if (phase === "STORY_UPDATE") {
+      for (const page of pages) {
+        await page.getByRole("button", { name: "فهمت التعديل" }).click({ force: true });
+        await page.waitForTimeout(150);
+      }
+    } else if (phase === "RESULT_CALCULATION") {
+      await host.getByRole("button", { name: "اعرض النتيجة" }).click({ force: true });
+    } else
 
     if (options.evidence && !capturedPhases.has(phase)) {
       if (phase === "INTERROGATION_FOUNDATION") {
@@ -300,7 +369,7 @@ async function driveToResults(
 
     await waitForPhaseChange(host, phase);
   }
-  throw new Error("UI match did not reach RESULTS");
+  throw new Error("UI match did not reach RESULT_REVEAL");
 }
 
 async function saveEvidence(page: Page, name: string): Promise<void> {
@@ -390,7 +459,7 @@ test.describe("real multi-client UI matches", () => {
       await saveBodyEvidence(host, "4-player-results-full");
 
       await host.getByRole("button", { name: "أعيدوا القضية" }).click();
-      await waitForPhase(host, "CASE_BRIEF");
+      await waitForPhase(host, "STORY_BUILDING");
       await expect(host.locator(".verdict-band")).toHaveCount(0);
     } finally {
       await closeClients(clients);
@@ -422,7 +491,7 @@ test.describe("real multi-client UI matches", () => {
     }
   });
 
-  test("6 players complete through a disconnect and one server-timed missing answer", async ({
+  test("6 players complete through a disconnect and restored private answer", async ({
     browser,
   }) => {
     const clients = await createClients(browser, 6);

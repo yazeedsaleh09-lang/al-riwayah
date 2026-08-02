@@ -4,7 +4,11 @@
  * start, every phase, deadlines, and result release end-to-end.
  */
 import type { RoomManager } from "@al-riwayah/server";
-import { missingPayrollEnvelopeV1 as CASE } from "@al-riwayah/content";
+import type {
+  WarehousePrivateView,
+  WarehousePublicView,
+} from "@al-riwayah/game-engine";
+import type { WarehouseManagerIntent } from "@al-riwayah/server";
 
 export interface TestPlayer {
   id: string;
@@ -45,55 +49,101 @@ export function readyAndStart(mgr: RoomManager, code: string, players: TestPlaye
   if (!s.ok) throw new Error(`start failed: ${s.error.code}`);
 }
 
-/** Play a coherent-ish match to RESULTS. Returns nothing; assert on views. */
+/** Play a deterministic Warehouse match to RESULT_REVEAL through RoomManager. */
 export function playToResults(
   mgr: RoomManager,
   code: string,
   players: TestPlayer[],
-  clock: { t: number },
+  _clock: { t: number },
   absent: string[] = [],
 ): void {
-  const acting = players.filter((p) => !absent.includes(p.id));
+  if (absent.length > 0) {
+    throw new Error("Warehouse players must be explicitly skipped after a qualifying disconnect");
+  }
+  let requestSequence = 0;
+  const send = (playerId: string, intent: WarehouseManagerIntent): void => {
+    const result = mgr.gameIntent({
+      code,
+      playerId,
+      requestId: `warehouse-driver:${requestSequence++}`,
+      phaseRevision: mgr.publicView(code)!.phaseRevision,
+      intent,
+    });
+    if (!result.ok) throw new Error(`${intent.type} failed: ${result.error.code}`);
+  };
+  const host = players[0]!;
+  send(host.id, { type: "WAREHOUSE_STORY_SUBMIT", playerId: host.id });
+  for (const player of players) {
+    send(player.id, { type: "WAREHOUSE_STORY_REVIEW", playerId: player.id });
+  }
+
   let guard = 0;
   while (guard < 80) {
-    const pub = mgr.publicView(code)!;
-    if (pub.phase === "RESULTS") return;
-    const rev = pub.phaseRevision;
-    const phaseBefore = pub.phase;
-
-    for (const p of acting) {
-      const priv = mgr.privateView(code, p.id)!;
-      const action = priv.allowedActions[0];
-      if (action === "ACKNOWLEDGE") {
-        mgr.gameIntent({ code, playerId: p.id, requestId: `${p.id}-${rev}`, phaseRevision: rev, intent: { type: "ACKNOWLEDGE", playerId: p.id } });
-      } else if (phaseBefore === "PLAN_REASON") {
-        mgr.gameIntent({ code, playerId: p.id, requestId: `${p.id}-r-${rev}`, phaseRevision: rev, intent: { type: "STORY_PROPOSE", playerId: p.id, fieldId: "reason", value: CASE.planning.reasons[0]!.id } });
-        mgr.gameIntent({ code, playerId: p.id, requestId: `${p.id}-rc-${rev}`, phaseRevision: rev, intent: { type: "STORY_CONFIRM", playerId: p.id, fieldId: "reason" } });
-      } else if (phaseBefore === "PLAN_LOCATIONS") {
-        const loc = CASE.planning.locations[0]!.id;
-        mgr.gameIntent({ code, playerId: p.id, requestId: `${p.id}-l-${rev}`, phaseRevision: rev, intent: { type: "STORY_PROPOSE", playerId: p.id, fieldId: `location.${p.id}`, value: loc } });
-        mgr.gameIntent({ code, playerId: p.id, requestId: `${p.id}-lc-${rev}`, phaseRevision: rev, intent: { type: "STORY_CONFIRM", playerId: p.id, fieldId: `location.${p.id}` } });
-      } else if (phaseBefore === "PLAN_ROLES" && p.isHost) {
-        for (const role of CASE.planning.roles) {
-          mgr.gameIntent({ code, playerId: p.id, requestId: `${p.id}-${role.id}-${rev}`, phaseRevision: rev, intent: { type: "STORY_PROPOSE", playerId: p.id, fieldId: `role.${role.id}`, value: players[0]!.id } });
-          mgr.gameIntent({ code, playerId: p.id, requestId: `${p.id}-${role.id}c-${rev}`, phaseRevision: rev, intent: { type: "STORY_CONFIRM", playerId: p.id, fieldId: `role.${role.id}` } });
+    const publicView = mgr.publicView(code)! as WarehousePublicView;
+    if (publicView.phase === "RESULT_REVEAL") return;
+    if (publicView.phase === "SILENT_PHASE_INTRO") {
+      for (const player of players) {
+        const privateView = mgr.privateView(code, player.id)! as WarehousePrivateView;
+        if (privateView.allowedActions.includes("START_QUESTION")) {
+          send(player.id, { type: "WAREHOUSE_START_QUESTION", playerId: player.id });
         }
-      } else if (action === "ANSWER" && priv.currentQuestion) {
-        const opt = priv.currentQuestion.options[0]!.id;
-        mgr.gameIntent({ code, playerId: p.id, requestId: `${p.id}-a-${rev}`, phaseRevision: rev, intent: { type: "ANSWER", playerId: p.id, questionInstanceId: priv.currentQuestion.instanceId, optionId: opt } });
-      } else if (action === "PATCH_VOTE" && pub.patchOptions && pub.patchOptions.length > 0) {
-        mgr.gameIntent({ code, playerId: p.id, requestId: `${p.id}-pv-${rev}`, phaseRevision: rev, intent: { type: "PATCH_VOTE", playerId: p.id, patchId: pub.patchOptions[0]!.id } });
       }
-    }
-
-    // If the phase did not auto-advance (timer-only phase, or absent players),
-    // push the clock past the deadline and tick the authoritative loop.
-    const after = mgr.publicView(code)!;
-    if (after.phaseRevision === rev) {
-      clock.t = (after.deadlineAt ?? clock.t) + 1;
-      mgr.tick();
+    } else if (publicView.phase === "CHAPTER_CONTEXT") {
+      send(host.id, { type: "WAREHOUSE_ADVANCE", playerId: host.id });
+    } else if (
+      publicView.phase === "SILENT_ANSWERING" ||
+      publicView.phase === "WAITING_FOR_ANSWERS"
+    ) {
+      for (const player of players) {
+        const privateView = mgr.privateView(code, player.id)! as WarehousePrivateView;
+        if (!privateView.lockedAnswer) {
+          send(player.id, {
+            type: "WAREHOUSE_ANSWER",
+            playerId: player.id,
+            questionInstanceId: privateView.question!.instanceId,
+            optionId: privateView.question!.options[0]!.id,
+          });
+        }
+      }
+    } else if (
+      publicView.phase === "ISSUE_REVEAL" ||
+      publicView.phase === "PATCH_RESOLUTION" ||
+      publicView.phase === "RESULT_CALCULATION"
+    ) {
+      send(host.id, { type: "WAREHOUSE_ADVANCE", playerId: host.id });
+    } else if (publicView.phase === "STORY_UPDATE") {
+      for (const player of players) {
+        const privateView = mgr.privateView(code, player.id)! as WarehousePrivateView;
+        if (privateView.allowedActions.includes("CONFIRM_STORY")) {
+          send(player.id, { type: "WAREHOUSE_STORY_REVIEW", playerId: player.id });
+        }
+      }
+    } else if (publicView.phase === "OPEN_DISCUSSION") {
+      for (const player of players) {
+        const privateView = mgr.privateView(code, player.id)! as WarehousePrivateView;
+        if (privateView.allowedActions.includes("READY_FOR_VOTE")) {
+          send(player.id, {
+            type: "WAREHOUSE_DISCUSSION_READY",
+            playerId: player.id,
+          });
+        }
+      }
+    } else if (publicView.phase === "PATCH_BALLOT") {
+      const rankedOptionIds = publicView.patchOptions.map((option) => option.id);
+      for (const player of players) {
+        const privateView = mgr.privateView(code, player.id)! as WarehousePrivateView;
+        if (!privateView.rankedBallot) {
+          send(player.id, {
+            type: "WAREHOUSE_BALLOT",
+            playerId: player.id,
+            rankedOptionIds,
+          });
+        }
+      }
+    } else {
+      throw new Error(`Unhandled Warehouse phase ${publicView.phase}`);
     }
     guard++;
   }
-  throw new Error("match did not reach RESULTS within guard");
+  throw new Error("match did not reach RESULT_REVEAL within guard");
 }

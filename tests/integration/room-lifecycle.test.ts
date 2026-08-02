@@ -61,7 +61,7 @@ describe("room lifecycle (ROOM/JOIN/READY/RECON)", () => {
     expect(mgr.startMatch({ code, playerId: players[1]!.id })).toMatchObject({ ok: false, error: { code: "NOT_HOST" } });
     for (const p of players) mgr.setReady({ code, playerId: p.id, ready: true });
     expect(mgr.startMatch({ code, playerId: players[0]!.id }).ok).toBe(true);
-    expect(mgr.publicView(code)!.phase).toBe("CASE_BRIEF");
+    expect(mgr.publicView(code)!.phase).toBe("STORY_BUILDING");
   });
 
   it("READY-003: double start is idempotent (no duplicate match)", () => {
@@ -125,9 +125,36 @@ describe("room lifecycle (ROOM/JOIN/READY/RECON)", () => {
     const { code, players } = createRoomWithPlayers(mgr, 4);
     for (const p of players) mgr.bindSocket(code, p.id, `sock-${p.id}`);
     mgr.handleDisconnect(`sock-${players[0]!.id}`);
-    const pub = mgr.publicView(code)!;
-    const host = pub.players.find((p) => p.isHost)!;
+    const host = mgr.getRoom(code)!.players.find((player) => player.isHost)!;
     expect(host.id).toBe(players[1]!.id);
+  });
+
+  it("tracks the exact disconnect time and clears it only after recovery", () => {
+    const { clock, now } = makeClock();
+    const mgr = new RoomManager({ now });
+    const { code, players } = createRoomWithPlayers(mgr, 4);
+    const player = players[1]!;
+    const socketId = "socket:disconnect-time";
+    mgr.bindSocket(code, player.id, socketId);
+
+    clock.t = 42_000;
+    expect(mgr.handleDisconnect(socketId)).toEqual({ code });
+    expect(
+      mgr.getRoom(code)!.players.find((candidate) => candidate.id === player.id),
+    ).toMatchObject({
+      connected: false,
+      disconnectedAt: 42_000,
+    });
+
+    clock.t = 52_000;
+    const restored = mgr.restore({ recoveryToken: player.token });
+    expect(restored.ok).toBe(true);
+    expect(
+      mgr.getRoom(code)!.players.find((candidate) => candidate.id === player.id),
+    ).toMatchObject({
+      connected: true,
+      disconnectedAt: null,
+    });
   });
 
   it("ROOM-003: an idle room past TTL is cleaned up", () => {

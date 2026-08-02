@@ -29,10 +29,10 @@ async function recordHomepage(
   }
 
   for (const target of [
-    page.getByRole("heading", { name: "رواية واحدة تحت ضغط الأسئلة." }),
-    page.getByLabel("مثال سؤال على الجوال"),
-    page.getByRole("heading", { name: "ظرف الرواتب المفقود" }),
-    page.getByRole("heading", { name: "جاهزين تثبّتون روايتكم؟" }),
+    page.getByRole("heading", { name: "اتفقوا على الرواية. ولا تختلفون." }),
+    page.getByRole("heading", { name: "ثلاث خطوات واضحة." }),
+    page.getByRole("heading", { name: "قضية المستودع" }),
+    page.getByRole("heading", { name: "جاهزين تبدأون؟" }),
   ]) {
     await target.scrollIntoViewIfNeeded();
     await expect(target).toBeVisible();

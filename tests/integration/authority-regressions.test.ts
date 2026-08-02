@@ -237,13 +237,17 @@ describe("authoritative realtime regressions", () => {
       privateViewCount += 1;
     });
 
-    const validEnvelope = envelope("broadcast:ack", {}, revision);
-    const accepted = await emit(host, "phase:acknowledge", validEnvelope);
+    const validEnvelope = envelope(
+      "broadcast:story",
+      { fieldId: "entryReason", value: "check_inventory_mismatch" },
+      revision,
+    );
+    const accepted = await emit(host, "story:set", validEnvelope);
     expect(accepted.ok).toBe(true);
     await delay();
     const afterAccepted = { publicViewCount, privateViewCount };
 
-    const cached = await emit(host, "phase:acknowledge", validEnvelope);
+    const cached = await emit(host, "story:set", validEnvelope);
     expect(cached.ok).toBe(true);
     await delay();
     expect.soft({ publicViewCount, privateViewCount }).toEqual(afterAccepted);

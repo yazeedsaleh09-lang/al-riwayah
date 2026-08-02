@@ -1,4 +1,9 @@
-import type { PublicRoomView, PrivatePlayerView } from "@al-riwayah/game-engine";
+import type {
+  PublicRoomView,
+  PrivatePlayerView,
+  WarehousePublicView,
+  WarehousePrivateView,
+} from "@al-riwayah/game-engine";
 import type { SafeError } from "./errors";
 
 export * from "./errors";
@@ -17,10 +22,26 @@ export interface SessionCredentials {
   isHost: boolean;
 }
 
+export type WarehouseRoomPublicView = WarehousePublicView & {
+  protocolVersion: 1;
+  roomCode: string;
+  deadlineAt: number | null;
+  serverTime: number;
+  caseId: string;
+  caseVersion: string;
+};
+
+export type WarehouseRoomPrivateView = WarehousePrivateView & {
+  protocolVersion: 1;
+  isHost: boolean;
+  connected: boolean;
+  phaseRevision: number;
+};
+
 /** Server→client event payloads. */
 export interface ServerToClientEvents {
-  "view:public": (view: PublicRoomView) => void;
-  "view:private": (view: PrivatePlayerView) => void;
+  "view:public": (view: PublicRoomView | WarehouseRoomPublicView) => void;
+  "view:private": (view: PrivatePlayerView | WarehouseRoomPrivateView) => void;
   "room:error": (error: SafeError) => void;
   "session:rotated": (data: { recoveryToken: string }) => void;
   "connection:replaced": (data: { reason: "REPLACED" }) => void;
@@ -36,4 +57,9 @@ export const SERVER_EVENT_NAMES = [
   "server:time",
 ] as const;
 
-export type { PublicRoomView, PrivatePlayerView } from "@al-riwayah/game-engine";
+export type {
+  PublicRoomView,
+  PrivatePlayerView,
+  WarehousePublicView,
+  WarehousePrivateView,
+} from "@al-riwayah/game-engine";

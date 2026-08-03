@@ -1,4 +1,5 @@
 import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
 
 const NAMES = ["يزيد", "سعود", "نواف", "فهد", "محمد", "راكان"] as const;
 
@@ -10,6 +11,11 @@ async function waitForPhase(page: Page, phase: string) {
 
 async function waitForHydration(page: Page) {
   await expect(page.locator("html")).toHaveAttribute("data-hydrated", "true", { timeout: 30_000 });
+}
+
+async function expectNoSeriousA11yViolations(page: Page) {
+  const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+  expect(results.violations.filter((violation) => violation.impact === "serious" || violation.impact === "critical")).toEqual([]);
 }
 
 async function createPlayers(browser: Browser, count: 4 | 5 | 6) {
@@ -54,6 +60,14 @@ async function createPlayers(browser: Browser, count: 4 | 5 | 6) {
 
 async function lockStory(pages: Page[]) {
   await waitForPhase(pages[0]!, "STORY_BUILDING");
+  const host = pages[0]!;
+  await expect(host.getByTestId("bank-location-board")).toBeVisible();
+  for (const width of [320, 390]) {
+    await host.setViewportSize({ width, height: 844 });
+    const viewport = await host.evaluate(() => ({ client: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }));
+    expect(viewport.scroll).toBe(viewport.client);
+  }
+  if (pages.length === 4) await expectNoSeriousA11yViolations(host);
   for (const page of pages) {
     const unlockedAssignments = page.locator('[data-testid="bank-story-assignment"]:has(button)');
     const ownedCount = await page.getByTestId("bank-story-assignment").count();
@@ -93,8 +107,14 @@ async function playBankCase(browser: Browser, count: 4 | 5 | 6) {
   await answerAll(room.pages, "FIRST_QUESTION");
   await waitForPhase(room.host, "ISSUE_REVEAL");
   await expect(room.host.getByText("المحقق مسك عليكم", { exact: false })).toBeVisible();
+  await expect(room.host.getByTestId("bank-room")).toHaveAttribute("data-screen", "4");
   await waitForPhase(room.host, "REPAIR_VOTE");
   await Promise.all(room.pages.map((page) => waitForPhase(page, "REPAIR_VOTE")));
+  await expect(room.host.getByTestId("bank-room")).toHaveAttribute("data-screen", "4");
+  await expect(room.host.getByTestId("bank-contradiction-repair")).toContainText("المحقق مسك عليكم");
+  await expect(room.host.getByTestId("bank-room")).toContainText("يصير رسمي");
+  await expect(room.host.getByTestId("bank-room")).toContainText("يفتح عليكم");
+  if (count === 4) await expectNoSeriousA11yViolations(room.host);
   await expect(room.host.getByTestId("bank-room")).not.toContainText("المنشئ يثبت القرار");
   const alreadyVoted = new Set<Page>();
   if (count === 5) {
@@ -121,21 +141,27 @@ async function playBankCase(browser: Browser, count: 4 | 5 | 6) {
     await page.getByTestId("bank-repair-option").first().click();
   }
   await waitForPhase(room.host, "STORY_UPDATE");
-  await expect(room.host.getByText("ثبتتوا روايتكم", { exact: false })).toBeVisible();
-  await expect(room.host.getByText("سعود وصل باب المقهى", { exact: true })).toBeVisible();
+  await expect(room.host.getByRole("heading", { name: "اعتمدتوا هالتفسير" })).toBeVisible();
+  await expect(room.host.getByTestId("bank-room")).toHaveAttribute("data-screen", "5");
+  await expect(room.host.getByTestId("bank-room")).toContainText("لأن");
+  await expect(room.host.getByTestId("bank-story-update").getByRole("button")).toHaveCount(0);
   await answerAll(room.pages, "FORENSIC_QUESTION");
   await waitForPhase(room.host, "GROUP_VERDICT");
   await expect(room.host.getByTestId("bank-group-verdict")).toBeVisible();
   const suspicionText = await room.host.getByTestId("bank-group-verdict").locator("strong bdi").textContent();
   const suspicion = Number(suspicionText?.replace("%", ""));
   const expectedBand = suspicion < 30 ? "طلعتوا نظيفين."
-    : suspicion < 60 ? "طلعتوا… لكن بشبهة."
+    : suspicion < 60 ? "نجوتوا… لكن تحت المراقبة"
       : suspicion < 85 ? "روايتكم تحت المراقبة."
         : suspicion === 100 ? "انكشفت روايتكم."
           : "انهارت روايتكم.";
   await expect(room.host.getByTestId("bank-group-verdict").getByRole("heading")).toHaveText(expectedBand);
   await waitForPhase(room.host, "PLAYER_RANKING");
   await expect(room.host.getByTestId("bank-ranking")).toBeVisible();
+  await expect(room.host.getByTestId("bank-room")).toHaveAttribute("data-screen", "8");
+  await expect(room.host.getByTestId("bank-ranking")).toContainText("الترتيب");
+  await expect(room.host.getByTestId("bank-ranking")).toContainText("اللاعب");
+  await expect(room.host.getByTestId("bank-ranking")).toContainText("النقاط");
   const rankedRows = room.host.locator("[data-testid='bank-ranking'] ol li");
   if (await rankedRows.count()) {
     await expect(rankedRows).toHaveCount(count);
@@ -159,7 +185,12 @@ for (const count of [4, 5, 6] as const) {
     test.setTimeout(600_000);
     const { contexts, host } = await playBankCase(browser, count);
     try {
+      await host.getByRole("button", { name: "كملوا لإعادة اللعب" }).click();
+      await expect(host.getByTestId("bank-replay")).toBeVisible();
+      await expect(host.getByTestId("bank-room")).toHaveAttribute("data-screen", "9");
       await expect(host.getByRole("button", { name: "أعيدوا قضية بنك الساحة" })).toBeVisible();
+      await expect(host.getByText("الأدلة والمسار ممكن يتغيرون.")).toBeVisible();
+      if (count === 4) await expectNoSeriousA11yViolations(host);
       await host.setViewportSize({ width: 320, height: 568 });
       const width = await host.evaluate(() => ({
         client: document.documentElement.clientWidth,
@@ -174,7 +205,7 @@ for (const count of [4, 5, 6] as const) {
           await host.getByRole("button", { name: "أعيدوا قضية بنك الساحة" }).click();
           await waitForPhase(host, "OPENING");
         } else {
-          await host.getByRole("button", { name: "مجموعة جديدة" }).click();
+          await host.getByRole("button", { name: "شلة جديدة" }).click();
           await expect(host).toHaveURL(/\/room\/[A-Z0-9]{4,6}$/);
         }
       }

@@ -34,11 +34,11 @@ const SCREEN_NUMBER: Record<BankPublicView["phase"], number> = {
   STORY_BUILDING: 2,
   FIRST_QUESTION: 3,
   ISSUE_REVEAL: 4,
-  REPAIR_VOTE: 5,
-  STORY_UPDATE: 6,
-  FORENSIC_QUESTION: 7,
-  GROUP_VERDICT: 8,
-  PLAYER_RANKING: 9,
+  REPAIR_VOTE: 4,
+  STORY_UPDATE: 5,
+  FORENSIC_QUESTION: 6,
+  GROUP_VERDICT: 7,
+  PLAYER_RANKING: 8,
 };
 
 export function BankRoom({
@@ -61,15 +61,21 @@ export function BankRoom({
   goToNewGroup: () => Promise<void>;
 }) {
   const phase = pub.phase;
+  const [showReplay, setShowReplay] = useState(false);
+  useEffect(() => {
+    if (phase !== "PLAYER_RANKING") setShowReplay(false);
+  }, [phase]);
+  const screenNumber = phase === "PLAYER_RANKING" && showReplay ? 9 : SCREEN_NUMBER[phase];
   return (
     <main
       id="main"
       className={`game ${styles.room}`}
       data-testid="bank-room"
       data-phase={phase}
+      data-screen={screenNumber}
     >
       <p className="visually-hidden" role="status" aria-live="polite">
-        الشاشة {SCREEN_NUMBER[phase]} من ٩
+        الشاشة {screenNumber} من ٩
       </p>
       {!connected && (
         <div className="reconnect-overlay" role="alert">
@@ -79,7 +85,7 @@ export function BankRoom({
       <GameHeader variant={phase === "PLAYER_RANKING" ? "result" : "case"} connected={connected} />
       <div className={styles.casebar}>
         <div><span>قضية بنك الساحة</span><bdi>11:42</bdi></div>
-        <span className={styles.screen}>ملف {SCREEN_NUMBER[phase]} / ٩</span>
+        <span className={styles.screen}>ملف {screenNumber} / ٩</span>
       </div>
       <Suspicion value={pub.suspicion} />
       <div className={styles.body} key={phase}>
@@ -93,22 +99,24 @@ export function BankRoom({
         )}
         {phase === "ISSUE_REVEAL" && <IssueReveal pub={pub} />}
         {phase === "REPAIR_VOTE" && (
-          <RepairVote pub={pub} priv={priv} busy={busy} run={run} actions={actions} />
+          <section className={styles.repairScreen} data-testid="bank-contradiction-repair">
+            <IssueReveal pub={pub} compact />
+            <RepairVote pub={pub} priv={priv} busy={busy} run={run} actions={actions} />
+          </section>
         )}
         {phase === "STORY_UPDATE" && <StoryUpdate pub={pub} />}
         {phase === "FORENSIC_QUESTION" && (
           <PrivateQuestion pub={pub} priv={priv} busy={busy} run={run} actions={actions} forensic />
         )}
         {phase === "GROUP_VERDICT" && <GroupVerdict pub={pub} />}
-        {phase === "PLAYER_RANKING" && (
+        {phase === "PLAYER_RANKING" && !showReplay && (
           <Ranking
             pub={pub}
-            priv={priv}
-            busy={busy}
-            run={run}
-            actions={actions}
-            goToNewGroup={goToNewGroup}
+            onContinue={() => setShowReplay(true)}
           />
+        )}
+        {phase === "PLAYER_RANKING" && showReplay && (
+          <Replay priv={priv} busy={busy} run={run} actions={actions} goToNewGroup={goToNewGroup} />
         )}
       </div>
     </main>
@@ -132,11 +140,11 @@ function Opening() {
       <p className={styles.eyebrow}>قبل ١٢ دقيقة</p>
       <h1>انسرق بنك الساحة.</h1>
       <p>الشرطة وقفت سيارتكم قريب من الموقع، والحين كل واحد فيكم بينسأل لحاله.</p>
-      <p>الأدلة ناقصة، بس أي تناقض يرفع الشبهة. اضبطوا رواية وحدة وخلوها تصمد لين يخلص التحقيق.</p>
       <div className={styles.initialClue}>
-        <span aria-hidden>×</span>
-        <p>لوحة سيارتكم ظهرت قريب من البنك.<strong>الشبهة الأولية: <bdi>24%</bdi></strong></p>
+        <ClueIcon kind="camera" />
+        <p>لوحة سيارتكم ظهرت في كاميرا قريبة من البنك.<strong>الشبهة الأولية: <bdi>24%</bdi></strong></p>
       </div>
+      <p className={styles.objective}>هدفكم: اضبطوا رواية وحدة، وخلّوا الشبهة منخفضة لين يخلص التحقيق.</p>
     </section>
   );
 }
@@ -147,41 +155,31 @@ const PLACE_LABELS: Record<string, string> = {
   nearby_street: "الشارع القريب",
 };
 
-const DEPARTURE_LABELS: Record<string, string> = {
-  side_street: "الخروج من الشارع الجانبي",
-  main_street: "الخروج من الشارع الرئيسي",
-  return_to_cafe: "الرجوع للمقهى",
-};
+function ClueIcon({ kind }: { kind: "key" | "bag" | "camera" }) {
+  if (kind === "key") return <svg className={styles.icon} viewBox="0 0 24 24" aria-label="معه المفتاح"><circle cx="8" cy="12" r="4" /><path d="M12 12h9m-3 0v3m-3-3v2" /></svg>;
+  if (kind === "bag") return <svg className={styles.icon} viewBox="0 0 24 24" aria-label="معه الحقيبة"><path d="M5 8h14l1 12H4L5 8Z" /><path d="M9 8V6a3 3 0 0 1 6 0v2" /></svg>;
+  return <svg className={styles.icon} viewBox="0 0 24 24" aria-hidden><path d="M4 7h4l2-2h4l2 2h4v12H4V7Z" /><circle cx="12" cy="13" r="3" /></svg>;
+}
 
-function StoryMap({ pub }: { pub: BankPublicShell }) {
+function LocationBoard({ pub, showTimeline = false }: { pub: BankPublicShell; showTimeline?: boolean }) {
+  const places = Object.entries(PLACE_LABELS).map(([id, label]) => ({
+    id,
+    label,
+    players: pub.players.filter((player) => pub.storyFacts[`alarm_location:${player.id}`] === id),
+  })).filter((place) => place.players.length > 0);
+  const keyHolder = String(pub.storyFacts.vehicle_key_holder ?? pub.storyFacts["key-holder:11:44"] ?? "");
+  const bagHolder = String(pub.storyFacts.suspicious_object_holder ?? pub.storyFacts["bag-holder:11:44"] ?? "");
   const repairedTimeline = pub.selectedRepair?.id === "movement"
-    ? "سعود وصل باب المقهى"
-    : pub.selectedRepair?.id === "identity"
-      ? "نواف هو الشخص عند الباب"
-      : "لقطة باب المقهى قيد المراجعة";
-  const departure = String(pub.storyFacts.departure_plan ?? "");
+    ? ["السيارة", "11:42", "المقهى", "11:44"]
+    : ["السيارة", "11:42", "باب المقهى", "11:44"];
   return (
-    <figure className={styles.map} aria-label="خريطة موقع بنك الساحة والرواية المشتركة">
-      <svg viewBox="0 0 360 218" role="img" aria-label="البنك والمقهى والمواقف والسيارة والزقاق ومحطة البنزين والشارع القريب">
-        <path className={styles.road} d="M12 166 C88 126 130 186 210 146 S310 96 350 120" />
-        <path className={styles.thread} d="M62 112 L155 166 L260 78 L320 146" />
-        <g transform="translate(218 16)"><rect width="112" height="52" /><text x="56" y="31">بنك الساحة</text></g>
-        <g transform="translate(24 32)"><rect width="94" height="49" /><text x="47" y="29">المقهى</text></g>
-        <g transform="translate(128 142)"><rect width="80" height="42" /><text x="40" y="25">المواقف</text></g>
-        <g transform="translate(250 151)"><rect width="88" height="38" /><text x="44" y="24">محطة البنزين</text></g>
-        <circle cx="161" cy="164" r="10" /><text x="161" y="168" className={styles.car}>سيارة</text>
-      </svg>
-      <figcaption className={styles.markers}>
-        {pub.players.map((player, index) => {
-          const place = String(pub.storyFacts[`alarm_location:${player.id}`] ?? "");
-          return <span key={player.id}><i aria-hidden>{index + 1}</i><b><bdi>{player.displayName}</bdi></b><small>{PLACE_LABELS[place] ?? "المكان ما تثبت للحين"}</small></span>;
-        })}
-      </figcaption>
-      <ol className={styles.timeline}>
-        <li><bdi>11:42</bdi><span>اشتغل إنذار البنك</span></li>
-        <li><bdi>11:44</bdi><span>{repairedTimeline}</span></li>
-        <li><bdi>11:47</bdi><span>{DEPARTURE_LABELS[departure] ?? "خطة الخروج ما تثبتت"}</span></li>
-      </ol>
+    <figure className={styles.locationBoard} data-testid="bank-location-board" aria-label="لوحة المواقع والرواية المشتركة">
+      <figcaption>الرواية المشتركة · <bdi>11:42</bdi></figcaption>
+      <div className={styles.locations}>
+        {places.map((place) => <section key={place.id}><strong>{place.label}</strong><p>{place.players.map((player) => <span key={player.id}><bdi>{player.displayName}</bdi>{player.id === keyHolder && <ClueIcon kind="key" />}{player.id === bagHolder && <ClueIcon kind="bag" />}</span>)}</p></section>)}
+        {places.length === 0 && <p className={styles.emptyBoard}>المواقع تظهر هنا أول ما تثبتونها.</p>}
+      </div>
+      {showTimeline && <div className={styles.movement}><span>{repairedTimeline[0]} <bdi>{repairedTimeline[1]}</bdi></span><i aria-hidden>←</i><span>{repairedTimeline[2]} <bdi>{repairedTimeline[3]}</bdi></span></div>}
     </figure>
   );
 }
@@ -193,28 +191,29 @@ function StoryBuilder({ pub, priv, busy, run, actions }: {
   return (
     <section>
       <p className={styles.eyebrow}>ابنوا الرواية</p>
-      <h1>ثبتوا اللي صار على الخريطة.</h1>
-      <p className={styles.lede}>كل واحد يثبت الجزء اللي عنده. لما تكتمل الرواية يبدأ التحقيق تلقائيًا.</p>
-      <StoryMap pub={pub} />
+      <h1>ثبتوا وين كان كل واحد.</h1>
+      <p className={styles.lede}>جاوبوا باختيار واحد. اللوحة ترتّب روايتكم تلقائيًا.</p>
+      <LocationBoard pub={pub} />
       <div className={styles.assignmentList}>
         {priv.storyAssignments.map((assignment) => {
           const factId = assignment.factKey.startsWith("alarm_location:") ? "alarm_location" : assignment.factKey;
           const targetPlayerId = factId === "alarm_location" ? assignment.factKey.split(":")[1] : undefined;
           const locked = Object.hasOwn(pub.storyFacts, assignment.factKey);
+          if (locked) return null;
           return (
             <fieldset key={assignment.factKey} data-testid="bank-story-assignment" className={styles.assignment}>
               <legend>{assignment.prompt}</legend>
-              {locked ? <p role="status">ثبتت هالنقطة.</p> : <div>
+              <div>
                 {assignment.options.map((option) => (
                   <button key={option.id} type="button" disabled={busy} onClick={() => run(() => actions.bankStoryLock(factId, option.id, targetPlayerId))}>
                     {option.label}
                   </button>
                 ))}
-              </div>}
+              </div>
             </fieldset>
           );
         })}
-        {priv.storyAssignments.length === 0 && <p role="status">ثبتت جزئك — باقي تفاصيل الشلة.</p>}
+        {priv.storyAssignments.every((assignment) => Object.hasOwn(pub.storyFacts, assignment.factKey)) && <p className={styles.receipt} role="status">ثبتت جزئك — باقي تفاصيل الشلة.</p>}
       </div>
     </section>
   );
@@ -232,7 +231,7 @@ function PrivateQuestion({ pub, priv, busy, run, actions, forensic }: {
   return (
     <section className={styles.question}>
       {forensic && pub.evidence && <Evidence evidence={pub.evidence} />}
-      <p className={styles.privateLabel}>إجابتك سرية</p>
+      <p className={styles.privateLabel}>سؤال خاص لك — لا تعرض شاشتك</p>
       <h1>{priv.question.prompt}</h1>
       {!done ? (
         <>
@@ -247,15 +246,14 @@ function PrivateQuestion({ pub, priv, busy, run, actions, forensic }: {
         </>
       ) : (
         <div className={styles.receipt} data-testid="bank-answer-receipt" role="status" aria-live="polite">
-          <strong>تسجلت إجابتك</strong><span>— باقي {Math.max(0, pub.progress.required - count)}</span>
-          <p>خلك على نفس الشاشة. ننتقل تلقائيًا بعد ما يجاوبون الكل.</p>
+          <strong>تسجلت إجابتك — باقي {Math.max(0, pub.progress.required - count)}</strong>
         </div>
       )}
     </section>
   );
 }
 
-function IssueReveal({ pub }: { pub: BankPublicShell }) {
+function IssueReveal({ pub, compact = false }: { pub: BankPublicShell; compact?: boolean }) {
   const names = pub.reveal?.sources.map((id) => pub.players.find((player) => player.id === id)?.displayName).filter(Boolean);
   const explanation = pub.reveal?.kind === "direct_contradiction"
     ? `${names?.[0] ?? "واحد منكم"} قال إن سعود كان عند السيارة الساعة 11:42. ${names?.[1] ?? "شاهد ثاني"} قال إن سعود كان داخل المقهى بنفس اللحظة. ما يقدر يكون في المكانين بنفس الوقت.`
@@ -266,7 +264,7 @@ function IssueReveal({ pub }: { pub: BankPublicShell }) {
       {names && names.length > 0 && <p className={styles.named}><bdi>{names.join(" و ")}</bdi></p>}
       <blockquote>{explanation}</blockquote>
       <p className={styles.delta}>الشبهة ارتفعت بسبب هالنقطة: <bdi>{Math.max(24, pub.suspicion - (pub.reveal?.delta ?? 0))}% → {pub.suspicion}%</bdi></p>
-      <p>تكلموا الحين: وش التفسير اللي يقدر يصمد قدام الدليل؟</p>
+      {!compact && <p>تكلموا الحين: وش التفسير اللي يقدر يصمد قدام الدليل؟</p>}
     </section>
   );
 }
@@ -282,9 +280,9 @@ function RepairVote({ pub, priv, busy, run, actions }: {
     : "سعود بقي عند السيارة، والشخص اللي ظهر عند الباب كان نواف.";
   return (
     <section>
-      <p className={styles.eyebrow}>أصلحوا الرواية</p>
-      <h1>وش تفسيركم للمحقق؟</h1>
-      <p className={styles.lede}>اختاروا التفسير اللي بتكملون عليه. تقدر تغيّر صوتك لين تتفق الأغلبية، ولا تظهر الأرقام قبل القرار.</p>
+      <p className={styles.eyebrow}>نفس الملف · اختاروا الترقيعة</p>
+      <h1>وش تفسيركم؟</h1>
+      <p className={styles.lede}>اختاروا الاحتمال اللي بتكملون عليه.</p>
       <div className={styles.repairs}>
         {pub.repairs.map((repair) => (
           <button
@@ -295,9 +293,9 @@ function RepairVote({ pub, priv, busy, run, actions }: {
             onClick={() => run(() => actions.bankRepairVote(repair.id))}
           >
             <span>{repair.id === "movement" ? "أ" : "ب"}</span><strong>{repair.title}</strong>
-            <small><b>يصير رسمي:</b> {officialTruth(repair.id)}</small>
-            <small><b>يصلح:</b> {repair.resolves}</small>
-            <small><b>يفتح عليكم:</b> {repair.evidence.summary}</small>
+            <small><b>يصير رسمي</b>{officialTruth(repair.id)}</small>
+            <small><b>يصلح</b>{repair.id === "movement" ? "كلام سعود ويزيد يقدر يكون صحيح." : "سعود يبقى عند السيارة."}</small>
+            <small><b>يفتح عليكم</b>{repair.id === "movement" ? "كاميرات المواقف." : "صورة الباب والجاكيت."}</small>
           </button>
         ))}
       </div>
@@ -320,20 +318,23 @@ export function getBankVoteStatus(playerCount: number): {
 
 function StoryUpdate({ pub }: { pub: BankPublicShell }) {
   return (
-    <section>
-      <p className={styles.eyebrow}>الرواية المحدّثة</p><h1>ثبتتوا روايتكم.</h1>
-      <p className={styles.statement}>{pub.selectedRepair?.resolves}</p>
-      <StoryMap pub={pub} />
-      <p>اختياركم فتح الدليل التالي: {pub.selectedRepair?.evidence.summary}</p>
+    <section className={styles.storyUpdate} data-testid="bank-story-update">
+      <p className={styles.eyebrow}>الرواية المحدّثة</p><h1>اعتمدتوا هالتفسير</h1>
+      <p className={styles.statement}>{pub.selectedRepair?.id === "movement" ? "سعود انتقل من السيارة للمقهى بعد الإنذار." : "يزيد خلط بين سعود ونواف عند باب المقهى."}</p>
+      <LocationBoard pub={pub} showTimeline />
+      <p className={styles.delta}>الشبهة الآن <bdi>{pub.suspicion}%</bdi>، لأن هالتفسير فتح تسجيلًا جديدًا للتحقق.</p>
+      <p>هالاختيار فتح عليكم {pub.selectedRepair?.id === "movement" ? "كاميرات المواقف" : "صورة الباب والجاكيت"}. الأدلة الجنائية الحين بتختبر كلامكم.</p>
     </section>
   );
 }
 
 function Evidence({ evidence }: { evidence: NonNullable<BankPublicView["evidence"]> }) {
+  const keyFact = evidence.summary.includes("مفتاح") ? "التفصيل المهم: علامة المفتاح هي اللي تربط الشخص بالمكان." : "التفصيل المهم: مسار الشخص هو اللي يختبر تفسيركم.";
+  const evidenceLabel = evidence.id.includes("doorway") ? "صورة الباب والجاكيت" : "كاميرا المواقف";
   return (
     <figure className={styles.evidence}>
       <div aria-hidden><span className={styles.scanline} /><i>REC</i><bdi>{evidence.timestamp}</bdi></div>
-      <figcaption><strong>الدليل الجنائي وصل</strong><p>{evidence.summary}</p></figcaption>
+      <figcaption><strong>دليل هالترقيعة · {evidenceLabel}</strong><p>{evidence.summary}</p><mark>{keyFact}</mark></figcaption>
     </figure>
   );
 }
@@ -346,7 +347,7 @@ export function getBankVerdictBand(suspicion: number): { title: string; copy: st
     };
   }
   if (suspicion < 30) return { title: "طلعتوا نظيفين.", copy: "روايتكم ركبت على الأدلة، والشرطة ما قدرت تثبت عليكم شي." };
-  if (suspicion < 60) return { title: "طلعتوا… لكن بشبهة.", copy: "الشرطة ما قدرت تثبت العملية، لكن سيارتكم بقيت تحت المراقبة." };
+  if (suspicion < 60) return { title: "نجوتوا… لكن تحت المراقبة", copy: "الشرطة ما قدرت تثبت العملية، لكن سيارتكم بقيت تحت المراقبة." };
   if (suspicion < 85) return { title: "روايتكم تحت المراقبة.", copy: "عدّيتوا التحقيق، لكن الفجوات خلت الأدلة تضيق عليكم." };
   return { title: "انهارت روايتكم.", copy: "الأدلة ما ركبت على كلامكم، وانكشفت الرواية." };
 }
@@ -358,17 +359,13 @@ function GroupVerdict({ pub }: { pub: BankPublicShell }) {
     <section data-testid="bank-group-verdict" className={styles.verdict}>
       <p className={styles.eyebrow}>حكم المجموعة</p>
       <h1>{band.title}</h1>
-      <p>بدأت روايتكم من السيارة القريبة، ثم ظهر التناقض الأول. اخترتوا «{pub.selectedRepair?.title}»، والدليل اختبره مباشرة.</p>
       <div><span>الشبهة النهائية</span><strong><bdi>{suspicion}%</bdi></strong></div>
-      <p>{band.copy}</p>
+      <ol className={styles.recap}><li>بدأت المشكلة من موقع سعود.</li><li>اخترتوا «{pub.selectedRepair?.title}».</li><li>{band.copy}</li></ol>
     </section>
   );
 }
 
-function Ranking({ pub, priv, busy, run, actions, goToNewGroup }: {
-  pub: BankPublicShell; priv: BankPrivateShell; busy: boolean;
-  run: (fn: () => Promise<unknown>) => Promise<void> | void; actions: BankActions; goToNewGroup: () => Promise<void>;
-}) {
+function Ranking({ pub, onContinue }: { pub: BankPublicShell; onContinue: () => void }) {
   const rankings = pub.rankings;
   const complete = pub.rankingStatus === "complete" && rankings.length === pub.players.length && rankings.every((item) =>
     item.score !== null && item.sharedRank !== null && Boolean(item.reason.trim() && item.explanation.trim()),
@@ -376,16 +373,27 @@ function Ranking({ pub, priv, busy, run, actions, goToNewGroup }: {
   return (
     <section data-testid="bank-ranking">
       <p className={styles.eyebrow}>بعد حكم المجموعة</p><h1>مين حمى الرواية أكثر؟</h1>
+      <div className={styles.rankingHead}><span>الترتيب</span><span>اللاعب</span><span>النقاط</span></div>
       {complete ? <ol className={styles.ranking}>
         {rankings.map((item) => (
-          <li key={item.playerId}><span>{item.sharedRank}</span><div><strong><bdi>{item.displayName}</bdi></strong><small>{item.reason}. {item.explanation}</small></div><bdi>{item.score}</bdi></li>
+          <li key={item.playerId}><span>{item.sharedRank}</span><div><strong><bdi>{item.displayName}</bdi></strong><small>{item.reason}</small></div><bdi>{item.score} نقطة</bdi></li>
         ))}
       </ol> : <p className={styles.receipt} data-testid="bank-ranking-incomplete" role="status">ترتيب اللاعبين ما اكتمل بشكل قابل للمراجعة، لذلك ما بنعرض درجات ناقصة.</p>}
-      <p>النتيجة للمجموعة كلها؛ الترتيب بس يوريكم مساهمة كل واحد.</p>
-      <div className={styles.finalActions}>
-        {priv.isHost ? <button className={styles.primary} disabled={busy} onClick={() => run(actions.replay)}>أعيدوا قضية بنك الساحة</button> : <p>منشئ الغرفة يقدر يعيد القضية.</p>}
-        {priv.isHost ? <button disabled={busy} onClick={() => void goToNewGroup()}>مجموعة جديدة</button> : <Link href="/create">أنشئ مجموعة جديدة</Link>}
-      </div>
+      <button className={styles.primary} onClick={onContinue}>كملوا لإعادة اللعب</button>
     </section>
   );
+}
+
+function Replay({ priv, busy, run, actions, goToNewGroup }: {
+  priv: BankPrivateShell; busy: boolean; run: (fn: () => Promise<unknown>) => Promise<void> | void;
+  actions: BankActions; goToNewGroup: () => Promise<void>;
+}) {
+  return <section data-testid="bank-replay" className={styles.replay}>
+    <p className={styles.eyebrow}>الجولة الجاية</p><h1>تلعبونها مرة ثانية؟</h1>
+    <p>الأدلة والمسار ممكن يتغيرون.</p>
+    <div className={styles.finalActions}>
+      {priv.isHost ? <button className={styles.primary} disabled={busy} onClick={() => run(actions.replay)}>أعيدوا قضية بنك الساحة</button> : <p>منشئ الغرفة يقدر يعيد القضية.</p>}
+      {priv.isHost ? <button disabled={busy} onClick={() => void goToNewGroup()}>شلة جديدة</button> : <Link href="/create">شلة جديدة</Link>}
+    </div>
+  </section>;
 }

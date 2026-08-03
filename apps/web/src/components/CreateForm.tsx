@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createRoom } from "@/lib/game-client";
 import type { ConnectionStage } from "@/lib/game-client";
 import { publicCaseSummaries } from "@al-riwayah/content";
+import { DEFAULT_CASE_ID } from "@al-riwayah/content";
 
 const ERROR_AR: Record<string, string> = {
   NAME_INVALID: "الاسم غير صالح",
@@ -23,7 +24,6 @@ const STAGE_AR: Partial<Record<ConnectionStage, string>> = {
 export function CreateForm() {
   const router = useRouter();
   const [name, setName] = useState("");
-  const [extended, setExtended] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [stage, setStage] = useState<ConnectionStage>("idle");
@@ -44,7 +44,7 @@ export function CreateForm() {
     setBusy(true);
     try {
       const session = await createRoom(
-        { displayName: name.trim(), settings: { extendedPlanning: extended } },
+        { displayName: name.trim(), caseId: DEFAULT_CASE_ID },
         setStage,
       );
       router.push(`/room/${session.roomCode}`);
@@ -104,19 +104,6 @@ export function CreateForm() {
                   aria-describedby={nameInvalid ? "create-error name-help" : "name-help"}
                 />
                 <span id="name-help" className="field__help">هذا الاسم يظهر للشلة في هذه الجلسة فقط.</span>
-              </div>
-              <div className="field field--check">
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={extended}
-                    onChange={(e) => setExtended(e.target.checked)}
-                  />
-                  <span>
-                    <strong>تخطيط ممتد</strong>
-                    <small>وقت أطول للاتفاق قبل التحقيق</small>
-                  </span>
-                </label>
               </div>
               <button className="btn btn--primary btn--full" type="submit" disabled={busy}>
                 {busy ? "نجهّز الجلسة…" : "أنشئ الغرفة"}

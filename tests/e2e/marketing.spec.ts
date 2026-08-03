@@ -40,6 +40,19 @@ test.describe("marketing site", () => {
     await expect(page.getByRole("link", { name: "ادخل برمز" }).first()).toBeVisible();
   });
 
+  test("public product presents Bank Al-Saha as the single 10–15 minute flagship case", async ({
+    page,
+  }) => {
+    await page.goto("/cases");
+    await expect(page.getByRole("heading", { name: "قضية بنك الساحة" })).toBeVisible();
+    await expect(page.getByText("10–15 دقيقة")).toBeVisible();
+    await expect(page.getByText("قضية المستودع")).toHaveCount(0);
+
+    await page.goto("/");
+    await expect(page.getByText("١٠–١٥ دقيقة").first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: "قضية بنك الساحة", exact: true })).toBeVisible();
+  });
+
   test("unknown route shows the 404 page", async ({ page }) => {
     const res = await page.goto("/definitely-not-a-real-route");
     expect(res?.status()).toBe(404);

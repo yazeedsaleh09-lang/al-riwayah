@@ -4,6 +4,7 @@ import type { AddressInfo } from "node:net";
 import { buildServer, RoomManager, type BuiltServer } from "@al-riwayah/server";
 import { CLIENT_EVENT_SCHEMAS } from "@al-riwayah/protocol";
 import { createRoomWithPlayers, makeClock, readyAndStart } from "../integration/driver";
+import { WAREHOUSE_CASE_ID } from "@al-riwayah/content";
 
 const productionOrigin = "https://al-riwayah.onrender.com";
 const attackerOrigin = "https://attacker.example";
@@ -96,6 +97,9 @@ describe("realtime production boundaries", () => {
       "discussion:ready": {},
       "patch:ballot": { rankedOptionIds: ["patch.1", "patch.2"] },
       "player:skip": { playerId: "p-disconnected" },
+      "bank:storyLock": { factId: "alarm_location", optionId: "cafe", targetPlayerId: "p1" },
+      "bank:answer": { questionId: "bank:first:p1", optionId: "parking" },
+      "bank:repairVote": { repairId: "movement" },
     } as const;
 
     for (const [event, payload] of Object.entries(gameplayPayloads) as [
@@ -109,6 +113,85 @@ describe("realtime production boundaries", () => {
       });
       expect.soft(result.success, `${event} accepted a missing phaseRevision`).toBe(false);
     }
+  });
+
+  it("does not expose an obsolete Bank host-tiebreak event", () => {
+    expect("bank:hostTiebreak" in CLIENT_EVENT_SCHEMAS).toBe(false);
+  });
+
+  it("rejects noncanonical cases unless the manager is an explicit legacy harness", () => {
+    const manager = new RoomManager({ disableRateLimits: true });
+    expect(
+      manager.createRoom({
+        hostName: "لاعب",
+        caseId: WAREHOUSE_CASE_ID,
+        ip: "127.0.0.1",
+      }),
+    ).toMatchObject({ ok: false, error: { code: "ACTION_NOT_ALLOWED" } });
+
+    const legacy = new RoomManager({ disableRateLimits: true, allowLegacyCases: true });
+    expect(
+      legacy.createRoom({
+        hostName: "لاعب",
+        caseId: WAREHOUSE_CASE_ID,
+        ip: "127.0.0.1",
+      }).ok,
+    ).toBe(true);
+  });
+
+  it("accepts only strict Bank Al-Saha facts, repairs, and bounded authored ids", () => {
+    const base = {
+      protocolVersion: 1,
+      requestId: "bank-boundary",
+      phaseRevision: 2,
+    };
+
+    expect(
+      CLIENT_EVENT_SCHEMAS["bank:storyLock"].safeParse({
+        ...base,
+        payload: { factId: "alarm_location", optionId: "cafe_counter", targetPlayerId: "p1" },
+      }).success,
+    ).toBe(true);
+    expect(
+      CLIENT_EVENT_SCHEMAS["bank:storyLock"].safeParse({
+        ...base,
+        payload: { factId: "cafe_door_witness", optionId: "p2" },
+      }).success,
+    ).toBe(true);
+    expect(
+      CLIENT_EVENT_SCHEMAS["bank:storyLock"].safeParse({
+        ...base,
+        payload: { factId: "parking_camera_sightline", optionId: "p3" },
+      }).success,
+    ).toBe(true);
+    expect(
+      CLIENT_EVENT_SCHEMAS["bank:storyLock"].safeParse({
+        ...base,
+        payload: { factId: "private_answer", optionId: "leak" },
+      }).success,
+    ).toBe(false);
+    expect(
+      CLIENT_EVENT_SCHEMAS["bank:storyLock"].safeParse({
+        ...base,
+        payload: { factId: "alarm_location", optionId: "cafe_counter" },
+      }).success,
+    ).toBe(false);
+    expect(
+      CLIENT_EVENT_SCHEMAS["bank:storyLock"].safeParse({
+        ...base,
+        payload: {
+          factId: "departure_plan",
+          optionId: "side_street",
+          targetPlayerId: "p1",
+        },
+      }).success,
+    ).toBe(false);
+    expect(
+      CLIENT_EVENT_SCHEMAS["bank:repairVote"].safeParse({
+        ...base,
+        payload: { repairId: "movement", liveVoteTotal: 4 },
+      }).success,
+    ).toBe(false);
   });
 
   it("requires a complete, duplicate-free ranked ballot with at least two options", () => {

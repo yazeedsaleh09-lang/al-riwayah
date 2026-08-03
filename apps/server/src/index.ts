@@ -5,6 +5,7 @@ export {
   type Room,
   type WarehouseManagerIntent,
 } from "./room-manager";
+export type { BankManagerIntent } from "./bank-room-adapter";
 export { loadEnv, type Env } from "./env";
 export { redact, createLogger } from "./redact-log";
 export { RateLimiter, RATE_RULES } from "./rate-limit";

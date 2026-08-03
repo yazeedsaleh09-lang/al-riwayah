@@ -40,6 +40,7 @@ export async function buildServer(env: Env): Promise<BuiltServer> {
     logger: log,
     phaseDurationScale: env.PHASE_DURATION_SCALE,
     disableRateLimits: !isProduction(env) && Boolean(env.E2E_FIXED_SEED),
+    allowLegacyCases: env.NODE_ENV === "test",
     ...(env.E2E_FIXED_SEED ? { seedFactory: () => env.E2E_FIXED_SEED! } : {}),
   });
 

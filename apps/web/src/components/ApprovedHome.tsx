@@ -30,7 +30,7 @@ export function ApprovedHome() {
             </span>
           </h1>
           <p className={classes("reveal", styles.lede, styles.reveal)}>
-            كل واحد يجاوب لحاله. أول تفصيلة ما تركب تفتح الملف عليكم وتجرّكم لأسئلة أصعب.
+            بنك الساحة انسرق، وسيارتكم انوقفت قريب. ابنوا رواية وحدة وخلوها تصمد قدام الأسئلة والأدلة.
           </p>
           <div className={classes("reveal", styles.actions, styles.reveal)}>
             <Link className={classes(styles.btn, styles.primary)} href="/create">
@@ -45,20 +45,20 @@ export function ApprovedHome() {
             aria-label="معلومات الجلسة"
           >
             <span>جوالات فقط</span>
-            <span>١٣–١٨ دقيقة</span>
+            <span>١٠–١٥ دقيقة</span>
             <span>بدون تحميل</span>
           </div>
         </section>
 
         <section
           className={classes("scene-wrap", styles.sceneWrap)}
-          aria-label="مثال حي على تناقض في الرواية"
+          aria-label="لقطة من قضية بنك الساحة وتناقض مكان سعود"
         >
           <div className={styles.scene}>
             <div className={styles.news}>
               <div className={styles.masthead}>
                 <b>THE STATEMENT</b>
-                <span>ملف الجلسة 08 · آخر تحديث 11:48 PM</span>
+                <span>قضية بنك الساحة · آخر تحديث 11:44</span>
               </div>
               <div className={styles.columnTitle}>
                 SIX STORIES.
@@ -94,13 +94,13 @@ export function ApprovedHome() {
               )}
             >
               <div className={classes("sticky", styles.sticky)}>
-                الحارس قال إنه
+                سجل السيارة قال
                 <br />
-                سمع صوت
+                إن باب السائق
                 <br />
-                زجاج بعد انطفاء
+                تقفل بعد بداية
                 <br />
-                الأنوار.
+                الإنذار بـ١٨ ثانية.
               </div>
             </div>
 
@@ -133,11 +133,11 @@ export function ApprovedHome() {
                   <span className="mono">11:45</span>
                 </small>
                 <strong>
-                  «كنا كلنا في المجلس
+                  «سعود كان عند السيارة
                   <br />
-                  وقت انطفاء الأنوار.»
+                  وقت اشتغل الإنذار.»
                 </strong>
-                <p>تمت الموافقة عليها من ٦ لاعبين.</p>
+                <p>الشبهة الأولية: ٢٤٪ بسبب قرب السيارة.</p>
               </article>
             </div>
 
@@ -151,15 +151,15 @@ export function ApprovedHome() {
             >
               <article className={classes("one", styles.card, styles.one)}>
                 <small>
-                  <span>إجابة راكان</span>
+                  <span>إجابة يزيد</span>
                   <span className="mono">11:46</span>
                 </small>
                 <strong>
-                  «كنت عند الباب لما
+                  «شفت سعود داخل المقهى
                   <br />
-                  سمعت صوت الزجاج.»
+                  وقت بدأ الإنذار.»
                 </strong>
-                <p>المكان: المدخل · الشاهد: سعود</p>
+                <p>المكان: المقهى · الوقت: 11:42</p>
               </article>
             </div>
 
@@ -177,11 +177,11 @@ export function ApprovedHome() {
                   <span className="mono">11:46</span>
                 </small>
                 <strong>
-                  «كنت لحالي في المواقف.
+                  «كنت عند السيارة
                   <br />
-                  راكان ما كان معي.»
+                  أول ما اشتغل الإنذار.»
                 </strong>
-                <p>المكان: المواقف · بدون شاهد</p>
+                <p>المكان: المواقف · الوقت: 11:42</p>
               </article>
             </div>
           </div>

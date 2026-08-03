@@ -276,7 +276,7 @@ test.describe("Golden Master fidelity surfaces", () => {
     }
   });
 
-  test("mobile question matches the approved selected-answer composition", async ({ browser }) => {
+  test.skip("retired Warehouse mobile question composition", async ({ browser }) => {
     test.setTimeout(180_000);
     await mkdir(OUTPUT_DIR, { recursive: true });
     const contexts: BrowserContext[] = [];
@@ -346,7 +346,7 @@ test.describe("Golden Master fidelity surfaces", () => {
     }
   });
 
-  test("mobile result matches the approved verdict composition", async ({ browser }) => {
+  test.skip("retired Warehouse mobile result composition", async ({ browser }) => {
     test.setTimeout(240_000);
     await mkdir(OUTPUT_DIR, { recursive: true });
     const contexts: BrowserContext[] = [];

@@ -12,7 +12,7 @@ import {
   type SessionCredentials,
 } from "@al-riwayah/protocol";
 import type { EngineIntent } from "@al-riwayah/game-engine";
-import type { RoomManager, WarehouseManagerIntent } from "./room-manager";
+import type { BankManagerIntent, RoomManager, WarehouseManagerIntent } from "./room-manager";
 import type { Logger } from "./redact-log";
 
 interface SocketState {
@@ -87,8 +87,7 @@ export function registerGateway(io: Server, manager: RoomManager, log: Logger): 
       }
       const parsed = CLIENT_EVENT_SCHEMAS[event].safeParse(raw);
       if (!parsed.success) {
-        const requestId =
-          (raw as { requestId?: string } | null)?.requestId ?? "unknown";
+        const requestId = (raw as { requestId?: string } | null)?.requestId ?? "unknown";
         reply({ ok: false, requestId, error: safeError("INVALID_PAYLOAD") });
         return { ok: false };
       }
@@ -166,10 +165,7 @@ export function registerGateway(io: Server, manager: RoomManager, log: Logger): 
       }
       if (state.code) {
         const identified = manager.identifyRecoveryToken(payload.recoveryToken);
-        if (
-          identified?.roomCode === state.code &&
-          identified.playerId === state.playerId
-        ) {
+        if (identified?.roomCode === state.code && identified.playerId === state.playerId) {
           emitPlayerView(socket, manager, state.code, state.playerId!);
           ack?.({ ok: true, requestId, data: { synced: true } });
           return;
@@ -221,7 +217,11 @@ export function registerGateway(io: Server, manager: RoomManager, log: Logger): 
       event: keyof typeof CLIENT_EVENT_SCHEMAS,
       raw: unknown,
       ack: AckFn | undefined,
-      run: (s: { code: string; playerId: string }, payload: unknown, requestId: string) => ServerAck | void,
+      run: (
+        s: { code: string; playerId: string },
+        payload: unknown,
+        requestId: string,
+      ) => ServerAck | void,
     ): void => {
       const g = guard(event, raw, ack);
       if (!g.ok) return;
@@ -244,7 +244,11 @@ export function registerGateway(io: Server, manager: RoomManager, log: Logger): 
 
     socket.on("player:setReady", (raw: unknown, ack?: AckFn) =>
       simple("player:setReady", raw, ack, (s, payload, requestId) => {
-        const r = manager.setReady({ code: s.code, playerId: s.playerId, ready: (payload as { ready: boolean }).ready });
+        const r = manager.setReady({
+          code: s.code,
+          playerId: s.playerId,
+          ready: (payload as { ready: boolean }).ready,
+        });
         return r.ok ? { ok: true, requestId, data: {} } : { ok: false, requestId, error: r.error };
       }),
     );
@@ -260,7 +264,10 @@ export function registerGateway(io: Server, manager: RoomManager, log: Logger): 
       event: keyof typeof CLIENT_EVENT_SCHEMAS,
       raw: unknown,
       ack: AckFn | undefined,
-      toIntent: (playerId: string, payload: unknown) => EngineIntent | WarehouseManagerIntent,
+      toIntent: (
+        playerId: string,
+        payload: unknown,
+      ) => EngineIntent | WarehouseManagerIntent | BankManagerIntent,
     ): void => {
       const g = guard(event, raw, ack);
       if (!g.ok) return;
@@ -376,6 +383,37 @@ export function registerGateway(io: Server, manager: RoomManager, log: Logger): 
       })),
     );
 
+    socket.on("bank:storyLock", (raw: unknown, ack?: AckFn) =>
+      gameplay("bank:storyLock", raw, ack, (playerId, payload) => {
+        const story = payload as {
+          factId: Extract<BankManagerIntent, { type: "BANK_STORY_LOCK" }>["factId"];
+          optionId: string;
+          targetPlayerId?: string;
+        };
+        return {
+          type: "BANK_STORY_LOCK",
+          playerId,
+          factId: story.factId,
+          optionId: story.optionId,
+          targetPlayerId: story.targetPlayerId,
+        };
+      }),
+    );
+    socket.on("bank:answer", (raw: unknown, ack?: AckFn) =>
+      gameplay("bank:answer", raw, ack, (playerId, payload) => ({
+        type: "BANK_ANSWER",
+        playerId,
+        questionId: (payload as { questionId: string }).questionId,
+        optionId: (payload as { optionId: string }).optionId,
+      })),
+    );
+    socket.on("bank:repairVote", (raw: unknown, ack?: AckFn) =>
+      gameplay("bank:repairVote", raw, ack, (playerId, payload) => ({
+        type: "BANK_REPAIR_VOTE",
+        playerId,
+        repairId: (payload as { repairId: "movement" | "identity" }).repairId,
+      })),
+    );
     socket.on("player:skip", (raw: unknown, ack?: AckFn) => {
       const g = guard("player:skip", raw, ack);
       if (!g.ok) return;

@@ -18,21 +18,16 @@ const chapters = ["power", "device", "car"] as const;
 const counts = [4, 5, 6] as const;
 
 describe("Warehouse Case V1 authored content", () => {
-  it("ships the locked Warehouse case as the validated default", () => {
+  it("retains the locked Warehouse case as validated, unregistered legacy content", () => {
     expect(warehouseCaseV1.id).toBe(WAREHOUSE_CASE_ID);
-    expect(DEFAULT_CASE_ID).toBe(WAREHOUSE_CASE_ID);
-    expect(getCase(DEFAULT_CASE_ID)).toBe(warehouseCaseV1);
+    expect(DEFAULT_CASE_ID).not.toBe(WAREHOUSE_CASE_ID);
+    expect(getCase(WAREHOUSE_CASE_ID)).toBeUndefined();
     expect(warehouseCaseV1.supportedPlayerCounts).toEqual([4, 5, 6]);
     expect(warehouseCaseV1.durationMinutes).toEqual([25, 30]);
     expect(validateWarehouseCase(warehouseCaseV1)).toEqual({ ok: true, errors: [] });
-    expect(publicCaseSummaries()).toEqual([
-      expect.objectContaining({
-        id: WAREHOUSE_CASE_ID,
-        playerCounts: [4, 5, 6],
-        durationMinutes: [25, 30],
-        status: "available",
-      }),
-    ]);
+    expect(publicCaseSummaries()).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: WAREHOUSE_CASE_ID })]),
+    );
   });
 
   it("contains the exact fixed world and shared-story option sets", () => {

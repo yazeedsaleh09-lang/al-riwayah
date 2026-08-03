@@ -31,7 +31,7 @@ async function recordHomepage(
   for (const target of [
     page.getByRole("heading", { name: "اتفقوا على الرواية. ولا تختلفون." }),
     page.getByRole("heading", { name: "ثلاث خطوات واضحة." }),
-    page.getByRole("heading", { name: "قضية المستودع" }),
+    page.getByRole("heading", { name: "قضية بنك الساحة", exact: true }),
     page.getByRole("heading", { name: "جاهزين تبدأون؟" }),
   ]) {
     await target.scrollIntoViewIfNeeded();

@@ -3,6 +3,8 @@ import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import AxeBuilder from "@axe-core/playwright";
 
+test.skip(true, "Retired Warehouse public flow; canonical Bank coverage lives in bank-al-saha.spec.ts");
+
 type MatchClients = {
   contexts: BrowserContext[];
   pages: Page[];

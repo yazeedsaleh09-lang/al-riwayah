@@ -70,12 +70,8 @@ test.describe("approved identity and motion system", () => {
     await expect(page.locator(".approved-home-source .scene-wrap")).toBeHidden();
     await expect(page.getByRole("heading", { name: "ثلاث خطوات واضحة." })).toBeVisible();
     await expect(page.locator(".home-continuation .simple-card")).toHaveCount(11);
-    await expect(
-      page.getByRole("img", { name: "معاينة شاشة السؤال المعتمدة" }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("img", { name: "معاينة شاشة النتيجة المعتمدة" }),
-    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: "الرواية على الخريطة" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "الدليل وصل" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "جاهزين تبدأون؟" })).toBeVisible();
   });
 
@@ -84,10 +80,10 @@ test.describe("approved identity and motion system", () => {
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/");
-    const questionPreview = page.getByRole("img", { name: "معاينة شاشة السؤال المعتمدة" });
+    const questionPreview = page.getByRole("heading", { name: "الرواية على الخريطة" });
     await questionPreview.scrollIntoViewIfNeeded();
     await expect(questionPreview).toBeVisible();
-    await page.getByRole("heading", { name: "قضية المستودع" }).scrollIntoViewIfNeeded();
+    await page.getByRole("heading", { name: "قضية بنك الساحة", exact: true }).scrollIntoViewIfNeeded();
     await expect(page.getByRole("link", { name: "ابدأ القضية" })).toBeVisible();
     expect(
       await page.evaluate(

@@ -4,11 +4,9 @@
  * start, every phase, deadlines, and result release end-to-end.
  */
 import type { RoomManager } from "@al-riwayah/server";
-import type {
-  WarehousePrivateView,
-  WarehousePublicView,
-} from "@al-riwayah/game-engine";
+import type { WarehousePrivateView, WarehousePublicView } from "@al-riwayah/game-engine";
 import type { WarehouseManagerIntent } from "@al-riwayah/server";
+import { WAREHOUSE_CASE_ID } from "@al-riwayah/content";
 
 export interface TestPlayer {
   id: string;
@@ -25,7 +23,11 @@ export function createRoomWithPlayers(
   mgr: RoomManager,
   n: number,
 ): { code: string; players: TestPlayer[] } {
-  const host = mgr.createRoom({ hostName: "لاعب 1", ip: "10.0.0.1" });
+  const host = mgr.createLegacyRoom({
+    hostName: "لاعب 1",
+    caseId: WAREHOUSE_CASE_ID,
+    ip: "10.0.0.1",
+  });
   if (!host.ok) throw new Error("create failed");
   const code = host.data.roomCode;
   const players: TestPlayer[] = [

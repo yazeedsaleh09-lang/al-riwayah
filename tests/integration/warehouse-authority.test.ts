@@ -14,7 +14,7 @@ function createWarehouseRoom(
   manager: RoomManager,
   playerCount: 4 | 5 | 6,
 ): ReturnType<typeof createRoomWithPlayers> {
-  const host = manager.createRoom({
+  const host = manager.createLegacyRoom({
     hostName: "لاعب 1",
     caseId: WAREHOUSE_CASE_ID,
     ip: "10.50.0.1",
@@ -377,12 +377,13 @@ describe("Warehouse authoritative room integration", () => {
       });
       expect(result.resultAttribution.worstContradiction).toBeNull();
       expect(manager.getRoom(code)!.status).toBe("results");
-      expect(manager.getRoom(code)!.match!.resolvedChapters).toEqual([
+      const match = manager.getRoom(code)!.match!;
+      expect("resolvedChapters" in match ? match.resolvedChapters : []).toEqual([
         "power",
         "device",
         "car",
       ]);
-      const ledger = manager.getRoom(code)!.match!.eventLedger;
+      const ledger = match.eventLedger;
       expect(new Set(ledger.map((item) => item.id)).size).toBe(ledger.length);
       for (const requiredType of [
         "WORLD_FACT_REVEALED",

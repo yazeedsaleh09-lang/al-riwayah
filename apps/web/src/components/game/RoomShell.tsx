@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getCase } from "@al-riwayah/content";
+import { WAREHOUSE_CASE_ID, warehouseCaseV1 } from "@al-riwayah/content";
 import {
   PHASE_SEQUENCE,
   phaseIndex,
@@ -18,6 +18,7 @@ import { GameHeader } from "./GameHeader";
 import { PreferenceControls } from "../PreferenceControls";
 import { playCue, type Cue } from "@/lib/sound";
 import { WarehouseRoom, isWarehousePrivateView, isWarehousePublicView } from "./WarehouseRoom";
+import { BankRoom, isBankPrivateView, isBankPublicView } from "./BankRoom";
 
 const PHASE_CUE: Record<string, Cue> = {
   PRIVATE_EVIDENCE: "evidence",
@@ -55,12 +56,9 @@ export function RoomShell({ code }: { code: string }) {
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
   const [selectedPatchLabel, setSelectedPatchLabel] = useState<string | null>(null);
   const [actionError, setActionError] = useState("");
-  const { expired: deadlineExpired } = useDeadlineExpired(
-    pub?.deadlineAt ?? null,
-    pub?.serverTime ?? 0,
-  );
+  const { expired: deadlineExpired } = useDeadlineExpired(pub?.deadlineAt ?? null, pub?.serverTime ?? 0);
   const warehouseCase = useMemo<WarehouseCaseDefinition | undefined>(
-    () => (pub ? getCase(pub.caseId) : undefined),
+    () => (pub?.caseId === WAREHOUSE_CASE_ID ? warehouseCaseV1 : undefined),
     [pub],
   );
   const gameCase = warehouseCase as unknown as GameCase | undefined;
@@ -168,6 +166,21 @@ export function RoomShell({ code }: { code: string }) {
       setBusy(false);
     }
   };
+
+  if (isBankPublicView(pub) && isBankPrivateView(priv)) {
+    return (
+      <BankRoom
+        pub={pub}
+        priv={priv}
+        connected={connected}
+        busy={busy}
+        run={run}
+        actionError={actionError}
+        actions={actions}
+        goToNewGroup={goToNewGroup}
+      />
+    );
+  }
 
   if (isWarehousePublicView(pub) && isWarehousePrivateView(priv) && warehouseCase) {
     return (

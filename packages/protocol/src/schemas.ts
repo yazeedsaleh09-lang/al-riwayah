@@ -119,10 +119,7 @@ export const warehouseStoryFieldSchema = z.enum([
   "carDepartureExpected",
 ]);
 
-export const warehouseStoryValueSchema = z.union([
-  z.string().min(1).max(120),
-  z.boolean(),
-]);
+export const warehouseStoryValueSchema = z.union([z.string().min(1).max(120), z.boolean()]);
 
 export const storySetPayloadSchema = z
   .object({
@@ -150,6 +147,49 @@ export const skipPlayerPayloadSchema = z
 
 export const emptyPayloadSchema = z.object({}).strict();
 
+// Canonical Bank Al-Saha payloads. Authored option/question ids remain data,
+// but the fact and repair axes are closed enums so arbitrary state keys cannot
+// cross the realtime boundary.
+export const bankStoryFactSchema = z.enum([
+  "near_bank_reason",
+  "alarm_location",
+  "vehicle_key_holder",
+  "suspicious_object_holder",
+  "departure_plan",
+  "cafe_door_witness",
+  "parking_camera_sightline",
+]);
+
+export const bankStoryLockPayloadSchema = z
+  .object({
+    factId: bankStoryFactSchema,
+    optionId: z.string().min(1).max(120),
+    targetPlayerId: z.string().min(1).max(120).optional(),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const targetsOnePlayer = value.factId === "alarm_location";
+    if (targetsOnePlayer !== (value.targetPlayerId !== undefined)) {
+      context.addIssue({
+        code: "custom",
+        message: targetsOnePlayer
+          ? "alarm_location requires targetPlayerId"
+          : "targetPlayerId is allowed only for alarm_location",
+        path: ["targetPlayerId"],
+      });
+    }
+  });
+
+export const bankAnswerPayloadSchema = z
+  .object({
+    questionId: z.string().min(1).max(200),
+    optionId: z.string().min(1).max(200),
+  })
+  .strict();
+
+export const bankRepairIdSchema = z.enum(["movement", "identity"]);
+export const bankRepairVotePayloadSchema = z.object({ repairId: bankRepairIdSchema }).strict();
+
 /** Full envelope schemas keyed by event name. */
 export const CLIENT_EVENT_SCHEMAS = {
   "room:create": envelope(createPayloadSchema),
@@ -169,6 +209,9 @@ export const CLIENT_EVENT_SCHEMAS = {
   "discussion:ready": gameplayEnvelope(emptyPayloadSchema),
   "patch:ballot": gameplayEnvelope(rankedBallotPayloadSchema),
   "player:skip": gameplayEnvelope(skipPlayerPayloadSchema),
+  "bank:storyLock": gameplayEnvelope(bankStoryLockPayloadSchema),
+  "bank:answer": gameplayEnvelope(bankAnswerPayloadSchema),
+  "bank:repairVote": gameplayEnvelope(bankRepairVotePayloadSchema),
   "result:replay": envelope(emptyPayloadSchema),
   "room:newGroup": envelope(emptyPayloadSchema),
   "player:leave": envelope(emptyPayloadSchema),

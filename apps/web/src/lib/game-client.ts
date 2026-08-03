@@ -179,6 +179,7 @@ export function clearSession(code: string): void {
 export async function createRoom(
   input: {
     displayName: string;
+    caseId?: string;
     settings?: { soundDefault?: boolean; motionDefault?: boolean; extendedPlanning?: boolean };
   },
   report?: ConnectionReporter,
@@ -186,6 +187,7 @@ export async function createRoom(
   await prepareRealtime(report);
   const ack = await emitIntent<SessionInfo>("room:create", {
     displayName: input.displayName,
+    caseId: input.caseId,
     settings: input.settings,
   });
   if (!ack.ok) throw new Error(ack.error.code);

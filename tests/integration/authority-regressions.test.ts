@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { io as ioClient, type Socket } from "socket.io-client";
 import type { AddressInfo } from "node:net";
 import { buildServer, RoomManager, type BuiltServer } from "@al-riwayah/server";
+import { WAREHOUSE_CASE_ID } from "@al-riwayah/content";
 import { createRoomWithPlayers, makeClock, readyAndStart } from "./driver";
 
 interface Ack<T = unknown> {
@@ -80,7 +81,10 @@ async function createSocketRoom(
   const created = await emit<Credentials>(
     host,
     "room:create",
-    envelope(`${prefix}:create`, { displayName: `${prefix} host` }),
+    envelope(`${prefix}:create`, {
+      displayName: `${prefix} host`,
+      caseId: WAREHOUSE_CASE_ID,
+    }),
   );
   if (!created.ok || !created.data) throw new Error(`${prefix}: room create failed`);
 

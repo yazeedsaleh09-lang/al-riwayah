@@ -2,7 +2,7 @@ import { DeadlineRing } from "./DeadlineRing";
 import { Wordmark } from "../Wordmark";
 
 type GameHeaderProps = {
-  variant: "lobby" | "question" | "result";
+  variant: "lobby" | "question" | "result" | "case";
   connected: boolean;
   caseTitle?: string;
   questionNumber?: number;

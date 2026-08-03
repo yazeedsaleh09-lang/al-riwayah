@@ -1,6 +1,7 @@
 import { describe, it, expect, afterAll, beforeAll } from "vitest";
 import { io as ioClient, type Socket } from "socket.io-client";
 import { buildServer, type BuiltServer } from "@al-riwayah/server";
+import { WAREHOUSE_CASE_ID } from "@al-riwayah/content";
 import type { AddressInfo } from "node:net";
 
 let built: BuiltServer;
@@ -46,7 +47,11 @@ function emit<T = unknown>(socket: Socket, event: string, payload: unknown): Pro
 
 function waitForPublic(
   socket: Socket,
-  predicate: (view: { phase: string; phaseRevision: number; progress?: { questionsStarted: number } }) => boolean,
+  predicate: (view: {
+    phase: string;
+    phaseRevision: number;
+    progress?: { questionsStarted: number };
+  }) => boolean,
 ): Promise<{ phase: string; phaseRevision: number; progress?: { questionsStarted: number } }> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
@@ -86,7 +91,7 @@ describe("socket gateway smoke (multi-client)", () => {
     const created = await emit<{ ok: boolean; data: { roomCode: string; playerId: string } }>(
       host,
       "room:create",
-      env("c1", { displayName: "لاعب 1" }),
+      env("c1", { displayName: "لاعب 1", caseId: WAREHOUSE_CASE_ID }),
     );
     expect(created.ok).toBe(true);
     const code = created.data.roomCode;
@@ -94,7 +99,11 @@ describe("socket gateway smoke (multi-client)", () => {
     const joiners: Socket[] = [];
     for (let i = 2; i <= 4; i++) {
       const s = connect();
-      const j = await emit<{ ok: boolean }>(s, "room:join", env(`j${i}`, { code, displayName: `لاعب ${i}` }));
+      const j = await emit<{ ok: boolean }>(
+        s,
+        "room:join",
+        env(`j${i}`, { code, displayName: `لاعب ${i}` }),
+      );
       expect(j.ok).toBe(true);
       joiners.push(s);
     }
@@ -102,20 +111,25 @@ describe("socket gateway smoke (multi-client)", () => {
     const all = [host, ...joiners];
     // Mark everyone ready.
     for (let i = 0; i < all.length; i++) {
-      const r = await emit<{ ok: boolean }>(all[i]!, "player:setReady", env(`ready${i}`, { ready: true }));
+      const r = await emit<{ ok: boolean }>(
+        all[i]!,
+        "player:setReady",
+        env(`ready${i}`, { ready: true }),
+      );
       expect(r.ok).toBe(true);
     }
 
-    const briefPromises = all.map((s) =>
-      new Promise<string>((resolve) => {
-        const handler = (view: { phase: string }) => {
-          if (view.phase === "STORY_BUILDING") {
-            s.off("view:public", handler);
-            resolve(view.phase);
-          }
-        };
-        s.on("view:public", handler);
-      }),
+    const briefPromises = all.map(
+      (s) =>
+        new Promise<string>((resolve) => {
+          const handler = (view: { phase: string }) => {
+            if (view.phase === "STORY_BUILDING") {
+              s.off("view:public", handler);
+              resolve(view.phase);
+            }
+          };
+          s.on("view:public", handler);
+        }),
     );
 
     const start = await emit<{ ok: boolean }>(host, "match:start", env("start", {}));
@@ -130,7 +144,10 @@ describe("socket gateway smoke (multi-client)", () => {
     const created = await emit<{ ok: true; data: { roomCode: string } }>(
       sockets[0]!,
       "room:create",
-      env("question-create", { displayName: "لاعب البداية 1" }),
+      env("question-create", {
+        displayName: "لاعب البداية 1",
+        caseId: WAREHOUSE_CASE_ID,
+      }),
     );
     const code = created.data.roomCode;
     for (let index = 1; index < sockets.length; index++) {
@@ -144,16 +161,20 @@ describe("socket gateway smoke (multi-client)", () => {
     let finalQuestionView: { phase: string } | null = null;
     for (let index = 0; index < sockets.length; index++) {
       expect(
-        (await emit<{ ok: boolean }>(
-          sockets[index]!,
-          "player:setReady",
-          env(`question-ready-${index}`, { ready: true }),
-        )).ok,
+        (
+          await emit<{ ok: boolean }>(
+            sockets[index]!,
+            "player:setReady",
+            env(`question-ready-${index}`, { ready: true }),
+          )
+        ).ok,
       ).toBe(true);
     }
 
     const building = waitForPublic(sockets[0]!, (view) => view.phase === "STORY_BUILDING");
-    expect((await emit<{ ok: boolean }>(sockets[0]!, "match:start", env("question-match", {}))).ok).toBe(true);
+    expect(
+      (await emit<{ ok: boolean }>(sockets[0]!, "match:start", env("question-match", {}))).ok,
+    ).toBe(true);
     const buildingView = await building;
     const review = waitForPublic(sockets[0]!, (view) => view.phase === "STORY_REVIEW");
     expect(
@@ -186,8 +207,7 @@ describe("socket gateway smoke (multi-client)", () => {
     for (let index = 0; index < sockets.length; index++) {
       const next = waitForPublic(
         sockets[0]!,
-        (view) =>
-          view.phase === "CHAPTER_CONTEXT" || view.progress?.questionsStarted === index + 1,
+        (view) => view.phase === "CHAPTER_CONTEXT" || view.progress?.questionsStarted === index + 1,
       );
       const ack = await emit<{ ok: boolean; error?: { code: string } }>(
         sockets[index]!,
@@ -203,7 +223,9 @@ describe("socket gateway smoke (multi-client)", () => {
 
   it("rejects a malformed payload without a crash", async () => {
     const s = connect();
-    const bad = await emit<{ ok: boolean; error?: { code: string } }>(s, "room:create", { nope: true });
+    const bad = await emit<{ ok: boolean; error?: { code: string } }>(s, "room:create", {
+      nope: true,
+    });
     expect(bad.ok).toBe(false);
     expect(bad.error?.code).toBe("INVALID_PAYLOAD");
   });

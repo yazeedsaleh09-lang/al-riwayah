@@ -1,5 +1,8 @@
-import type { WarehouseCaseDefinition } from "@al-riwayah/game-engine";
-import { WAREHOUSE_CASE_ID, warehouseCaseMetadata, warehouseCaseV1 } from "./cases/warehouse.v1";
+import {
+  BANK_AL_SAHA_CASE_ID,
+  bankAlSahaV1,
+  type BankAlSahaCaseDefinition,
+} from "./cases/bank-al-saha.v1";
 
 /** Legacy export retained for old-match replay compatibility; it is not shipped. */
 export { missingPayrollEnvelopeV1 } from "./cases/missing-payroll-envelope.v1";
@@ -13,22 +16,43 @@ export {
   type WarehouseContentQuestion,
 } from "./cases/warehouse.v1";
 export {
+  BANK_AL_SAHA_CASE_ID,
+  BANK_LINKED_CANONICAL_SELECTION,
+  BANK_LINKED_OPTION_COMPATIBILITY,
+  BANK_STORY_OPTION_FITS,
+  BANK_EVIDENCE_OPTION_FITS_BY_PACKET,
+  BANK_SCORING_CANONICAL_SELECTION,
+  bankAlSahaV1,
+  type ArabicCopy,
+  type BankAlSahaCaseDefinition,
+  type BankContentQuestion,
+  type BankEvidenceRequest,
+  type BankPlayerCount,
+  type BankQuestionChecks,
+  type BankQuestionSet,
+  type BankRepairBranch,
+  type BankRepairId,
+  type BankTruthPacket,
+  type BankTruthPacketId,
+} from "./cases/bank-al-saha.v1";
+export {
   validateCase,
   validateCaseOrThrow,
   validateWarehouseCase,
   validateWarehouseCaseOrThrow,
   type ValidationResult,
 } from "./validate";
+export { validateBankAlSahaCase, validateBankAlSahaCaseOrThrow } from "./validate-bank-al-saha";
 
 /** All shipped cases, keyed by stable id. */
-export const CASES: Record<string, WarehouseCaseDefinition> = {
-  [WAREHOUSE_CASE_ID]: warehouseCaseV1,
+export const CASES: Record<string, BankAlSahaCaseDefinition> = {
+  [BANK_AL_SAHA_CASE_ID]: bankAlSahaV1,
 };
 
 /** The single case available in the review build. */
-export const DEFAULT_CASE_ID = WAREHOUSE_CASE_ID;
+export const DEFAULT_CASE_ID = BANK_AL_SAHA_CASE_ID;
 
-export function getCase(id: string): WarehouseCaseDefinition | undefined {
+export function getCase(id: string): BankAlSahaCaseDefinition | undefined {
   return CASES[id];
 }
 
@@ -36,9 +60,9 @@ export function getCase(id: string): WarehouseCaseDefinition | undefined {
 export interface PublicCaseSummary {
   id: string;
   version: string;
-  title: WarehouseCaseDefinition["title"];
-  pitch: WarehouseCaseDefinition["pitch"];
-  complexity: WarehouseCaseDefinition["complexity"];
+  title: BankAlSahaCaseDefinition["title"];
+  pitch: BankAlSahaCaseDefinition["pitch"];
+  complexity: BankAlSahaCaseDefinition["complexity"];
   playerCounts: number[];
   durationMinutes: [number, number];
   status: "available" | "in_development";
@@ -47,13 +71,13 @@ export interface PublicCaseSummary {
 export function publicCaseSummaries(): PublicCaseSummary[] {
   return [
     {
-      id: warehouseCaseV1.id,
-      version: warehouseCaseV1.version,
-      title: warehouseCaseMetadata.title,
-      pitch: warehouseCaseMetadata.pitch,
-      complexity: warehouseCaseMetadata.complexity,
-      playerCounts: [...warehouseCaseV1.supportedPlayerCounts],
-      durationMinutes: [...warehouseCaseMetadata.durationMinutes],
+      id: bankAlSahaV1.id,
+      version: bankAlSahaV1.version,
+      title: bankAlSahaV1.title,
+      pitch: bankAlSahaV1.pitch,
+      complexity: bankAlSahaV1.complexity,
+      playerCounts: [...bankAlSahaV1.supportedPlayerCounts],
+      durationMinutes: [...bankAlSahaV1.durationMinutes],
       status: "available",
     },
   ];

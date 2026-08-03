@@ -2,6 +2,8 @@ import { expect, test, type Browser, type BrowserContext, type Page } from "@pla
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 
+test.skip(true, "Retired Warehouse public flow; server compatibility remains covered by integration tests");
+
 type AnswerMode = "consistent" | "conflict";
 const SCREENSHOT_DIR = path.resolve("artifacts/warehouse-case-v1/screenshots");
 const PHASE_BANNERS: Readonly<Record<string, { title: string; tone: string }>> = {

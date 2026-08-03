@@ -68,7 +68,7 @@ test.describe("full product completion contracts", () => {
   test("homepage preserves the grounded duration and no-download claims", async ({ page }) => {
     await page.goto("/");
     const copy = await page.locator("main#main").innerText();
-    expect(copy).toMatch(/(?:١٣|13)\s*(?:–|-|إلى)\s*(?:١٨|18)/);
+    expect(copy).toMatch(/(?:١٠|10)\s*(?:–|-|إلى)\s*(?:١٥|15)/);
     expect(copy).toMatch(/(?:بدون|لا تحتاج|ما تحتاج)[^\n]{0,50}(?:تحميل|تنزيل|تطبيق)/);
   });
 

@@ -4,6 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   PublicRoomView,
   PrivatePlayerView,
+  BankPublicView,
+  BankPrivateView,
+  BankRepairId,
   WarehousePublicView,
   WarehousePrivateView,
 } from "@al-riwayah/game-engine";
@@ -26,9 +29,25 @@ type WarehousePrivateShell = WarehousePrivateView & {
   phaseRevision?: number;
 };
 
+export type BankPublicShell = Omit<BankPublicView, "matchId"> & {
+  protocolVersion?: 1;
+  roomCode: string;
+  deadlineAt: null;
+  serverTime: number;
+  caseId: string;
+  caseVersion?: string;
+};
+
+export type BankPrivateShell = BankPrivateView & {
+  protocolVersion?: 1;
+  isHost?: boolean;
+  connected?: boolean;
+  phaseRevision?: number;
+};
+
 export interface RoomState {
-  publicView: PublicRoomView | WarehousePublicShell | null;
-  privateView: PrivatePlayerView | WarehousePrivateShell | null;
+  publicView: PublicRoomView | WarehousePublicShell | BankPublicShell | null;
+  privateView: PrivatePlayerView | WarehousePrivateShell | BankPrivateShell | null;
   connected: boolean;
   fatal: string | null;
   playerId: string | null;
@@ -45,8 +64,8 @@ async function checkedIntent<T = unknown>(
 }
 
 export function useGameRoom(code: string) {
-  const [pub, setPub] = useState<PublicRoomView | WarehousePublicShell | null>(null);
-  const [priv, setPriv] = useState<PrivatePlayerView | WarehousePrivateShell | null>(null);
+  const [pub, setPub] = useState<PublicRoomView | WarehousePublicShell | BankPublicShell | null>(null);
+  const [priv, setPriv] = useState<PrivatePlayerView | WarehousePrivateShell | BankPrivateShell | null>(null);
   const [connected, setConnected] = useState(false);
   const [connectionStage, setConnectionStage] = useState<ConnectionStage>("connecting");
   const [fatal, setFatal] = useState<string | null>(null);
@@ -71,11 +90,11 @@ export function useGameRoom(code: string) {
       unavailableTimer = null;
     };
 
-    const onPublic = (v: PublicRoomView | WarehousePublicShell) => {
+    const onPublic = (v: PublicRoomView | WarehousePublicShell | BankPublicShell) => {
       revisionRef.current = v.phaseRevision;
       setPub(v);
     };
-    const onPrivate = (v: PrivatePlayerView | WarehousePrivateShell) => setPriv(v);
+    const onPrivate = (v: PrivatePlayerView | WarehousePrivateShell | BankPrivateShell) => setPriv(v);
     const onRotated = (d: { recoveryToken: string }) => updateToken(code, d.recoveryToken);
     const onReplaced = () => setFatal("SESSION_REPLACED");
     const onConnectError = () => {
@@ -168,6 +187,16 @@ export function useGameRoom(code: string) {
     rankedBallot: (rankedOptionIds: readonly string[]) =>
       withRev("patch:ballot", { rankedOptionIds }),
     skipPlayer: (playerId: string) => withRev("player:skip", { playerId }),
+    bankStoryLock: (factId: string, optionId: string, targetPlayerId?: string) =>
+      withRev("bank:storyLock", {
+        factId,
+        optionId,
+        ...(targetPlayerId ? { targetPlayerId } : {}),
+      }),
+    bankAnswer: (questionId: string, optionId: string) =>
+      withRev("bank:answer", { questionId, optionId }),
+    bankRepairVote: (repairId: BankRepairId) =>
+      withRev("bank:repairVote", { repairId }),
     replay: () => checkedIntent("result:replay", {}),
     newGroup: () => createNewGroup(code),
   };

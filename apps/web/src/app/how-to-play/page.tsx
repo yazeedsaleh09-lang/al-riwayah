@@ -16,12 +16,12 @@ export const metadata: Metadata = {
 };
 
 const FLOW = [
-  "تجهيز الغرفة",
-  "السؤال السري",
-  "انتظار اللاعبين",
-  "كشف التناقض",
-  "السؤال الأصعب",
-  "النتيجة",
+  "افهموا سرقة بنك الساحة",
+  "ابنوا الرواية على الخريطة",
+  "جاوبوا السؤال الأول لحالكم",
+  "افهموا التناقض واختاروا تفسيره",
+  "واجهوا الدليل والسؤال الأخير",
+  "استلموا الحكم والترتيب",
 ] as const;
 
 export default function HowToPlay() {
@@ -32,16 +32,16 @@ export default function HowToPlay() {
         <SimplePageHero
           label="كيف تلعب"
           title="من رواية واحدة إلى نتيجة تكشف كل شيء."
-          copy="اتفقوا على اللي صار، وبعدها كل واحد يجاوب لحاله. التناقضات ترجعكم للنقاش قبل التقرير النهائي."
+          copy="ابنوا رواية تفسر وجودكم قرب البنك، جاوبوا لحالكم، ثم اختاروا تفسيرًا يفتح عليكم الدليل الجاي."
         />
 
         <section className="simple-section" aria-labelledby="steps-title">
           <div className="simple-container">
             <SectionHeader label="ثلاث خطوات" title="اللعبة واضحة من أول دقيقة." id="steps-title" />
             <div className="simple-grid">
-              <StepCard number="١" title="اتفقوا على الرواية">حددوا السبب والمكان والأدوار مع بعض.</StepCard>
-              <StepCard number="٢" title="كل واحد يجاوب لحاله">كل سؤال خاص بصاحب الجوال، وبدون مساعدة.</StepCard>
-              <StepCard number="٣" title="واجهوا التناقضات والنتيجة">ناقشوا الاختلاف، اختاروا ترقيعة، وشوفوا التقرير.</StepCard>
+              <StepCard number="١" title="ابنوا الرواية">حددوا السبب والمواقع والمفتاح والشنطة على الخريطة.</StepCard>
+              <StepCard number="٢" title="كل واحد يجاوب لحاله">كل سؤال خاص بصاحب الجوال، وبعد التثبيت تنتظر في نفس الشاشة.</StepCard>
+              <StepCard number="٣" title="اختاروا تفسيركم">ناقشوا التناقض، ثبتوا تفسيرًا، وشوفوا هل الدليل يركب عليه.</StepCard>
             </div>
           </div>
         </section>
@@ -59,10 +59,10 @@ export default function HowToPlay() {
 
         <section className="simple-section" aria-labelledby="rules-title">
           <div className="simple-container">
-            <SectionHeader label="قواعد الغرفة" title="الكلام له وقته." id="rules-title" />
+            <SectionHeader label="قواعد الغرفة" title="كل لحظة لها هدف." id="rules-title" />
             <div className="simple-grid simple-grid--two">
               <SimpleCard><h3>متى تتكلمون</h3><p>وقت التخطيط ووقت مناقشة التناقض.</p></SimpleCard>
-              <SimpleCard><h3>متى تسكتون</h3><p>وقت الأسئلة الخاصة والسؤال الأخير.</p></SimpleCard>
+              <SimpleCard><h3>متى تجاوبون لحالكم</h3><p>وقت السؤال الأول والسؤال الجنائي الأخير.</p></SimpleCard>
               <SimpleCard><h3>لا تعرض شاشتك</h3><p>السؤال والدليل الخاص لك أنت فقط.</p></SimpleCard>
               <SimpleCard><h3>وش يصير إذا انقطع الاتصال</h3><p>نحاول نرجع جلستك ونكمل من نفس المرحلة.</p></SimpleCard>
             </div>

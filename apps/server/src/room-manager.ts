@@ -1,36 +1,27 @@
-/**
- * Authoritative room + match manager. This owns ALL game truth (membership,
- * phase, deadlines, private assignment, answers, contradictions, scoring,
- * result release). Clients only submit intents. It is deliberately transport-
- * agnostic and clock-injectable so it can be driven directly by tests.
- */
 import {
+  toBankPublicView,
   advanceWarehousePhase,
-  confirmWarehouseStory,
-  createWarehouseCase,
   disconnectWarehousePlayer,
   expireWarehouseAdvisoryDeadline,
-  lockWarehouseAnswer,
   reconnectWarehousePlayer,
-  setWarehouseDiscussionReady,
-  setWarehouseStoryField,
   skipDisconnectedWarehousePlayer,
-  startWarehouseQuestion,
-  submitWarehouseRankedBallot,
-  submitWarehouseStory,
   toWarehousePrivateView,
   toWarehousePublicView,
   type EngineIntent,
+  type BankMatchState,
   type PublicRoomView,
   type PrivatePlayerView,
   type WarehouseCaseDefinition,
   type WarehousePrivateView,
   type WarehousePublicView,
   type WarehouseState,
-  type WarehouseStoryField,
-  type WarehouseStructuredValue,
 } from "@al-riwayah/game-engine";
-import { getCase, DEFAULT_CASE_ID } from "@al-riwayah/content";
+import {
+  BANK_AL_SAHA_CASE_ID,
+  DEFAULT_CASE_ID,
+  bankAlSahaV1,
+  warehouseCaseV1,
+} from "@al-riwayah/content";
 import type { RoomSettings, SafeError, SafeErrorCode, ServerAck } from "@al-riwayah/protocol";
 import { safeError } from "@al-riwayah/protocol";
 import { RateLimiter } from "./rate-limit";
@@ -43,16 +34,29 @@ import {
 } from "./tokens";
 import type { Logger } from "./redact-log";
 import { createLogger } from "./redact-log";
+import {
+  advancePassiveBankPhase,
+  applyBankIntent,
+  initializeBankMatch,
+  toSafeBankPrivateView,
+  type BankManagerIntent,
+} from "./bank-room-adapter";
+import {
+  applyWarehouseIntent,
+  initializeWarehouseMatch,
+  type WarehouseManagerIntent,
+} from "./warehouse-room-adapter";
+import { buildLobbyPublicView } from "./lobby-view";
 
+export type { BankManagerIntent } from "./bank-room-adapter";
+export type { WarehouseManagerIntent } from "./warehouse-room-adapter";
 const MIN_PLAYERS = 4;
 const MAX_PLAYERS = 6;
 const IDEMPOTENCY_CAP = 200;
-
 interface IdempotencyEntry {
   intentKey: string;
   ack: ServerAck;
 }
-
 interface ServerPlayer {
   id: string;
   name: string;
@@ -65,27 +69,6 @@ interface ServerPlayer {
   socketId: string | null;
   idempotency: Map<string, IdempotencyEntry>;
 }
-
-export type WarehouseManagerIntent =
-  | {
-      type: "WAREHOUSE_STORY_SET";
-      playerId: string;
-      field: WarehouseStoryField;
-      value: WarehouseStructuredValue;
-    }
-  | { type: "WAREHOUSE_STORY_SUBMIT"; playerId: string }
-  | { type: "WAREHOUSE_STORY_REVIEW"; playerId: string }
-  | { type: "WAREHOUSE_START_QUESTION"; playerId: string }
-  | { type: "WAREHOUSE_ADVANCE"; playerId: string }
-  | {
-      type: "WAREHOUSE_ANSWER";
-      playerId: string;
-      questionInstanceId: string;
-      optionId: string;
-    }
-  | { type: "WAREHOUSE_DISCUSSION_READY"; playerId: string }
-  | { type: "WAREHOUSE_BALLOT"; playerId: string; rankedOptionIds: readonly string[] };
-
 export interface Room {
   id: string;
   code: string;
@@ -96,40 +79,31 @@ export interface Room {
   lastActivityAt: number;
   expiresAt: number;
   seed: string;
+  phaseEnteredAt: number;
   players: ServerPlayer[];
-  match: WarehouseState | null;
+  match: WarehouseState | BankMatchState | null;
 }
-
 export interface CreateResult {
   roomCode: string;
   playerId: string;
   recoveryToken: string;
   isHost: boolean;
 }
-
 export type ManagerResult<T> = { ok: true; data: T } | { ok: false; error: SafeError };
-
-const DEFAULT_SETTINGS: RoomSettings = {
-  soundDefault: true,
-  motionDefault: true,
-  extendedPlanning: false,
-};
-
+interface CreateRoomParams { hostName: string; caseId?: string; settings?: Partial<RoomSettings>; ip: string }
+const DEFAULT_SETTINGS: RoomSettings = { soundDefault: true, motionDefault: true, extendedPlanning: false };
 export interface RoomManagerOptions {
   now?: () => number;
   ttlMs?: number;
   maxLifetimeMs?: number;
   logger?: Logger;
   phaseDurationScale?: number;
-  /** Test-only injection for reproducible authored assignments. */
   seedFactory?: () => string;
-  /** Test-only isolation: avoids cross-test pollution in one long-lived E2E server. */
   disableRateLimits?: boolean;
+  allowLegacyCases?: boolean;
 }
-
 export class RoomManager {
   private rooms = new Map<string, Room>();
-  /** Short-lived tombstones let joiners distinguish an expired code from a typo. */
   private expiredCodes = new Map<string, number>();
   private now: () => number;
   private ttlMs: number;
@@ -138,6 +112,8 @@ export class RoomManager {
   private log: Logger;
   private seedFactory: () => string;
   private rateLimitsEnabled: boolean;
+  private phaseDurationScale: number;
+  private allowLegacyCases: boolean;
 
   constructor(opts: RoomManagerOptions = {}) {
     this.now = opts.now ?? Date.now;
@@ -147,10 +123,9 @@ export class RoomManager {
     this.log = opts.logger ?? createLogger();
     this.seedFactory = opts.seedFactory ?? (() => randomId("seed"));
     this.rateLimitsEnabled = opts.disableRateLimits !== true;
+    this.phaseDurationScale = opts.phaseDurationScale ?? 1;
+    this.allowLegacyCases = opts.allowLegacyCases === true;
   }
-
-  // --- helpers ---
-
   private err<T>(code: SafeErrorCode, message?: string): ManagerResult<T> {
     return { ok: false, error: safeError(code, message) };
   }
@@ -160,11 +135,13 @@ export class RoomManager {
     room.lastActivityAt = t;
     room.expiresAt = Math.min(room.createdAt + this.maxLifetimeMs, t + this.ttlMs);
   }
-
-  private resolveCase(caseId: string): WarehouseCaseDefinition | undefined {
-    return getCase(caseId);
+  private isBankRoom(room: Pick<Room, "caseId">): boolean {
+    return room.caseId === BANK_AL_SAHA_CASE_ID;
   }
 
+  private resolveWarehouseCase(caseId: string): WarehouseCaseDefinition | undefined {
+    return caseId === warehouseCaseV1.id ? warehouseCaseV1 : undefined;
+  }
   private toEnginePlayers(room: Room) {
     return room.players
       .slice()
@@ -178,44 +155,49 @@ export class RoomManager {
         isHost: p.isHost,
       }));
   }
-
   private initializeWarehouseMatch(room: Room): WarehouseState {
-    const definition = this.resolveCase(room.caseId)!;
-    const orderedPlayers = this.toEnginePlayers(room);
-    const firstPlayerId = orderedPlayers[0]!.id;
-    const firstLocation = definition.storyOptions.locations[0]!.id;
-    return createWarehouseCase({
+    const definition = this.resolveWarehouseCase(room.caseId)!;
+    return initializeWarehouseMatch({
       definition,
       sessionId: randomId("match"),
-      players: orderedPlayers,
+      players: this.toEnginePlayers(room),
       now: this.now(),
-      sharedStory: {
-        entryReason: definition.storyOptions.entryReasons[0]!.id,
-        entryRoute: definition.storyOptions.entryRoutes[0]!.id,
-        keyHolderInitial: firstPlayerId,
-        location2346: Object.fromEntries(
-          orderedPlayers.map((candidate) => [candidate.id, firstLocation]),
-        ),
-        carPurpose: definition.storyOptions.carPurposes[0]!.id,
-        carDepartureExpected: true,
-      },
     });
   }
-
-  /** Mirror server player connection state into the live Warehouse match. */
+  private initializeBankMatch(room: Room): BankMatchState {
+    return initializeBankMatch({
+      matchId: randomId("match"),
+      seed: room.seed,
+      players: this.toEnginePlayers(room),
+    });
+  }
+  private initializeMatch(room: Room): WarehouseState | BankMatchState {
+    return this.isBankRoom(room)
+      ? this.initializeBankMatch(room)
+      : this.initializeWarehouseMatch(room);
+  }
   private syncMatchPlayers(room: Room): void {
     if (!room.match) return;
+    if (this.isBankRoom(room)) {
+      const match = room.match as BankMatchState;
+      room.match = {
+        ...match,
+        players: match.players.map((matchPlayer) => {
+          const serverPlayer = room.players.find(({ id }) => id === matchPlayer.id);
+          return serverPlayer ? { ...matchPlayer, isHost: serverPlayer.isHost } : matchPlayer;
+        }),
+      };
+      return;
+    }
+    const match = room.match as WarehouseState;
     room.match = {
-      ...room.match,
-      players: room.match.players.map((matchPlayer) => {
+      ...match,
+      players: match.players.map((matchPlayer) => {
         const serverPlayer = room.players.find((player) => player.id === matchPlayer.id);
-        return serverPlayer
-          ? { ...matchPlayer, connected: serverPlayer.connected }
-          : matchPlayer;
+        return serverPlayer ? { ...matchPlayer, connected: serverPlayer.connected } : matchPlayer;
       }),
     };
   }
-
   getRoom(code: string): Room | undefined {
     return this.rooms.get(code.toUpperCase());
   }
@@ -229,8 +211,11 @@ export class RoomManager {
     }
     throw new Error("Unable to allocate room code");
   }
-
-  private newPlayer(name: string, joinOrder: number, isHost: boolean): {
+  private newPlayer(
+    name: string,
+    joinOrder: number,
+    isHost: boolean,
+  ): {
     player: ServerPlayer;
     recoveryToken: string;
   } {
@@ -249,20 +234,27 @@ export class RoomManager {
     };
     return { player, recoveryToken };
   }
-
-  // --- lifecycle ---
-
-  createRoom(params: {
-    hostName: string;
-    caseId?: string;
-    settings?: Partial<RoomSettings>;
-    ip: string;
-  }): ManagerResult<CreateResult> {
+  createRoom(params: CreateRoomParams): ManagerResult<CreateResult> {
+    return this.createRoomForCase(params, this.allowLegacyCases);
+  }
+  /** Test-only compatibility path. This method is never registered by the public gateway. */
+  createLegacyRoom(params: CreateRoomParams & { caseId: string }): ManagerResult<CreateResult> {
+    return this.createRoomForCase(params, true);
+  }
+  private createRoomForCase(
+    params: CreateRoomParams,
+    allowLegacyCases: boolean,
+  ): ManagerResult<CreateResult> {
     if (this.rateLimitsEnabled && !this.limiter.check("create", params.ip)) {
       return this.err("RATE_LIMITED");
     }
     const caseId = params.caseId ?? DEFAULT_CASE_ID;
-    if (!this.resolveCase(caseId)) return this.err("ACTION_NOT_ALLOWED", "unknown case");
+    if (
+      caseId !== BANK_AL_SAHA_CASE_ID &&
+      (!allowLegacyCases || !this.resolveWarehouseCase(caseId))
+    ) {
+      return this.err("ACTION_NOT_ALLOWED", "unknown case");
+    }
 
     const t = this.now();
     const code = this.uniqueCode();
@@ -277,6 +269,7 @@ export class RoomManager {
       lastActivityAt: t,
       expiresAt: t + this.ttlMs,
       seed: this.seedFactory(),
+      phaseEnteredAt: t,
       players: [player],
       match: null,
     };
@@ -292,7 +285,9 @@ export class RoomManager {
     const room = this.getRoom(params.code);
     if (!room) {
       const tombstoneUntil = this.expiredCodes.get(params.code.toUpperCase());
-      return this.err(tombstoneUntil && tombstoneUntil > this.now() ? "ROOM_EXPIRED" : "ROOM_NOT_FOUND");
+      return this.err(
+        tombstoneUntil && tombstoneUntil > this.now() ? "ROOM_EXPIRED" : "ROOM_NOT_FOUND",
+      );
     }
     if (room.status === "expired") return this.err("ROOM_EXPIRED");
     if (room.status !== "lobby") return this.err("MATCH_STARTED");
@@ -328,20 +323,18 @@ export class RoomManager {
     const player = room.players.find((p) => p.id === params.playerId);
     if (!player) return this.err("SESSION_INVALID");
     if (!player.isHost) return this.err("NOT_HOST");
-    // Idempotent: a second start once active is a no-op success.
     if (room.status !== "lobby") return { ok: true, data: null };
     if (room.players.length < MIN_PLAYERS) return this.err("NOT_READY", "need at least 4 players");
     if (room.players.length > MAX_PLAYERS) return this.err("ROOM_FULL");
     if (!room.players.every((p) => p.ready)) return this.err("NOT_READY");
 
-    room.match = this.initializeWarehouseMatch(room);
+    room.match = this.initializeMatch(room);
+    room.phaseEnteredAt = this.now();
     room.status = "active";
     this.touch(room);
     this.log.log("info", "match_started", { roomId: room.id, players: room.players.length });
     return { ok: true, data: null };
   }
-
-  // --- reconnect / host transfer ---
 
   restore(params: { recoveryToken: string }): ManagerResult<{
     roomCode: string;
@@ -353,8 +346,12 @@ export class RoomManager {
       for (const player of room.players) {
         if (verifyToken(params.recoveryToken, player.sessionHash)) {
           const rotated = generateRecoveryToken();
-          if (room.match) {
-            room.match = reconnectWarehousePlayer(room.match, player.id, this.now());
+          if (room.match && !this.isBankRoom(room)) {
+            room.match = reconnectWarehousePlayer(
+              room.match as WarehouseState,
+              player.id,
+              this.now(),
+            );
           }
           player.sessionHash = hashToken(rotated);
           player.connected = true;
@@ -362,7 +359,10 @@ export class RoomManager {
           this.syncMatchPlayers(room);
           this.touch(room);
           this.log.log("info", "session_restored", { roomId: room.id });
-          return { ok: true, data: { roomCode: room.code, playerId: player.id, rotatedToken: rotated } };
+          return {
+            ok: true,
+            data: { roomCode: room.code, playerId: player.id, rotatedToken: rotated },
+          };
         }
       }
     }
@@ -400,9 +400,9 @@ export class RoomManager {
           candidatePlayer.socketId = null;
           candidatePlayer.connected = false;
           candidatePlayer.disconnectedAt = this.now();
-          if (candidateRoom.match) {
+          if (candidateRoom.match && !this.isBankRoom(candidateRoom)) {
             candidateRoom.match = disconnectWarehousePlayer(
-              candidateRoom.match,
+              candidateRoom.match as WarehouseState,
               candidatePlayer.id,
               candidatePlayer.disconnectedAt,
             );
@@ -412,8 +412,8 @@ export class RoomManager {
         }
       }
       const previousSocketId = player.socketId;
-      if (room.match) {
-        room.match = reconnectWarehousePlayer(room.match, player.id, this.now());
+      if (room.match && !this.isBankRoom(room)) {
+        room.match = reconnectWarehousePlayer(room.match as WarehouseState, player.id, this.now());
       }
       player.socketId = socketId;
       player.connected = true;
@@ -424,15 +424,18 @@ export class RoomManager {
     return null;
   }
 
-  /** Handle a socket dropping. Marks disconnected and transfers host if needed. */
   handleDisconnect(socketId: string): { code: string } | null {
     for (const room of this.rooms.values()) {
       const player = room.players.find((p) => p.socketId === socketId);
       if (!player) continue;
       player.connected = false;
       player.disconnectedAt = this.now();
-      if (room.match) {
-        room.match = disconnectWarehousePlayer(room.match, player.id, player.disconnectedAt);
+      if (room.match && !this.isBankRoom(room)) {
+        room.match = disconnectWarehousePlayer(
+          room.match as WarehouseState,
+          player.id,
+          player.disconnectedAt,
+        );
       }
       player.socketId = null;
       if (player.isHost) this.transferHost(room, player.id);
@@ -453,77 +456,12 @@ export class RoomManager {
     }
   }
 
-  // --- gameplay intents ---
-
-  private applyWarehouseIntent(
-    room: Room,
-    player: ServerPlayer,
-    intent: WarehouseManagerIntent | EngineIntent,
-    now: number,
-  ): WarehouseState {
-    const state = room.match!;
-    const definition = this.resolveCase(room.caseId)!;
-    switch (intent.type) {
-      case "WAREHOUSE_STORY_SET":
-        return setWarehouseStoryField(
-          state,
-          definition,
-          intent.field,
-          intent.value,
-          player.id,
-          now,
-        );
-      case "WAREHOUSE_STORY_SUBMIT":
-        return player.isHost ? submitWarehouseStory(state, now) : state;
-      case "WAREHOUSE_STORY_REVIEW": {
-        const confirmed = confirmWarehouseStory(state, player.id, now);
-        if (confirmed === state) return state;
-        return advanceWarehousePhase(confirmed, definition, now);
-      }
-      case "WAREHOUSE_START_QUESTION":
-        return startWarehouseQuestion(state, player.id, now);
-      case "WAREHOUSE_ADVANCE":
-      case "ACKNOWLEDGE":
-        return player.isHost ? advanceWarehousePhase(state, definition, now) : state;
-      case "WAREHOUSE_ANSWER": {
-        const privateView = toWarehousePrivateView(state, player.id);
-        if (privateView?.question?.instanceId !== intent.questionInstanceId) return state;
-        const answered = lockWarehouseAnswer(state, player.id, intent.optionId, now);
-        if (answered === state) return state;
-        return advanceWarehousePhase(answered, definition, now);
-      }
-      case "ANSWER": {
-        const privateView = toWarehousePrivateView(state, player.id);
-        if (privateView?.question?.instanceId !== intent.questionInstanceId) return state;
-        const answered = lockWarehouseAnswer(state, player.id, intent.optionId, now);
-        if (answered === state) return state;
-        return advanceWarehousePhase(answered, definition, now);
-      }
-      case "WAREHOUSE_DISCUSSION_READY": {
-        const ready = setWarehouseDiscussionReady(state, player.id, now);
-        if (ready === state) return state;
-        return advanceWarehousePhase(ready, definition, now);
-      }
-      case "WAREHOUSE_BALLOT": {
-        const submitted = submitWarehouseRankedBallot(
-          state,
-          { playerId: player.id, rankedOptionIds: intent.rankedOptionIds },
-          now,
-        );
-        if (submitted === state) return state;
-        return advanceWarehousePhase(submitted, definition, now);
-      }
-      default:
-        return state;
-    }
-  }
-
   gameIntent(params: {
     code: string;
     playerId: string;
     requestId: string;
     phaseRevision?: number;
-    intent: WarehouseManagerIntent | EngineIntent;
+    intent: BankManagerIntent | WarehouseManagerIntent | EngineIntent;
   }): ServerAck {
     const { requestId } = params;
     const fail = (error: SafeError): ServerAck => ({ ok: false, requestId, error });
@@ -533,8 +471,6 @@ export class RoomManager {
     const player = room.players.find((p) => p.id === params.playerId);
     if (!player) return fail(safeError("SESSION_INVALID"));
 
-    // Idempotency: identical requestId+payload replays the prior ack; a reused
-    // id with a different payload is rejected and logged (no payload echoed).
     const intentKey = JSON.stringify(params.intent);
     const cached = player.idempotency.get(requestId);
     if (cached) {
@@ -548,25 +484,44 @@ export class RoomManager {
     }
     if (!room.match) return fail(safeError("INVALID_PHASE"));
 
-    if (
-      params.phaseRevision === undefined ||
-      params.phaseRevision !== room.match.phaseRevision
-    ) {
+    if (params.phaseRevision === undefined || params.phaseRevision !== room.match.phaseRevision) {
       return fail(safeError("STALE_REVISION"));
     }
     const now = this.now();
-    const updated = this.applyWarehouseIntent(room, player, params.intent, now);
+    let updated: WarehouseState | BankMatchState;
+    try {
+      updated = this.isBankRoom(room)
+        ? applyBankIntent(room.match as BankMatchState, player, params.intent as BankManagerIntent)
+        : applyWarehouseIntent({
+            state: room.match as WarehouseState,
+            definition: this.resolveWarehouseCase(room.caseId)!,
+            player,
+            intent: params.intent as WarehouseManagerIntent | EngineIntent,
+            now,
+          });
+    } catch {
+      return fail(safeError("ACTION_NOT_ALLOWED"));
+    }
     if (updated === room.match) {
       const code =
-        params.intent.type === "WAREHOUSE_ANSWER" || params.intent.type === "ANSWER"
+        params.intent.type === "WAREHOUSE_ANSWER" ||
+        params.intent.type === "ANSWER" ||
+        params.intent.type === "BANK_ANSWER"
           ? "ANSWER_ALREADY_LOCKED"
           : "ACTION_NOT_ALLOWED";
       return fail(safeError(code));
     }
+    const previousPhase = room.match.phase;
     room.match = updated;
+    if (room.match.phase !== previousPhase) room.phaseEnteredAt = now;
 
     this.touch(room);
-    if (room.match.phase === "RESULT_REVEAL") room.status = "results";
+    if (
+      room.match.phase === "RESULT_REVEAL" ||
+      (this.isBankRoom(room) && room.match.phase === "PLAYER_RANKING")
+    ) {
+      room.status = "results";
+    }
 
     const ack: ServerAck = { ok: true, requestId, data: {} };
     this.storeIdempotency(player, requestId, { intentKey, ack });
@@ -603,13 +558,18 @@ export class RoomManager {
     }
     if (params.phaseRevision !== room.match.phaseRevision) return fail("STALE_REVISION");
 
+    if (this.isBankRoom(room)) return fail("ACTION_NOT_ALLOWED");
     const updated = skipDisconnectedWarehousePlayer(
-      room.match,
+      room.match as WarehouseState,
       params.targetPlayerId,
       this.now(),
     );
     if (updated === room.match) return fail("ACTION_NOT_ALLOWED");
-    room.match = advanceWarehousePhase(updated, this.resolveCase(room.caseId)!, this.now());
+    room.match = advanceWarehousePhase(
+      updated,
+      this.resolveWarehouseCase(room.caseId)!,
+      this.now(),
+    );
     this.touch(room);
     const ack: ServerAck = { ok: true, requestId: params.requestId, data: {} };
     this.storeIdempotency(host, params.requestId, { intentKey, ack });
@@ -624,8 +584,6 @@ export class RoomManager {
     }
   }
 
-  // --- results actions ---
-
   replay(params: { code: string; playerId: string }): ManagerResult<null> {
     const room = this.getRoom(params.code);
     if (!room) return this.err("ROOM_NOT_FOUND");
@@ -634,13 +592,13 @@ export class RoomManager {
     if (!player.isHost) return this.err("NOT_HOST");
     if (room.status !== "results") return this.err("INVALID_PHASE");
 
-    // Full reset: new seed, cleared private state, back to an active match.
     room.seed = this.seedFactory();
     for (const p of room.players) {
       p.ready = true;
       p.idempotency.clear();
     }
-    room.match = this.initializeWarehouseMatch(room);
+    room.match = this.initializeMatch(room);
+    room.phaseEnteredAt = this.now();
     room.status = "active";
     this.touch(room);
     return { ok: true, data: null };
@@ -653,19 +611,34 @@ export class RoomManager {
     if (!player) return this.err("SESSION_INVALID");
     if (!player.isHost) return this.err("NOT_HOST");
     if (room.status !== "results") return this.err("INVALID_PHASE");
-    return this.createRoom({ hostName: player.name, caseId: room.caseId, settings: room.settings, ip: "internal" });
+    return this.createRoom({
+      hostName: player.name,
+      caseId: room.caseId,
+      settings: room.settings,
+      ip: "internal",
+    });
   }
 
-  // --- timing / cleanup ---
-
-  /** Mark advisory timers elapsed without choosing, submitting, or advancing. */
   tick(): string[] {
     const now = this.now();
     const changed = new Set<string>();
     for (const room of this.rooms.values()) {
       if (room.status !== "active" || !room.match) continue;
       const before = room.match;
-      room.match = expireWarehouseAdvisoryDeadline(room.match, now);
+      if (this.isBankRoom(room)) {
+        const bank = room.match as BankMatchState;
+        room.match = advancePassiveBankPhase(
+          bank,
+          now - room.phaseEnteredAt,
+          this.phaseDurationScale,
+        );
+        if (room.match.phase !== before.phase) {
+          room.phaseEnteredAt = now;
+          if (room.match.phase === "PLAYER_RANKING") room.status = "results";
+        }
+      } else {
+        room.match = expireWarehouseAdvisoryDeadline(room.match as WarehouseState, now);
+      }
       if (room.match !== before) {
         changed.add(room.code);
       }
@@ -679,7 +652,6 @@ export class RoomManager {
     for (const [code, room] of this.rooms) {
       if (now > room.expiresAt) {
         room.status = "expired";
-        // Wipe private state on expiry.
         room.match = null;
         room.players.forEach((p) => (p.idempotency = new Map()));
         this.rooms.delete(code);
@@ -694,23 +666,55 @@ export class RoomManager {
     return removed;
   }
 
-  // --- views ---
-
-  publicView(code: string): PublicRoomView | (WarehousePublicView & {
-    protocolVersion: 1;
-    roomCode: string;
-    deadlineAt: number | null;
-    serverTime: number;
-    caseId: string;
-    caseVersion: string;
-  }) | null {
+  publicView(code: string):
+    | PublicRoomView
+    | (WarehousePublicView & {
+        protocolVersion: 1;
+        roomCode: string;
+        deadlineAt: number | null;
+        serverTime: number;
+        caseId: string;
+        caseVersion: string;
+      })
+    | (Omit<ReturnType<typeof toBankPublicView>, "matchId"> & {
+        protocolVersion: 1;
+        roomCode: string;
+        deadlineAt: null;
+        serverTime: number;
+        caseId: string;
+        caseVersion: string;
+      })
+    | null {
     const room = this.getRoom(code);
     if (!room) return null;
-    const gameCase = this.resolveCase(room.caseId)!;
+    const gameCase = this.isBankRoom(room) ? bankAlSahaV1 : this.resolveWarehouseCase(room.caseId)!;
     if (!room.match) {
-      return this.lobbyPublicView(room, gameCase);
+      return buildLobbyPublicView({
+        roomCode: room.code,
+        caseId: room.caseId,
+        caseVersion: gameCase.version,
+        serverTime: this.now(),
+        players: room.players,
+      });
     }
-    const view = toWarehousePublicView(room.match, gameCase);
+    if (this.isBankRoom(room)) {
+      const { matchId: _matchId, ...bankView } = toBankPublicView(
+        room.match as BankMatchState,
+      );
+      return {
+        ...bankView,
+        protocolVersion: 1,
+        roomCode: room.code,
+        deadlineAt: null,
+        serverTime: this.now(),
+        caseId: room.caseId,
+        caseVersion: gameCase.version,
+      };
+    }
+    const view = toWarehousePublicView(
+      room.match as WarehouseState,
+      gameCase as WarehouseCaseDefinition,
+    );
     return {
       ...view,
       protocolVersion: 1,
@@ -722,42 +726,24 @@ export class RoomManager {
     };
   }
 
-  private lobbyPublicView(room: Room, gameCase: WarehouseCaseDefinition): PublicRoomView {
-    return {
-      protocolVersion: 1,
-      roomCode: room.code,
-      phase: "LOBBY",
-      phaseRevision: 0,
-      deadlineAt: null,
-      serverTime: this.now(),
-      caseId: room.caseId,
-      caseVersion: gameCase.version,
-      players: room.players
-        .slice()
-        .sort((a, b) => a.joinOrder - b.joinOrder)
-        .map((p) => ({
-          id: p.id,
-          name: p.name,
-          joinOrder: p.joinOrder,
-          ready: p.ready,
-          connected: p.connected,
-          isHost: p.isHost,
-        })),
-      releasedStory: {},
-      evidence: [],
-      releasedContradiction: null,
-      patchOptions: null,
-      commitments: [],
-      result: null,
-    };
-  }
-
-  privateView(code: string, playerId: string): PrivatePlayerView | (WarehousePrivateView & {
-    protocolVersion: 1;
-    isHost: boolean;
-    connected: boolean;
-    phaseRevision: number;
-  }) | null {
+  privateView(
+    code: string,
+    playerId: string,
+  ):
+    | PrivatePlayerView
+    | (WarehousePrivateView & {
+        protocolVersion: 1;
+        isHost: boolean;
+        connected: boolean;
+        phaseRevision: number;
+      })
+    | (NonNullable<ReturnType<typeof toSafeBankPrivateView>> & {
+        protocolVersion: 1;
+        isHost: boolean;
+        connected: boolean;
+        phaseRevision: number;
+      })
+    | null {
     const room = this.getRoom(code);
     if (!room) return null;
     const player = room.players.find((p) => p.id === playerId);
@@ -778,7 +764,19 @@ export class RoomManager {
         ownResultNote: null,
       };
     }
-    const view = toWarehousePrivateView(room.match, playerId, player.isHost);
+    if (this.isBankRoom(room)) {
+      const view = toSafeBankPrivateView(room.match as BankMatchState, playerId);
+      return view
+        ? {
+            ...view,
+            protocolVersion: 1,
+            isHost: player.isHost,
+            connected: player.connected,
+            phaseRevision: room.match.phaseRevision,
+          }
+        : null;
+    }
+    const view = toWarehousePrivateView(room.match as WarehouseState, playerId, player.isHost);
     return view
       ? {
           ...view,
@@ -790,7 +788,6 @@ export class RoomManager {
       : null;
   }
 
-  /** Player ids + socket ids for a room, for the gateway to emit to. */
   roomSockets(code: string): { playerId: string; socketId: string | null }[] {
     const room = this.getRoom(code);
     if (!room) return [];

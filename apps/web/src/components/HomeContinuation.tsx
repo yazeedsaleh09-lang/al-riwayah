@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { publicCaseSummaries } from "@al-riwayah/content";
 import { ActionGroup, SectionHeader, SimpleCard, StepCard } from "./SimpleUI";
 
@@ -12,9 +11,9 @@ export function HomeContinuation() {
         <div className="simple-container">
           <SectionHeader label="كيف تمشي الجلسة" title="ثلاث خطوات واضحة." id="home-how-title" />
           <div className="simple-grid">
-            <StepCard number="١" title="اتفقوا">رتبوا السبب والمكان والأدوار في رواية واحدة.</StepCard>
-            <StepCard number="٢" title="جاوبوا">كل واحد يجاوب لحاله من جواله.</StepCard>
-            <StepCard number="٣" title="واجهوا النتيجة">ناقشوا التناقضات وشوفوا التقرير.</StepCard>
+            <StepCard number="١" title="ابنوا الرواية">ثبتوا أماكنكم والمفتاح والشنطة على خريطة بنك الساحة.</StepCard>
+            <StepCard number="٢" title="جاوبوا لحالكم">كل واحد يثبت جوابًا خاصًا من جواله.</StepCard>
+            <StepCard number="٣" title="حموا تفسيركم">اختاروا تفسيرًا، واجهوه بالدليل، وشوفوا الحكم والترتيب.</StepCard>
           </div>
         </div>
       </section>
@@ -24,11 +23,11 @@ export function HomeContinuation() {
           <SectionHeader
             label="داخل الجلسة"
             title="كل مرحلة لها هدف واحد."
-            copy="الأسئلة الخاصة تختبر التفاصيل، والتقرير يجمع أثر كل إجابة."
+            copy="كل سؤال ودليل يطلع بسبب الرواية اللي ثبتتوها، والشبهة تتغير بسبب واضح."
             id="session-title"
           />
           <div className="simple-grid simple-grid--two">
-            {["أسئلة خاصة", "تناقضات", "أسئلة متابعة", "تقرير نهائي"].map((item) => (
+            {["خريطة مشتركة", "سؤالان خاصان", "تفسير ودليل", "حكم وترتيب"].map((item) => (
               <SimpleCard key={item}><h3>{item}</h3></SimpleCard>
             ))}
           </div>
@@ -58,23 +57,17 @@ export function HomeContinuation() {
           <SectionHeader
             label="على الجوال"
             title="واجهة مركزة لكل لحظة."
-            copy="اللوبي والسؤال والنتيجة يحافظون على نفس التجربة المعتمدة."
+            copy="الخريطة والسؤال والدليل والحكم يبقون داخل ملف تحقيق واحد واضح."
             id="preview-title"
           />
           <div className="simple-grid">
             {([
-              ["اللوبي", "شارك الرمز وشوف مين جاهز.", "/preview-lobby.png"],
-              ["السؤال", "اقرأ دليلك واختر إجابتك بسرية.", "/preview-question.png"],
-              ["النتيجة", "شوف أقوى تناقض وأفضل ترقيعة.", "/preview-result.png"],
-            ] as const).map(([title, copy, src]) => (
-              <SimpleCard key={title} className="phone-preview">
-                <Image
-                  src={src}
-                  alt={`معاينة شاشة ${title} المعتمدة`}
-                  width={390}
-                  height={844}
-                  priority={title === "اللوبي"}
-                />
+              ["الرواية على الخريطة", "حددوا أماكنكم وقت الإنذار وثبتوا المفتاح والشنطة."],
+              ["المحقق مسك تناقض", "قولان باسمين ووقت واحد، ومعهم سبب ارتفاع الشبهة."],
+              ["الدليل وصل", "الكاميرا اللي فتحها تفسيركم تختبر الحركة أو الهوية."],
+            ] as const).map(([title, copy]) => (
+              <SimpleCard key={title}>
+                <p className="simple-label">قضية بنك الساحة</p>
                 <h3>{title}</h3><p>{copy}</p>
               </SimpleCard>
             ))}

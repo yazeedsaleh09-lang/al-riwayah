@@ -20,7 +20,8 @@ describe("full Warehouse match through the server authority", () => {
     const view = manager.publicView(code)! as WarehousePublicView;
     expect(view.phase).toBe("RESULT_REVEAL");
     expect(view.result?.status).toBe("complete");
-    expect(manager.getRoom(code)!.match!.resolvedChapters).toEqual([
+    const match = manager.getRoom(code)!.match!;
+    expect("resolvedChapters" in match ? match.resolvedChapters : []).toEqual([
       "power",
       "device",
       "car",

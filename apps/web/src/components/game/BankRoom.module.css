@@ -25,6 +25,7 @@
 .locationBoard > figcaption { padding: 10px 12px; border-block-end: 1px solid #b9ac97; color: #675e52; font-size: .76rem; font-weight: 800; }
 .locations { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: #b9ac97; }
 .locations section { min-width: 0; padding: 11px; background: #faf3e6; }
+.locations section:last-child:nth-child(odd) { grid-column: 1 / -1; }
 .locations section > strong { display: block; margin-block-end: 5px; color: #8f2824; font-size: .78rem; }
 .locations p { display: flex; flex-wrap: wrap; gap: 5px 9px; margin: 0; line-height: 1.35; }
 .locations p > span { display: inline-flex; min-width: 0; align-items: center; gap: 4px; font-weight: 800; }
@@ -85,7 +86,8 @@
 .replay { padding-block-start: 8vh; text-align: center; }
 .replay h1 { margin-inline: auto; }
 .replay .finalActions { margin-inline: auto; max-width: 440px; }
-.replay .finalActions > :not(.primary) { min-height: 44px; border-color: transparent; text-align: center; }
+.replay .finalActions .primary { border-color: #191713; background: #191713; color: #fff8e9; }
+.replay .finalActions > button:not(.primary), .replay .finalActions > a { min-height: 44px; border-color: transparent; background: transparent; text-align: center; }
 @keyframes grow { from { transform: scaleX(0); } }
 @media (max-width: 350px) { .body { padding-inline: 12px; } .body h1 { font-size: 1.85rem; } .casebar { padding-inline: 12px; } .rankingHead, .ranking li { grid-template-columns: 46px 1fr auto; gap: 6px; } .ranking small { font-size: .72rem; } }
 @media (min-width: 640px) { .body h1 { font-size: 3.25rem; } .locations { grid-template-columns: repeat(3, 1fr); } .repairs { grid-template-columns: repeat(2, 1fr); } }

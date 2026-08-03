@@ -190,6 +190,7 @@ for (const count of [4, 5, 6] as const) {
       await expect(host.getByTestId("bank-room")).toHaveAttribute("data-screen", "9");
       await expect(host.getByRole("button", { name: "أعيدوا قضية بنك الساحة" })).toBeVisible();
       await expect(host.getByText("الأدلة والمسار ممكن يتغيرون.")).toBeVisible();
+      await expect(host.getByRole("button", { name: "أعيدوا قضية بنك الساحة" })).toHaveCSS("background-color", "rgb(25, 23, 19)");
       if (count === 4) await expectNoSeriousA11yViolations(host);
       await host.setViewportSize({ width: 320, height: 568 });
       const width = await host.evaluate(() => ({
